@@ -1,0 +1,7 @@
+pyproject.toml
+runtime/aidd_runtime/__init__.py
+runtime/kimi_aidd_plugin.egg-info/PKG-INFO
+runtime/kimi_aidd_plugin.egg-info/SOURCES.txt
+runtime/kimi_aidd_plugin.egg-info/dependency_links.txt
+runtime/kimi_aidd_plugin.egg-info/requires.txt
+runtime/kimi_aidd_plugin.egg-info/top_level.txt
