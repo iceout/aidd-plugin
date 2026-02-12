@@ -7,7 +7,7 @@ AIDD (AI-Driven Development) 插件移植到 Kimi Code CLI。
 ### 1. 环境设置
 
 ```bash
-cd /Users/iceout/code/kimi-cli/.agents/skills/kimi-aidd-plugin
+cd <your-path-to-plugin>
 source scripts/activate.sh
 ```
 
@@ -22,7 +22,7 @@ source scripts/activate.sh
 添加到 `~/.bashrc` 或 `~/.zshrc`：
 
 ```bash
-export KIMI_AIDD_ROOT=/Users/iceout/code/kimi-cli/.agents/skills/kimi-aidd-plugin
+export KIMI_AIDD_ROOT=<your-path-to-plugin>
 ```
 
 ### 4. 验证安装

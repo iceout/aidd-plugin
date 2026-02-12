@@ -4,7 +4,7 @@
 
 ```bash
 # 环境已配置好
-export KIMI_AIDD_ROOT=/Users/iceout/code/kimi-cli/.agents/skills/kimi-aidd-plugin
+export KIMI_AIDD_ROOT=<your-path-to-plugin>
 ```
 
 ## 3 分钟上手
@@ -53,7 +53,7 @@ kimi
 
 ### 环境变量错误？
 ```bash
-export KIMI_AIDD_ROOT=/Users/iceout/code/kimi-cli/.agents/skills/kimi-aidd-plugin
+export KIMI_AIDD_ROOT=<your-path-to-plugin>
 export PYTHONPATH=$KIMI_AIDD_ROOT/runtime:$PYTHONPATH
 ```
 
