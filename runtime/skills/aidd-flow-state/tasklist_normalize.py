@@ -5,13 +5,12 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Dict, List
 
 from aidd_runtime import tasklist_check as core
 
 
 def deps_satisfied(
-    deps: List[str],
+    deps: list[str],
     iteration_map: dict[str, core.IterationItem],
     handoff_map: dict[str, core.HandoffItem],
 ) -> bool:
@@ -34,11 +33,11 @@ def deps_satisfied(
 
 
 def unmet_deps(
-    deps: List[str],
+    deps: list[str],
     iteration_map: dict[str, core.IterationItem],
     handoff_map: dict[str, core.HandoffItem],
-) -> List[str]:
-    unmet: List[str] = []
+) -> list[str]:
+    unmet: list[str] = []
     for dep_id in deps:
         dep_id = core.normalize_dep_id(dep_id)
         if not dep_id:
@@ -58,11 +57,11 @@ def unmet_deps(
 
 
 def build_open_items(
-    iterations: List[core.IterationItem],
-    handoff_items: List[core.HandoffItem],
-    plan_order: List[str],
-) -> tuple[List[core.WorkItem], dict[str, core.IterationItem], dict[str, core.HandoffItem]]:
-    items: List[core.WorkItem] = []
+    iterations: list[core.IterationItem],
+    handoff_items: list[core.HandoffItem],
+    plan_order: list[str],
+) -> tuple[list[core.WorkItem], dict[str, core.IterationItem], dict[str, core.HandoffItem]]:
+    items: list[core.WorkItem] = []
     iteration_map = {item.item_id: item for item in iterations if item.item_id}
     handoff_map = {item.item_id: item for item in handoff_items if item.item_id}
     plan_index = {item_id: idx for idx, item_id in enumerate(plan_order)}
@@ -127,7 +126,7 @@ def build_open_items(
     return items, iteration_map, handoff_map
 
 
-def build_next3_lines(open_items: List[core.WorkItem], preamble: List[str] | None = None) -> List[str]:
+def build_next3_lines(open_items: list[core.WorkItem], preamble: list[str] | None = None) -> list[str]:
     lines = ["## AIDD:NEXT_3"]
     if preamble:
         lines.extend(preamble)
@@ -143,16 +142,16 @@ def build_next3_lines(open_items: List[core.WorkItem], preamble: List[str] | Non
 
 
 def normalize_progress_section(
-    lines: List[str],
+    lines: list[str],
     ticket: str,
     root: Path,
-    summary: List[str],
+    summary: list[str],
     *,
     dry_run: bool,
-) -> List[str]:
+) -> list[str]:
     body = lines[1:]
-    preamble: List[str] = []
-    content: List[str] = []
+    preamble: list[str] = []
+    content: list[str] = []
     for idx, line in enumerate(body):
         if line.strip().startswith("-"):
             content = body[idx:]
@@ -191,10 +190,10 @@ def normalize_progress_section(
     return new_lines
 
 
-def normalize_qa_traceability(lines: List[str], summary: List[str]) -> List[str]:
+def normalize_qa_traceability(lines: list[str], summary: list[str]) -> list[str]:
     body = lines[1:]
-    preamble: List[str] = []
-    content: List[str] = []
+    preamble: list[str] = []
+    content: list[str] = []
     for idx, line in enumerate(body):
         if line.strip().startswith("-"):
             content = body[idx:]
@@ -203,7 +202,7 @@ def normalize_qa_traceability(lines: List[str], summary: List[str]) -> List[str]
     if not content:
         content = []
     parsed = core.parse_qa_traceability(content)
-    merged: List[str] = [lines[0], *preamble]
+    merged: list[str] = [lines[0], *preamble]
     for ac_id in sorted(parsed.keys()):
         status = parsed[ac_id].get("status") or "met"
         evidence_list = parsed[ac_id].get("evidence") or []
@@ -220,20 +219,20 @@ def normalize_qa_traceability(lines: List[str], summary: List[str]) -> List[str]
     return merged
 
 
-def normalize_handoff_section(sections: List[core.Section], summary: List[str]) -> List[str]:
+def normalize_handoff_section(sections: list[core.Section], summary: list[str]) -> list[str]:
     if not sections:
         return []
     base = sections[0]
-    body: List[str] = []
+    body: list[str] = []
     for section in sections:
         body.extend(core.section_body(section))
-    manual_block: List[str] = []
+    manual_block: list[str] = []
     in_manual = False
-    blocks_by_source: dict[str, List[str]] = {}
-    block_order: List[str] = []
+    blocks_by_source: dict[str, list[str]] = {}
+    block_order: list[str] = []
     current_source: str | None = None
-    current_lines: List[str] = []
-    outside_lines: List[str] = []
+    current_lines: list[str] = []
+    outside_lines: list[str] = []
 
     def flush_block() -> None:
         nonlocal current_source, current_lines
@@ -275,10 +274,10 @@ def normalize_handoff_section(sections: List[core.Section], summary: List[str]) 
 
     flush_block()
 
-    def split_preamble_and_tasks(lines: List[str]) -> tuple[List[str], List[List[str]]]:
-        preamble: List[str] = []
-        tasks: List[List[str]] = []
-        current: List[str] = []
+    def split_preamble_and_tasks(lines: list[str]) -> tuple[list[str], list[list[str]]]:
+        preamble: list[str] = []
+        tasks: list[list[str]] = []
+        current: list[str] = []
         for line in lines:
             if core.CHECKBOX_RE.match(line):
                 if current:
@@ -294,12 +293,12 @@ def normalize_handoff_section(sections: List[core.Section], summary: List[str]) 
 
     preamble, loose_tasks = split_preamble_and_tasks(outside_lines)
 
-    manual_tasks: List[str] = []
+    manual_tasks: list[str] = []
     for block in loose_tasks:
         manual_tasks.extend(block)
 
     if manual_block:
-        injected: List[str] = []
+        injected: list[str] = []
         inserted = False
         for line in manual_block:
             if "handoff:manual end" in line and manual_tasks and not inserted:
@@ -310,10 +309,10 @@ def normalize_handoff_section(sections: List[core.Section], summary: List[str]) 
     else:
         manual_block = ["<!-- handoff:manual start -->", *manual_tasks, "<!-- handoff:manual end -->"]
 
-    def clean_blocks(raw_lines: List[str], *, source: str) -> List[str]:
+    def clean_blocks(raw_lines: list[str], *, source: str) -> list[str]:
         task_blocks = core.split_checkbox_blocks(raw_lines)
-        kept: List[List[str]] = []
-        dedup: dict[str, List[str]] = {}
+        kept: list[list[str]] = []
+        dedup: dict[str, list[str]] = {}
         deduped = 0
         source = core.normalize_source(source)
 
@@ -339,7 +338,7 @@ def normalize_handoff_section(sections: List[core.Section], summary: List[str]) 
             summary.append(f"deduped {deduped} handoff task(s)")
         return [line for block in kept for line in block]
 
-    merged_blocks: List[str] = [base.lines[0]]
+    merged_blocks: list[str] = [base.lines[0]]
     if preamble:
         merged_blocks.extend(preamble)
     if manual_block:
@@ -374,11 +373,11 @@ def normalize_tasklist(
     lines = text.splitlines()
     front, _ = core.parse_front_matter(lines)
     sections, section_map = core.parse_sections(lines)
-    summary: List[str] = []
-    new_lines: List[str] = []
+    summary: list[str] = []
+    new_lines: list[str] = []
     consumed = 0
 
-    def section_replacement(section: core.Section, all_sections: List[core.Section]) -> List[str]:
+    def section_replacement(section: core.Section, all_sections: list[core.Section]) -> list[str]:
         title = section.title
         if title == "AIDD:HANDOFF_INBOX":
             return normalize_handoff_section(all_sections, summary)
@@ -426,7 +425,7 @@ def normalize_tasklist(
                 open_ref_tokens.add(f"(ref: iteration_id={item.item_id})")
             else:
                 open_ref_tokens.add(f"(ref: id={item.item_id})")
-        archived_refs: List[str] = []
+        archived_refs: list[str] = []
         seen_archived_refs: set[str] = set()
         if next3_section:
             for block in core.parse_next3_items(core.section_body(next3_section[0])):

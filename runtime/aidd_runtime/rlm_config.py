@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Dict, Iterable
 
-from aidd_runtime.resources import DEFAULT_PROJECT_SUBDIR, resolve_project_root as resolve_workspace_root
-
+from aidd_runtime.resources import DEFAULT_PROJECT_SUBDIR
+from aidd_runtime.resources import resolve_project_root as resolve_workspace_root
 
 DEFAULT_PROMPT_VERSION = "v1"
 DEFAULT_IGNORE_DIRS = {
@@ -57,7 +57,7 @@ SPECIAL_FILES = {
 }
 
 
-def load_conventions(root: Path) -> Dict:
+def load_conventions(root: Path) -> dict:
     path = root / "config" / "conventions.json"
     if not path.exists():
         return {}
@@ -67,7 +67,7 @@ def load_conventions(root: Path) -> Dict:
         return {}
 
 
-def load_rlm_settings(root: Path) -> Dict:
+def load_rlm_settings(root: Path) -> dict:
     cfg = load_conventions(root)
     rlm = cfg.get("rlm")
     if isinstance(rlm, dict):
@@ -167,7 +167,7 @@ def normalize_ignore_dirs(raw: Iterable[str] | None) -> set[str]:
     return items or set(DEFAULT_IGNORE_DIRS)
 
 
-def prompt_version(settings: Dict) -> str:
+def prompt_version(settings: dict) -> str:
     raw = settings.get("prompt_version")
     if isinstance(raw, str) and raw.strip():
         return raw.strip()

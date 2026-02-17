@@ -6,7 +6,6 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Dict, List
 
 from aidd_runtime import tasklist_check as core
 from aidd_runtime import tasklist_normalize as normalize
@@ -23,8 +22,8 @@ def check_tasklist_text(
     front, body_start = core.parse_front_matter(lines)
     sections, section_map = core.parse_sections(lines)
 
-    errors: List[str] = []
-    warnings: List[str] = []
+    errors: list[str] = []
+    warnings: list[str] = []
 
     def add_issue(severity: str, message: str) -> None:
         if severity == "error":
@@ -110,7 +109,7 @@ def check_tasklist_text(
     prd_path = core.resolve_prd_path(root, front, ticket)
     spec_path = core.resolve_spec_path(root, front, ticket)
     spec_hint_path = spec_path or (root / "docs" / "spec" / f"{ticket}.spec.yaml")
-    plan_ids: List[str] = []
+    plan_ids: list[str] = []
     if plan_path.exists():
         plan_ids = core.parse_plan_iteration_ids(root, plan_path)
         if not plan_ids:
@@ -198,9 +197,9 @@ def check_tasklist_text(
         if not placeholder:
             add_issue("error", "AIDD:NEXT_3 missing (none) placeholder")
 
-    next3_ids: List[str] = []
-    next3_order_keys: List[tuple] = []
-    next3_unmet: Dict[str, List[str]] = {}
+    next3_ids: list[str] = []
+    next3_order_keys: list[tuple] = []
+    next3_unmet: dict[str, list[str]] = {}
     for block in next3_blocks:
         header = block[0].lower()
         if "[x]" in header:
@@ -214,7 +213,7 @@ def check_tasklist_text(
         next3_ids.append(ref_id)
         if ref_id in iteration_map:
             item = iteration_map[ref_id]
-            unmet: List[str] = []
+            unmet: list[str] = []
             if item.deps:
                 unmet = normalize.unmet_deps(item.deps, iteration_map, handoff_map)
                 if unmet:
@@ -406,7 +405,7 @@ def check_tasklist_text(
                 add_issue("warn", f"PROGRESS_LOG entry for {item_id} but checkbox not done")
                 warned_progress.add(key)
 
-    def block_has_link(block: List[str]) -> bool:
+    def block_has_link(block: list[str]) -> bool:
         for line in block:
             if "link:" in line or "link=" in line or "aidd/reports/" in line:
                 return True

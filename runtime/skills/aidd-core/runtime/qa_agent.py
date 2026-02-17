@@ -17,15 +17,15 @@ import os
 import re
 import subprocess
 import sys
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 from aidd_runtime import runtime
 from aidd_runtime.feature_ids import resolve_aidd_root, resolve_identifiers
 
 
-def detect_project_root(target: Optional[Path] = None) -> Path:
+def detect_project_root(target: Path | None = None) -> Path:
     return resolve_aidd_root(target or Path.cwd())
 
 
@@ -34,7 +34,7 @@ ROOT_DIR = Path.cwd()
 DEFAULT_BLOCKERS = ("blocker", "critical")
 DEFAULT_WARNINGS = ("major", "minor")
 SEVERITY_ORDER = ["blocker", "critical", "major", "minor", "info"]
-MANUAL_MARKERS = ("manual", "ручн")
+MANUAL_MARKERS = ("manual",)
 
 
 def _normalize_id_text(value: str) -> str:
@@ -51,7 +51,7 @@ def _stable_id(prefix: str, *parts: str) -> str:
     return digest.hexdigest()[:12]
 
 
-def feature_label(ticket: Optional[str], slug_hint: Optional[str]) -> str:
+def feature_label(ticket: str | None, slug_hint: str | None) -> str:
     ticket_value = (ticket or "").strip()
     hint_value = (slug_hint or "").strip()
     if not ticket_value:
@@ -91,7 +91,7 @@ class Finding:
         }
 
 
-def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run heuristic QA checks for the current Claude workflow project."
     )
@@ -152,12 +152,12 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def detect_feature(ticket_arg: Optional[str], slug_hint_arg: Optional[str]) -> tuple[Optional[str], Optional[str]]:
+def detect_feature(ticket_arg: str | None, slug_hint_arg: str | None) -> tuple[str | None, str | None]:
     identifiers = resolve_identifiers(ROOT_DIR, ticket=ticket_arg, slug_hint=slug_hint_arg)
     return identifiers.resolved_ticket, identifiers.slug_hint
 
 
-def run_git(args: Sequence[str]) -> List[str]:
+def run_git(args: Sequence[str]) -> list[str]:
     cmd = ["git", *args]
     try:
         proc = subprocess.run(
@@ -175,8 +175,8 @@ def run_git(args: Sequence[str]) -> List[str]:
     return [line.strip() for line in proc.stdout.splitlines() if line.strip()]
 
 
-def collect_changed_files() -> List[str]:
-    files: Set[str] = set()
+def collect_changed_files() -> list[str]:
+    files: set[str] = set()
     diff_base = os.environ.get("QA_AGENT_DIFF_BASE", "").strip()
     if diff_base:
         files.update(run_git(["diff", "--name-only", f"{diff_base}...HEAD"]))
@@ -186,31 +186,31 @@ def collect_changed_files() -> List[str]:
     return sorted(files)
 
 
-def _find_token_lines(content: str, token: str) -> Iterable[Tuple[int, str]]:
+def _find_token_lines(content: str, token: str) -> Iterable[tuple[int, str]]:
     for idx, line in enumerate(content.splitlines(), start=1):
         if token in line:
             yield idx, line.strip()
 
 
-def analyse_code_tokens(files: Iterable[str]) -> List[Finding]:
-    findings: List[Finding] = []
+def analyse_code_tokens(files: Iterable[str]) -> list[Finding]:
+    findings: list[Finding] = []
     token_rules = {
         "FIXME": (
             "blocker",
-            "Обнаружен FIXME в коде",
-            "Удалите/устраните FIXME перед мерджем (QA блокер).",
+            "Found FIXME in code",
+            "Remove or resolve FIXME before merge (QA blocker).",
         ),
         "TODO": (
             "major",
-            "Не закрыт TODO",
-            "Уберите TODO или перенесите в задачу с ссылкой перед релизом.",
+            "Unresolved TODO",
+            "Resolve TODO or move it into a tracked task before release.",
         ),
     }
     for relative in files:
         path = ROOT_DIR / relative
         if not path.is_file():
             continue
-        # Ограничимся только исходниками и тестами
+        # Limit scanning to source files and tests.
         if not any(part in relative for part in ("src/", "tests/", ".kt", ".java", ".py", ".js", ".ts", ".tsx", ".json", ".yaml")):
             continue
         try:
@@ -242,24 +242,24 @@ def _is_qa_checklist_heading(line: str) -> bool:
     return "AIDD:CHECKLIST_QA" in line
 
 
-def _extract_blocking_flag(line: str) -> Optional[bool]:
+def _extract_blocking_flag(line: str) -> bool | None:
     match = re.search(r"\(Blocking:\s*(true|false)\)", line, re.IGNORECASE)
     if not match:
         return None
     return match.group(1).lower() == "true"
 
 
-def analyse_tasklist(ticket: Optional[str], slug_hint: Optional[str]) -> tuple[List[Finding], List[str]]:
+def analyse_tasklist(ticket: str | None, slug_hint: str | None) -> tuple[list[Finding], list[str]]:
     tasklist_dir = ROOT_DIR / "docs" / "tasklist"
-    candidates: List[Path] = []
+    candidates: list[Path] = []
     if ticket:
         candidate = tasklist_dir / f"{ticket}.md"
         if candidate.exists():
             candidates.append(candidate)
     else:
         candidates.extend(sorted(tasklist_dir.glob("*.md")))
-    findings: List[Finding] = []
-    manual_required: List[str] = []
+    findings: list[Finding] = []
+    manual_required: list[str] = []
     for tasklist_path in candidates:
         try:
             lines = tasklist_path.read_text(encoding="utf-8").splitlines()
@@ -301,9 +301,9 @@ def analyse_tasklist(ticket: Optional[str], slug_hint: Optional[str]) -> tuple[L
                     Finding(
                         severity="major" if is_manual else "blocker",
                         scope="checklist",
-                        title=f"Незакрыт QA пункт в {tasklist_path.relative_to(ROOT_DIR)}",
+                        title=f"Open QA item in {tasklist_path.relative_to(ROOT_DIR)}",
                         details=f"{tasklist_path.relative_to(ROOT_DIR)}:{idx} → {stripped}",
-                        recommendation="Закройте QA задачи в чеклисте или перенесите их в backlog с обоснованием.",
+                        recommendation="Close QA checklist items or move them to backlog with rationale.",
                         id=checklist_id,
                     )
                 )
@@ -319,9 +319,9 @@ def analyse_tasklist(ticket: Optional[str], slug_hint: Optional[str]) -> tuple[L
                 Finding(
                     severity="blocker" if blocking_flag else "major",
                     scope="checklist",
-                    title=f"Незакрыт QA пункт в {tasklist_path.relative_to(ROOT_DIR)}",
+                    title=f"Open QA item in {tasklist_path.relative_to(ROOT_DIR)}",
                     details=f"{tasklist_path.relative_to(ROOT_DIR)}:{idx} → {stripped}",
-                    recommendation="Закройте QA задачи в чеклисте или перенесите их в backlog с обоснованием.",
+                    recommendation="Close QA checklist items or move them to backlog with rationale.",
                     id=handoff_id,
                     blocking=blocking_flag,
                 )
@@ -329,7 +329,7 @@ def analyse_tasklist(ticket: Optional[str], slug_hint: Optional[str]) -> tuple[L
     return findings, manual_required
 
 
-def analyse_tests_coverage(files: Sequence[str]) -> List[Finding]:
+def analyse_tests_coverage(files: Sequence[str]) -> list[Finding]:
     main_changes = [f for f in files if f.startswith("src/main/")]
     test_changes = [f for f in files if f.startswith("src/test/") or f.startswith("tests/")]
     if not main_changes or test_changes:
@@ -341,18 +341,18 @@ def analyse_tests_coverage(files: Sequence[str]) -> List[Finding]:
         Finding(
             severity="major",
             scope="tests",
-            title="Нет обновлений тестов для изменённого кода",
-            details=f"Изменены {len(main_changes)} файла(ов): {changed_preview}",
-            recommendation="Добавьте или обновите тесты, либо зафиксируйте причину отсутствия покрывающих сценариев.",
+            title="No test updates for changed code",
+            details=f"Changed files ({len(main_changes)}): {changed_preview}",
+            recommendation="Add or update tests, or document why extra coverage is not required.",
         )
     ]
 
 
-def load_tests_metadata() -> tuple[str, List[Dict], bool]:
+def load_tests_metadata() -> tuple[str, list[dict], bool]:
     summary = (os.environ.get("QA_TESTS_SUMMARY") or "").strip().lower() or "not-run"
     allow_no_tests = (os.environ.get("QA_ALLOW_NO_TESTS") or "").strip() == "1"
     executed_raw = os.environ.get("QA_TESTS_EXECUTED") or ""
-    executed: List[Dict] = []
+    executed: list[dict] = []
     if executed_raw:
         try:
             parsed = json.loads(executed_raw)
@@ -363,8 +363,8 @@ def load_tests_metadata() -> tuple[str, List[Dict], bool]:
     return summary, executed, allow_no_tests
 
 
-def analyse_tests_run(summary: str, executed: List[Dict], allow_missing: bool) -> List[Finding]:
-    findings: List[Finding] = []
+def analyse_tests_run(summary: str, executed: list[dict], allow_missing: bool) -> list[Finding]:
+    findings: list[Finding] = []
     summary = summary.strip().lower() if summary else "not-run"
     if summary == "fail":
         log_hint = ""
@@ -372,14 +372,14 @@ def analyse_tests_run(summary: str, executed: List[Dict], allow_missing: bool) -
             if str(entry.get("status")).lower() == "fail":
                 log_hint = entry.get("log") or entry.get("log_path") or ""
                 break
-        details = f"Лог: {log_hint}" if log_hint else ""
+        details = f"Log: {log_hint}" if log_hint else ""
         findings.append(
             Finding(
                 severity="blocker",
                 scope="tests",
-                title="Автотесты завершились с ошибкой",
+                title="Automated tests failed",
                 details=details,
-                recommendation="Исправьте упавшие тесты и повторите запуск.",
+                recommendation="Fix failing tests and rerun.",
             )
         )
     elif summary in {"not-run", "skipped"}:
@@ -388,9 +388,9 @@ def analyse_tests_run(summary: str, executed: List[Dict], allow_missing: bool) -
             Finding(
                 severity=severity,
                 scope="tests",
-                title="Тесты не запускались",
-                details="Автотесты не были выполнены на стадии QA.",
-                recommendation="Запустите автотесты или укажите причину пропуска.",
+                title="Tests were not executed",
+                details="Automated tests did not run in QA stage.",
+                recommendation="Run automated tests or document the skip reason.",
             )
         )
     return findings
@@ -398,14 +398,14 @@ def analyse_tests_run(summary: str, executed: List[Dict], allow_missing: bool) -
 
 def aggregate_findings(
     files: Sequence[str],
-    ticket: Optional[str],
-    slug_hint: Optional[str],
+    ticket: str | None,
+    slug_hint: str | None,
     *,
     tests_summary: str,
-    tests_executed: List[Dict],
+    tests_executed: list[dict],
     allow_missing_tests: bool,
-) -> tuple[List[Finding], List[str]]:
-    findings: List[Finding] = []
+) -> tuple[list[Finding], list[str]]:
+    findings: list[Finding] = []
     findings.extend(analyse_code_tokens(files))
     tasklist_findings, manual_required = analyse_tasklist(ticket, slug_hint)
     findings.extend(tasklist_findings)
@@ -414,9 +414,9 @@ def aggregate_findings(
     return findings, manual_required
 
 
-def dedupe_findings(findings: Sequence[Finding]) -> List[Finding]:
+def dedupe_findings(findings: Sequence[Finding]) -> list[Finding]:
     seen: set[str] = set()
-    deduped: List[Finding] = []
+    deduped: list[Finding] = []
     for finding in findings:
         if finding.id in seen:
             continue
@@ -428,10 +428,10 @@ def dedupe_findings(findings: Sequence[Finding]) -> List[Finding]:
 def summarise(
     findings: Sequence[Finding],
     *,
-    blockers_set: Optional[set[str]] = None,
-    warnings_set: Optional[set[str]] = None,
-) -> Tuple[str, dict, int, int, str]:
-    counts = {severity: 0 for severity in SEVERITY_ORDER}
+    blockers_set: set[str] | None = None,
+    warnings_set: set[str] | None = None,
+) -> tuple[str, dict, int, int, str]:
+    counts = dict.fromkeys(SEVERITY_ORDER, 0)
     for finding in findings:
         severity = finding.severity.lower()
         counts[severity] = counts.get(severity, 0) + 1
@@ -441,16 +441,16 @@ def summarise(
     blockers = sum(counts.get(severity, 0) for severity in active_blockers)
     warnings = sum(counts.get(severity, 0) for severity in active_warnings)
 
-    parts: List[str] = []
+    parts: list[str] = []
     if blockers:
-        parts.append(f"блокеров {blockers}")
+        parts.append(f"blockers {blockers}")
     if warnings:
-        parts.append(f"предупреждений {warnings}")
+        parts.append(f"warnings {warnings}")
     if not parts:
-        summary = "замечаний не найдено"
+        summary = "no findings"
     else:
         summary = ", ".join(parts)
-    summary = f"Итог: {summary}."
+    summary = f"Summary: {summary}."
 
     if blockers:
         status = "BLOCKED"
@@ -467,9 +467,9 @@ def write_report(report_path: Path, payload: dict) -> None:
     report_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def dedupe_strings(items: Sequence[str]) -> List[str]:
+def dedupe_strings(items: Sequence[str]) -> list[str]:
     seen: set[str] = set()
-    deduped: List[str] = []
+    deduped: list[str] = []
     for item in items:
         key = item.strip()
         if not key or key in seen:
@@ -479,7 +479,7 @@ def dedupe_strings(items: Sequence[str]) -> List[str]:
     return deduped
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     global ROOT_DIR
     ROOT_DIR = detect_project_root()
@@ -511,7 +511,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     )
     label = feature_label(ticket, slug_hint)
     generated_at = (
-        dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+        dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
     )
 
     payload = {

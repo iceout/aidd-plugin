@@ -3,12 +3,18 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import List
 
-from aidd_runtime import reports_pack, rlm_jsonl_compact, rlm_links_build, rlm_nodes_build, rlm_verify, runtime
+from aidd_runtime import (
+    reports_pack,
+    rlm_jsonl_compact,
+    rlm_links_build,
+    rlm_nodes_build,
+    rlm_verify,
+    runtime,
+)
 
 
-def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Finalize RLM artifacts after agent-generated nodes.",
     )
@@ -19,7 +25,7 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: List[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     _, project_root = runtime.require_workflow_root()
     ticket, _ = runtime.require_ticket(project_root, ticket=args.ticket, slug_hint=None)

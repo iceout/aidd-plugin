@@ -4,8 +4,8 @@ import argparse
 import datetime as dt
 import json
 import os
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 from aidd_runtime import runtime
 
@@ -145,7 +145,7 @@ def main(argv: list[str] | None = None) -> int:
             "ticket": ticket,
             "slug": context.slug_hint or ticket,
             field_name: status,
-            "updated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+            "updated_at": dt.datetime.now(dt.UTC).isoformat(),
         }
     )
     if requested_by:

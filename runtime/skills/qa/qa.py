@@ -9,16 +9,14 @@ import subprocess
 import sys
 from fnmatch import fnmatch
 from pathlib import Path
-from typing import Any, Dict, Optional
 
 _PLUGIN_ROOT = Path(__file__).resolve().parents[3]
-os.environ.setdefault("KIMI_AIDD_ROOT", str(_PLUGIN_ROOT))
+os.environ.setdefault("AIDD_ROOT", str(_PLUGIN_ROOT))
 if str(_PLUGIN_ROOT) not in sys.path:
     sys.path.insert(0, str(_PLUGIN_ROOT))
 
 from aidd_runtime import qa_agent as _qa_agent
-from aidd_runtime import runtime
-from aidd_runtime import tasklist_parser
+from aidd_runtime import runtime, tasklist_parser
 
 
 def _default_qa_test_command() -> list[list[str]]:
@@ -55,9 +53,6 @@ DEFAULT_DISCOVERY_ALLOWLIST = (
 )
 
 SKIP_MARKERS = (
-    "форматирование/тесты пропущены",
-    "стадия тестов пропущена",
-    "тесты пропущены",
     "tests skipped",
     "skipping tests",
     "no tests to run",
@@ -427,7 +422,7 @@ def _run_qa_tests(
             log_path = logs_dir / f"{base_name}-tests{suffix}.log"
             log_path.parent.mkdir(parents=True, exist_ok=True)
             status = "fail"
-            exit_code: Optional[int] = None
+            exit_code: int | None = None
             output = ""
             if plan_cmd and plan_cmd[0] in {"./gradlew", "gradlew"} and not (plan_cwd / "gradlew").exists():
                 status = "fail"
@@ -594,13 +589,15 @@ def main(argv: list[str] | None = None) -> int:
 
     allow_no_tests = bool(
         getattr(args, "allow_no_tests", False)
-        or os.getenv("KIMI_QA_ALLOW_NO_TESTS", "").strip() == "1"
+        or os.getenv("AIDD_QA_ALLOW_NO_TESTS", "").strip() == "1"
     )
     if tests_required_mode == "hard":
         allow_no_tests = False
     elif tests_required_mode == "soft":
         allow_no_tests = True
-    skip_tests = bool(getattr(args, "skip_tests", False) or os.getenv("KIMI_QA_SKIP_TESTS", "").strip() == "1")
+    skip_tests = bool(
+        getattr(args, "skip_tests", False) or os.getenv("AIDD_QA_SKIP_TESTS", "").strip() == "1"
+    )
 
     tasklist_exec = _load_tasklist_test_execution(target, ticket)
     tasklist_exec_present = _has_tasklist_execution(tasklist_exec)
@@ -768,9 +765,7 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 os.environ[key] = value
 
-    if tests_summary == "fail":
-        exit_code = max(exit_code, 1)
-    elif tests_summary in {"not-run", "skipped"} and not allow_no_tests_env:
+    if tests_summary == "fail" or tests_summary in {"not-run", "skipped"} and not allow_no_tests_env:
         exit_code = max(exit_code, 1)
 
     report_status = ""
@@ -808,9 +803,10 @@ def main(argv: list[str] | None = None) -> int:
                 stage_result_args.extend(
                     ["--evidence-link", f"qa_tests_log={log_paths[-1]}"]
                 )
-        from aidd_runtime import stage_result as _stage_result
         import io
         from contextlib import redirect_stderr, redirect_stdout
+
+        from aidd_runtime import stage_result as _stage_result
 
         stage_result_args.extend(["--format", "json"])
         with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):

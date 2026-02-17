@@ -4,24 +4,22 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import difflib
+import hashlib
 import json
 import re
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterable, List, Optional
 
-from aidd_runtime import gates
-from aidd_runtime import runtime
+from aidd_runtime import gates, runtime
 from aidd_runtime.feature_ids import resolve_aidd_root, resolve_identifiers
 
-
 PLACEHOLDER_VALUES = {"", "...", "<...>", "tbd", "<tbd>", "todo", "<todo>"}
-NONE_VALUES = {"none", "нет", "n/a", "na"}
-SPEC_PLACEHOLDERS = {"none", "нет", "n/a", "na", "-", "missing"}
+NONE_VALUES = {"none", "n/a", "na"}
+SPEC_PLACEHOLDERS = {"none", "n/a", "na", "-", "missing"}
 SPEC_REQUIRED_PATTERNS = [
     re.compile(pattern, re.IGNORECASE)
     for pattern in (
@@ -35,13 +33,6 @@ SPEC_REQUIRED_PATTERNS = [
         r"/frontend/",
         r"/front-end/",
         r"\bweb\b",
-        r"\bинтерфейс",
-        r"\bэкран",
-        r"\bстраниц",
-        r"\bформа\b",
-        r"\bдизайн\b",
-        r"\bвизуал",
-        r"\bмакет",
         r"\blayout\b",
         r"\bapi\b",
         r"\bendpoint\b",
@@ -56,18 +47,10 @@ SPEC_REQUIRED_PATTERNS = [
         r"\bdata\b",
         r"\btable\b",
         r"\bcolumn\b",
-        r"\bконтракт\b",
-        r"\bсхем",
-        r"\bмиграц",
-        r"\bбаз",
-        r"\bданн",
-        r"\bтаблиц",
-        r"\bколонк",
         r"\be2e\b",
         r"\bend[- ]to[- ]end\b",
         r"\bstaging\b",
         r"\bstand\b",
-        r"\bстенд\b",
     )
 ]
 
@@ -117,7 +100,7 @@ class Section:
     title: str
     start: int
     end: int
-    lines: List[str]
+    lines: list[str]
 
 
 @dataclass
@@ -130,8 +113,8 @@ class Issue:
 class TasklistCheckResult:
     status: str
     message: str = ""
-    details: List[str] | None = None
-    warnings: List[str] | None = None
+    details: list[str] | None = None
+    warnings: list[str] | None = None
 
     def exit_code(self) -> int:
         return 0 if self.status in {"ok", "warn", "skip"} else 2
@@ -147,9 +130,9 @@ class IterationItem:
     explicit_id: bool
     priority: str
     blocking: bool
-    deps: List[str]
-    locks: List[str]
-    lines: List[str]
+    deps: list[str]
+    locks: list[str]
+    lines: list[str]
 
 
 @dataclass
@@ -161,7 +144,7 @@ class HandoffItem:
     priority: str
     blocking: bool
     source: str
-    lines: List[str]
+    lines: list[str]
 
 
 @dataclass
@@ -177,7 +160,7 @@ class WorkItem:
 @dataclass
 class NormalizeResult:
     updated_text: str
-    summary: List[str]
+    summary: list[str]
     changed: bool
 
 
@@ -246,7 +229,7 @@ def _write_tasklist_cache(
         "stage": stage,
         "hash": hash_value,
         "config_hash": config_hash,
-        "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "updated_at": datetime.now(UTC).isoformat(timespec="seconds"),
     }
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
@@ -265,7 +248,7 @@ def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def parse_front_matter(lines: List[str]) -> tuple[dict[str, str], int]:
+def parse_front_matter(lines: list[str]) -> tuple[dict[str, str], int]:
     if not lines or lines[0].strip() != "---":
         return {}, 0
     end_idx = None
@@ -285,8 +268,8 @@ def parse_front_matter(lines: List[str]) -> tuple[dict[str, str], int]:
     return front, end_idx + 1
 
 
-def parse_sections(lines: List[str]) -> tuple[List[Section], dict[str, List[Section]]]:
-    sections: List[Section] = []
+def parse_sections(lines: list[str]) -> tuple[list[Section], dict[str, list[Section]]]:
+    sections: list[Section] = []
     for idx, line in enumerate(lines):
         match = SECTION_HEADER_RE.match(line)
         if not match:
@@ -299,19 +282,19 @@ def parse_sections(lines: List[str]) -> tuple[List[Section], dict[str, List[Sect
         sections.append(Section(title=title, start=idx, end=len(lines), lines=[]))
     for section in sections:
         section.lines = lines[section.start:section.end]
-    mapped: dict[str, List[Section]] = {}
+    mapped: dict[str, list[Section]] = {}
     for section in sections:
         mapped.setdefault(section.title, []).append(section)
     return sections, mapped
 
 
-def section_body(section: Section | None) -> List[str]:
+def section_body(section: Section | None) -> list[str]:
     if not section:
         return []
     return section.lines[1:]
 
 
-def extract_field_value(lines: List[str], field: str) -> str | None:
+def extract_field_value(lines: list[str], field: str) -> str | None:
     pattern = re.compile(rf"^\s*(?:[-*]\s*)?{re.escape(field)}\s*:\s*(.*)$", re.IGNORECASE)
     for line in lines:
         match = pattern.match(line)
@@ -320,7 +303,7 @@ def extract_field_value(lines: List[str], field: str) -> str | None:
     return None
 
 
-def block_has_heading(lines: List[str], heading: str) -> bool:
+def block_has_heading(lines: list[str], heading: str) -> bool:
     pattern = re.compile(rf"^\s*-\s*{re.escape(heading)}\s*:\s*(.*)$", re.IGNORECASE)
     for line in lines:
         if pattern.match(line):
@@ -336,7 +319,7 @@ def is_placeholder(value: str) -> bool:
     return stripped.startswith("<") and stripped.endswith(">")
 
 
-def parse_inline_list(value: str) -> List[str]:
+def parse_inline_list(value: str) -> list[str]:
     raw = value.strip()
     if not raw:
         return []
@@ -349,14 +332,14 @@ def parse_inline_list(value: str) -> List[str]:
     return [item for item in items if not is_placeholder(item)]
 
 
-def extract_list_field(lines: List[str], field: str) -> List[str]:
+def extract_list_field(lines: list[str], field: str) -> list[str]:
     pattern = re.compile(rf"^(?P<indent>\s*)-\s*{re.escape(field)}\s*:\s*$", re.IGNORECASE)
     for idx, line in enumerate(lines):
         match = pattern.match(line)
         if not match:
             continue
         base_indent = len(match.group("indent"))
-        items: List[str] = []
+        items: list[str] = []
         for raw in lines[idx + 1 :]:
             if not raw.strip():
                 continue
@@ -373,7 +356,7 @@ def extract_list_field(lines: List[str], field: str) -> List[str]:
     return []
 
 
-def extract_mapping_field(lines: List[str], field: str) -> Dict[str, str]:
+def extract_mapping_field(lines: list[str], field: str) -> Dict[str, str]:
     pattern = re.compile(rf"^(?P<indent>\s*)-\s*{re.escape(field)}\s*:\s*$", re.IGNORECASE)
     for idx, line in enumerate(lines):
         match = pattern.match(line)
@@ -422,9 +405,9 @@ def parse_int(value: str | None) -> int | None:
         return None
 
 
-def split_checkbox_blocks(lines: List[str]) -> List[List[str]]:
-    blocks: List[List[str]] = []
-    current: List[str] = []
+def split_checkbox_blocks(lines: list[str]) -> list[list[str]]:
+    blocks: list[list[str]] = []
+    current: list[str] = []
     for line in lines:
         if CHECKBOX_RE.match(line):
             if current:
@@ -439,7 +422,7 @@ def split_checkbox_blocks(lines: List[str]) -> List[List[str]]:
     return blocks
 
 
-def extract_iteration_id(block: List[str]) -> str | None:
+def extract_iteration_id(block: list[str]) -> str | None:
     for line in block:
         match = ITERATION_ID_RE.search(line)
         if match:
@@ -449,7 +432,7 @@ def extract_iteration_id(block: List[str]) -> str | None:
     return match.group(0) if match else None
 
 
-def extract_handoff_id(block: List[str]) -> str | None:
+def extract_handoff_id(block: list[str]) -> str | None:
     for line in block:
         match = ID_RE.search(line)
         if match:
@@ -475,9 +458,9 @@ def parse_parenthetical_fields(header: str) -> dict[str, str]:
     return fields
 
 
-def split_iteration_blocks(lines: List[str]) -> List[List[str]]:
-    blocks: List[List[str]] = []
-    current: List[str] = []
+def split_iteration_blocks(lines: list[str]) -> list[list[str]]:
+    blocks: list[list[str]] = []
+    current: list[str] = []
     for line in lines:
         stripped = line.lstrip()
         if not stripped.startswith("-"):
@@ -502,8 +485,8 @@ def split_iteration_blocks(lines: List[str]) -> List[List[str]]:
     return blocks
 
 
-def parse_iteration_items(section_lines: List[str]) -> List[IterationItem]:
-    items: List[IterationItem] = []
+def parse_iteration_items(section_lines: list[str]) -> list[IterationItem]:
+    items: list[IterationItem] = []
     for block in split_iteration_blocks(section_lines):
         header = block[0].strip()
         checkbox_state = "unknown"
@@ -560,8 +543,8 @@ def parse_iteration_items(section_lines: List[str]) -> List[IterationItem]:
     return items
 
 
-def parse_handoff_items(section_lines: List[str]) -> List[HandoffItem]:
-    parsed: List[HandoffItem] = []
+def parse_handoff_items(section_lines: list[str]) -> list[HandoffItem]:
+    parsed: list[HandoffItem] = []
     for block in split_checkbox_blocks(section_lines):
         header = block[0]
         checkbox_state = "unknown"
@@ -594,11 +577,11 @@ def parse_handoff_items(section_lines: List[str]) -> List[HandoffItem]:
     return parsed
 
 
-def parse_next3_items(section_lines: List[str]) -> List[List[str]]:
+def parse_next3_items(section_lines: list[str]) -> list[list[str]]:
     return split_checkbox_blocks(section_lines)
 
 
-def extract_ref_id(block: List[str]) -> tuple[str, str | None, bool]:
+def extract_ref_id(block: list[str]) -> tuple[str, str | None, bool]:
     ref_value = None
     for line in block:
         match = REF_RE.search(line)
@@ -620,9 +603,9 @@ def extract_ref_id(block: List[str]) -> tuple[str, str | None, bool]:
     return "", None, False
 
 
-def progress_entries_from_lines(lines: List[str]) -> tuple[List[dict], List[str]]:
-    entries: List[dict] = []
-    invalid: List[str] = []
+def progress_entries_from_lines(lines: list[str]) -> tuple[list[dict], list[str]]:
+    entries: list[dict] = []
+    invalid: list[str] = []
     for raw in lines:
         if not raw.strip().startswith("-"):
             continue
@@ -641,9 +624,9 @@ def progress_entries_from_lines(lines: List[str]) -> tuple[List[dict], List[str]
     return entries, invalid
 
 
-def dedupe_progress(entries: List[dict]) -> List[dict]:
+def dedupe_progress(entries: list[dict]) -> list[dict]:
     seen = set()
-    deduped: List[dict] = []
+    deduped: list[dict] = []
     for entry in entries:
         key = (entry.get("date"), entry.get("source"), entry.get("item_id"), entry.get("hash"))
         if key in seen:
@@ -709,7 +692,7 @@ def severity_for_stage(stage: str, *, strict: bool = False) -> str:
     return "warn"
 
 
-def resolve_stage(root: Path, context_pack: List[str]) -> str:
+def resolve_stage(root: Path, context_pack: list[str]) -> str:
     value = runtime.read_active_stage(root)
     if value:
         return value.lower()
@@ -735,7 +718,7 @@ def parse_plan_iteration_ids(root: Path, plan_path: Path) -> list[str]:
     return ids
 
 
-def pick_open_state(checkbox_state: str, state_value: str) -> tuple[Optional[bool], str]:
+def pick_open_state(checkbox_state: str, state_value: str) -> tuple[bool | None, str]:
     state = (state_value or "").strip().lower()
     if state and state not in ITERATION_STATE_VALUES:
         return None, state
@@ -746,7 +729,7 @@ def pick_open_state(checkbox_state: str, state_value: str) -> tuple[Optional[boo
     return None, state
 
 
-def handoff_open_state(checkbox_state: str, status: str) -> tuple[Optional[bool], str]:
+def handoff_open_state(checkbox_state: str, status: str) -> tuple[bool | None, str]:
     status_value = (status or "").strip().lower()
     if status_value and status_value not in HANDOFF_STATUS_VALUES:
         return None, status_value
@@ -757,7 +740,7 @@ def handoff_open_state(checkbox_state: str, status: str) -> tuple[Optional[bool]
     return None, status_value
 
 
-def next3_placeholder_present(lines: List[str]) -> bool:
+def next3_placeholder_present(lines: list[str]) -> bool:
     for line in lines:
         stripped = line.strip().lower()
         if stripped.startswith("- (none)") or "no pending" in stripped:
@@ -765,7 +748,7 @@ def next3_placeholder_present(lines: List[str]) -> bool:
     return False
 
 
-def extract_bullets(lines: List[str]) -> int:
+def extract_bullets(lines: list[str]) -> int:
     count = 0
     for line in lines:
         if re.match(r"^\s*-\s+", line):
@@ -773,7 +756,7 @@ def extract_bullets(lines: List[str]) -> int:
     return count
 
 
-def subsection_lines(section_lines: List[str], heading: str) -> List[str]:
+def subsection_lines(section_lines: list[str], heading: str) -> list[str]:
     start = None
     for idx, line in enumerate(section_lines):
         if line.strip().lower() == heading.lower():
@@ -789,7 +772,7 @@ def subsection_lines(section_lines: List[str], heading: str) -> List[str]:
     return section_lines[start:end]
 
 
-def collect_stacktrace_flags(lines: List[str]) -> bool:
+def collect_stacktrace_flags(lines: list[str]) -> bool:
     at_count = 0
     caused_count = 0
     in_fence = False
@@ -821,9 +804,9 @@ def collect_stacktrace_flags(lines: List[str]) -> bool:
     return False
 
 
-def large_code_fence_without_report(lines: List[str]) -> bool:
+def large_code_fence_without_report(lines: list[str]) -> bool:
     in_fence = False
-    fence_lines: List[int] = []
+    fence_lines: list[int] = []
     start_idx = 0
     for idx, line in enumerate(lines):
         if line.strip().startswith("```"):
@@ -841,7 +824,7 @@ def large_code_fence_without_report(lines: List[str]) -> bool:
     return False
 
 
-def find_report_link_near(lines: List[str], idx: int, window: int = 5) -> bool:
+def find_report_link_near(lines: list[str], idx: int, window: int = 5) -> bool:
     start = max(0, idx - window)
     end = min(len(lines), idx + window + 1)
     for line in lines[start:end]:
@@ -850,7 +833,7 @@ def find_report_link_near(lines: List[str], idx: int, window: int = 5) -> bool:
     return False
 
 
-def parse_qa_traceability(section_lines: List[str]) -> dict[str, dict]:
+def parse_qa_traceability(section_lines: list[str]) -> dict[str, dict]:
     result: dict[str, dict] = {}
     for line in section_lines:
         match = re.search(r"\bAC-([A-Za-z0-9_-]+)\b", line)
@@ -928,7 +911,7 @@ def rel_path(root: Path, path: Path) -> str:
 def extract_section_text(text: str, titles: Iterable[str]) -> str:
     lines = text.splitlines()
     _, section_map = parse_sections(lines)
-    collected: List[str] = []
+    collected: list[str] = []
     for title in titles:
         for section in section_map.get(title, []):
             collected.extend(section_body(section))
@@ -950,7 +933,7 @@ def progress_archive_path(root: Path, ticket: str) -> Path:
 
 
 def deps_satisfied(
-    deps: List[str],
+    deps: list[str],
     iteration_map: dict[str, IterationItem],
     handoff_map: dict[str, HandoffItem],
 ) -> bool:
@@ -960,51 +943,51 @@ def deps_satisfied(
 
 
 def unmet_deps(
-    deps: List[str],
+    deps: list[str],
     iteration_map: dict[str, IterationItem],
     handoff_map: dict[str, HandoffItem],
-) -> List[str]:
+) -> list[str]:
     from aidd_runtime import tasklist_normalize as _tasklist_normalize
 
     return _tasklist_normalize.unmet_deps(deps, iteration_map, handoff_map)
 
 
 def build_open_items(
-    iterations: List[IterationItem],
-    handoff_items: List[HandoffItem],
-    plan_order: List[str],
-) -> tuple[List[WorkItem], dict[str, IterationItem], dict[str, HandoffItem]]:
+    iterations: list[IterationItem],
+    handoff_items: list[HandoffItem],
+    plan_order: list[str],
+) -> tuple[list[WorkItem], dict[str, IterationItem], dict[str, HandoffItem]]:
     from aidd_runtime import tasklist_normalize as _tasklist_normalize
 
     return _tasklist_normalize.build_open_items(iterations, handoff_items, plan_order)
 
 
-def build_next3_lines(open_items: List[WorkItem], preamble: List[str] | None = None) -> List[str]:
+def build_next3_lines(open_items: list[WorkItem], preamble: list[str] | None = None) -> list[str]:
     from aidd_runtime import tasklist_normalize as _tasklist_normalize
 
     return _tasklist_normalize.build_next3_lines(open_items, preamble)
 
 
 def normalize_progress_section(
-    lines: List[str],
+    lines: list[str],
     ticket: str,
     root: Path,
-    summary: List[str],
+    summary: list[str],
     *,
     dry_run: bool,
-) -> List[str]:
+) -> list[str]:
     from aidd_runtime import tasklist_normalize as _tasklist_normalize
 
     return _tasklist_normalize.normalize_progress_section(lines, ticket, root, summary, dry_run=dry_run)
 
 
-def normalize_qa_traceability(lines: List[str], summary: List[str]) -> List[str]:
+def normalize_qa_traceability(lines: list[str], summary: list[str]) -> list[str]:
     from aidd_runtime import tasklist_normalize as _tasklist_normalize
 
     return _tasklist_normalize.normalize_qa_traceability(lines, summary)
 
 
-def normalize_handoff_section(sections: List[Section], summary: List[str]) -> List[str]:
+def normalize_handoff_section(sections: list[Section], summary: list[str]) -> list[str]:
     from aidd_runtime import tasklist_normalize as _tasklist_normalize
 
     return _tasklist_normalize.normalize_handoff_section(sections, summary)
@@ -1114,7 +1097,7 @@ def run_check(args: argparse.Namespace) -> int:
                 if normalized.changed:
                     backup_dir = root / "reports" / "tasklist_backups" / ticket
                     backup_dir.mkdir(parents=True, exist_ok=True)
-                    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+                    timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
                     backup_path = backup_dir / f"{timestamp}.md"
                     backup_path.write_text(original, encoding="utf-8")
                     tasklist_path.write_text(normalized.updated_text, encoding="utf-8")

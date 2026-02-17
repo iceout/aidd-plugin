@@ -17,7 +17,7 @@ description: |
 ## Review Pack 生成
 
 ```bash
-python3 $KIMI_AIDD_ROOT/runtime/skills/review/runtime/review_pack.py --ticket FUNC-123
+python3 $AIDD_ROOT/runtime/skills/review/runtime/review_pack.py --ticket FUNC-123
 ```
 
 ## Findings 格式

@@ -18,14 +18,14 @@ import json
 import os
 import re
 import sys
-from dataclasses import dataclass, asdict
+from collections.abc import Iterable
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Iterable, List, Optional
 
 from aidd_runtime.feature_ids import resolve_aidd_root, resolve_identifiers
 
 
-def detect_project_root(target: Optional[Path] = None) -> Path:
+def detect_project_root(target: Path | None = None) -> Path:
     base = target or Path.cwd()
     return resolve_aidd_root(base)
 DEFAULT_STATUS = "pending"
@@ -89,8 +89,8 @@ class Report:
     slug: str
     status: str
     recommended_status: str
-    findings: List[Finding]
-    action_items: List[str]
+    findings: list[Finding]
+    action_items: list[str]
     generated_at: str
 
     def to_dict(self) -> dict:
@@ -99,7 +99,7 @@ class Report:
         return payload
 
 
-def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Perform lightweight PRD review heuristics."
     )
@@ -147,7 +147,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def detect_feature(root: Path, ticket_arg: Optional[str], slug_arg: Optional[str]) -> tuple[str, str]:
+def detect_feature(root: Path, ticket_arg: str | None, slug_arg: str | None) -> tuple[str, str]:
     ticket_candidate = (ticket_arg or "").strip() or None
     slug_candidate = (slug_arg or "").strip() or None
 
@@ -163,17 +163,17 @@ def detect_feature(root: Path, ticket_arg: Optional[str], slug_arg: Optional[str
     return "", ""
 
 
-def locate_prd(root: Path, ticket: str, explicit: Optional[Path]) -> Path:
+def locate_prd(root: Path, ticket: str, explicit: Path | None) -> Path:
     if explicit:
         return explicit
     return root / "docs" / "prd" / f"{ticket}.prd.md"
 
 
-def extract_review_section(content: str) -> tuple[str, List[str]]:
+def extract_review_section(content: str) -> tuple[str, list[str]]:
     """Return status string and action items from the PRD Review section."""
     lines = content.splitlines()
     status = DEFAULT_STATUS
-    action_items: List[str] = []
+    action_items: list[str] = []
     inside_section = False
 
     for line in lines:
@@ -203,21 +203,21 @@ def collect_placeholders(content: str) -> Iterable[str]:
             yield trimmed
 
 
-def analyse_prd(slug: str, prd_path: Path, *, ticket: Optional[str] = None) -> Report:
+def analyse_prd(slug: str, prd_path: Path, *, ticket: str | None = None) -> Report:
     try:
         content = prd_path.read_text(encoding="utf-8")
     except FileNotFoundError:
         raise SystemExit(f"[prd-review] PRD not found: {prd_path}")
 
     status, action_items = extract_review_section(content)
-    findings: List[Finding] = []
+    findings: list[Finding] = []
 
     placeholder_hits = list(collect_placeholders(content))
     for item in placeholder_hits:
         findings.append(
             Finding(
                 severity="major",
-                title="Найдены заглушки в PRD",
+                title="Placeholder content found in PRD",
                 details=item,
             )
         )
@@ -226,8 +226,8 @@ def analyse_prd(slug: str, prd_path: Path, *, ticket: Optional[str] = None) -> R
         findings.append(
             Finding(
                 severity="minor",
-                title="Статус PRD Review не обновлён",
-                details="Укажите Status: READY после ревью.",
+                title="PRD Review status was not updated",
+                details="Set Status: READY after review.",
             )
         )
 
@@ -235,8 +235,8 @@ def analyse_prd(slug: str, prd_path: Path, *, ticket: Optional[str] = None) -> R
         findings.append(
             Finding(
                 severity="critical",
-                title="PRD Review помечен как BLOCKED",
-                details="Закройте блокеры перед разработкой.",
+                title="PRD Review is marked BLOCKED",
+                details="Resolve blockers before development.",
             )
         )
 
@@ -249,7 +249,7 @@ def analyse_prd(slug: str, prd_path: Path, *, ticket: Optional[str] = None) -> R
         recomputed_status = status or DEFAULT_STATUS
 
     generated_at = (
-        dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+        dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
     )
 
     return Report(
@@ -267,7 +267,7 @@ def print_text_report(report: Report) -> None:
     header = f"[prd-review] slug={report.slug} status={report.status} recommended={report.recommended_status}"
     print(header)
     if report.action_items:
-        print(f"- незакрытые action items ({len(report.action_items)}):")
+        print(f"- open action items ({len(report.action_items)}):")
         for item in report.action_items:
             print(f"  • {item}")
     if report.findings:
@@ -368,7 +368,7 @@ def run(args: argparse.Namespace) -> int:
     return 0
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     return run(args)
 

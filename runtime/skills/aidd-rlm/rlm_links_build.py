@@ -7,8 +7,8 @@ import hashlib
 import json
 import re
 import subprocess
+from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, Optional, Tuple
 
 from aidd_runtime import rlm_targets, runtime
 from aidd_runtime.rlm_config import (
@@ -19,7 +19,6 @@ from aidd_runtime.rlm_config import (
     normalize_path,
     resolve_source_path,
 )
-
 
 SCHEMA = "aidd.rlm_link.v1"
 SCHEMA_VERSION = "v1"
@@ -39,10 +38,10 @@ def _is_type_symbol(symbol: str) -> bool:
     return bool(_PASCAL_RE.match(tail))
 
 
-def _iter_nodes(path: Path) -> Iterable[Dict[str, object]]:
+def _iter_nodes(path: Path) -> Iterable[dict[str, object]]:
     if not path.exists():
         return []
-    nodes: List[Dict[str, object]] = []
+    nodes: list[dict[str, object]] = []
     with path.open("r", encoding="utf-8") as handle:
         for line in handle:
             raw = line.strip()
@@ -57,7 +56,7 @@ def _iter_nodes(path: Path) -> Iterable[Dict[str, object]]:
     return nodes
 
 
-def _load_targets(path: Path) -> Dict:
+def _load_targets(path: Path) -> dict:
     if not path.exists():
         return {}
     try:
@@ -66,7 +65,7 @@ def _load_targets(path: Path) -> Dict:
         return {}
 
 
-def _load_manifest(path: Path) -> Dict:
+def _load_manifest(path: Path) -> dict:
     if not path.exists():
         return {}
     try:
@@ -75,12 +74,12 @@ def _load_manifest(path: Path) -> Dict:
         return {}
 
 
-def _find_worklist_pack(root: Path, ticket: str) -> Optional[Path]:
+def _find_worklist_pack(root: Path, ticket: str) -> Path | None:
     candidate = root / "reports" / "research" / f"{ticket}-rlm.worklist.pack.json"
     return candidate if candidate.exists() else None
 
 
-def _load_worklist_scope(root: Path, ticket: str) -> Optional[Dict[str, object]]:
+def _load_worklist_scope(root: Path, ticket: str) -> dict[str, object] | None:
     worklist_path = _find_worklist_pack(root, ticket)
     if not worklist_path:
         return None
@@ -94,12 +93,12 @@ def _load_worklist_scope(root: Path, ticket: str) -> Optional[Dict[str, object]]
     return scope if isinstance(scope, dict) else None
 
 
-def _normalize_prefixes(values: Iterable[str]) -> List[str]:
+def _normalize_prefixes(values: Iterable[str]) -> list[str]:
     return rlm_targets.normalize_prefixes(values)
 
 
-def _normalize_symbol_prefixes(raw: object) -> List[str]:
-    prefixes: List[str] = []
+def _normalize_symbol_prefixes(raw: object) -> list[str]:
+    prefixes: list[str] = []
     if isinstance(raw, str):
         items: Iterable[str] = re.split(r"[,:]", raw)
     elif isinstance(raw, Iterable):
@@ -117,10 +116,10 @@ def _normalize_symbol_prefixes(raw: object) -> List[str]:
 def _filter_type_refs(
     symbols: Iterable[str],
     *,
-    include_prefixes: List[str],
-    exclude_prefixes: List[str],
-) -> List[str]:
-    filtered: List[str] = []
+    include_prefixes: list[str],
+    exclude_prefixes: list[str],
+) -> list[str]:
+    filtered: list[str] = []
     for raw in symbols:
         symbol = str(raw or "").strip()
         if not symbol:
@@ -135,17 +134,17 @@ def _filter_type_refs(
     return filtered
 
 
-def _matches_prefix(path: str, prefixes: List[str]) -> bool:
+def _matches_prefix(path: str, prefixes: list[str]) -> bool:
     for prefix in prefixes:
         if path == prefix or path.startswith(f"{prefix}/"):
             return True
     return False
 
 
-def _filter_paths_by_prefix(paths: Iterable[str], prefixes: List[str]) -> List[str]:
+def _filter_paths_by_prefix(paths: Iterable[str], prefixes: list[str]) -> list[str]:
     if not prefixes:
         return [str(item) for item in paths if str(item).strip()]
-    filtered: List[str] = []
+    filtered: list[str] = []
     for raw in paths:
         text = str(raw or "").strip()
         if not text:
@@ -156,7 +155,7 @@ def _filter_paths_by_prefix(paths: Iterable[str], prefixes: List[str]) -> List[s
     return filtered
 
 
-def _resolve_keyword_roots(base_root: Path, prefixes: List[str]) -> List[Path]:
+def _resolve_keyword_roots(base_root: Path, prefixes: list[str]) -> list[Path]:
     if prefixes:
         roots = [base_root / Path(prefix) for prefix in prefixes]
     else:
@@ -167,11 +166,11 @@ def _resolve_keyword_roots(base_root: Path, prefixes: List[str]) -> List[Path]:
 def _apply_worklist_scope(
     base_root: Path,
     *,
-    target_files: List[str],
-    keyword_hits: List[str],
-    scope: Dict[str, object],
+    target_files: list[str],
+    keyword_hits: list[str],
+    scope: dict[str, object],
     ignore_dirs: set[str],
-) -> Tuple[List[str], List[str], Dict[str, object]]:
+) -> tuple[list[str], list[str], dict[str, object]]:
     scope_paths = _normalize_prefixes(scope.get("paths") or [])
     scope_keywords = [str(item).strip() for item in scope.get("keywords") or [] if str(item).strip()]
     if not scope_paths and not scope_keywords:
@@ -183,7 +182,7 @@ def _apply_worklist_scope(
     filtered_targets = _filter_paths_by_prefix(target_files, scope_paths) if scope_paths else list(target_files)
     filtered_keyword_hits = _filter_paths_by_prefix(keyword_hits, scope_paths) if scope_paths else list(keyword_hits)
 
-    scope_stats: Dict[str, object] = {
+    scope_stats: dict[str, object] = {
         "target_files_scope": "worklist",
         "target_files_scope_total": len(filtered_targets),
         "worklist_scope_paths": len(scope_paths),
@@ -212,7 +211,7 @@ def _normalize_text(text: str) -> str:
     return " ".join(text.strip().split())
 
 
-def _match_line(text: str, symbol: str) -> Optional[Tuple[int, str]]:
+def _match_line(text: str, symbol: str) -> tuple[int, str] | None:
     if not symbol:
         return None
     escaped = re.escape(symbol)
@@ -234,9 +233,9 @@ def _evidence_ref(
     line_text: str,
     *,
     extractor: str,
-) -> Dict[str, object]:
+) -> dict[str, object]:
     normalized = _normalize_text(line_text)
-    match_hash = hashlib.sha1(f"{path}:{line_start}:{line_end}:{normalized}".encode("utf-8")).hexdigest()
+    match_hash = hashlib.sha1(f"{path}:{line_start}:{line_end}:{normalized}".encode()).hexdigest()
     return {
         "path": path,
         "line_start": line_start,
@@ -263,11 +262,11 @@ def _classify_link_type(line_text: str) -> str:
 def _rg_find_match(
     root: Path,
     symbol: str,
-    files: List[str],
+    files: list[str],
     *,
     timeout_s: int,
     max_hits: int,
-) -> Optional[Tuple[str, int, str]]:
+) -> tuple[str, int, str] | None:
     if not files:
         return None
     cmd = ["rg", "--no-messages", "-n", "-F", "-m", str(max_hits), "--", symbol]
@@ -301,7 +300,7 @@ def _rg_find_match(
     return None
 
 
-def _chunked(items: List[str], size: int) -> Iterable[List[str]]:
+def _chunked(items: list[str], size: int) -> Iterable[list[str]]:
     if size <= 0:
         yield items
         return
@@ -311,12 +310,12 @@ def _chunked(items: List[str], size: int) -> Iterable[List[str]]:
 
 def _rg_batch_find_matches(
     root: Path,
-    symbols: List[str],
-    files: List[str],
+    symbols: list[str],
+    files: list[str],
     *,
     timeout_s: int,
     max_hits: int,
-) -> Tuple[Dict[str, Tuple[str, int, str]], Optional[str]]:
+) -> tuple[dict[str, tuple[str, int, str]], str | None]:
     if not symbols or not files:
         return {}, None
     cmd = ["rg", "--no-messages", "-n", "-F"]
@@ -342,7 +341,7 @@ def _rg_batch_find_matches(
         return {}, "missing"
     if proc.returncode not in (0, 1):
         return {}, "error"
-    matches: Dict[str, Tuple[str, int, str]] = {}
+    matches: dict[str, tuple[str, int, str]] = {}
     for line in proc.stdout.splitlines():
         parts = line.split(":", 2)
         if len(parts) < 3:
@@ -366,8 +365,8 @@ def _rg_batch_find_matches(
     return matches, None
 
 
-def _build_symbol_index(nodes: Iterable[Dict[str, object]]) -> Dict[str, List[Dict[str, object]]]:
-    index: Dict[str, List[Dict[str, object]]] = {}
+def _build_symbol_index(nodes: Iterable[dict[str, object]]) -> dict[str, list[dict[str, object]]]:
+    index: dict[str, list[dict[str, object]]] = {}
     for node in nodes:
         if node.get("node_kind") != "file":
             continue
@@ -386,10 +385,10 @@ def _build_symbol_index(nodes: Iterable[Dict[str, object]]) -> Dict[str, List[Di
 def _build_links(
     resolve_path: Callable[[str], Path],
     rg_root: Path,
-    nodes: Iterable[Dict[str, object]],
+    nodes: Iterable[dict[str, object]],
     *,
-    symbol_index: Dict[str, List[Dict[str, object]]],
-    target_files: List[str],
+    symbol_index: dict[str, list[dict[str, object]]],
+    target_files: list[str],
     max_links: int,
     max_symbols_per_file: int,
     max_definition_hits_per_symbol: int,
@@ -400,10 +399,10 @@ def _build_links(
     type_refs_priority: str,
     fallback_mode: str,
     rg_verify_mode: str,
-    type_refs_include_prefixes: List[str],
-    type_refs_exclude_prefixes: List[str],
-) -> Tuple[List[Dict[str, object]], bool, Dict[str, object]]:
-    links: Dict[str, Dict[str, object]] = {}
+    type_refs_include_prefixes: list[str],
+    type_refs_exclude_prefixes: list[str],
+) -> tuple[list[dict[str, object]], bool, dict[str, object]]:
+    links: dict[str, dict[str, object]] = {}
     truncated = False
     stats = {
         "symbols_total": 0,
@@ -418,10 +417,10 @@ def _build_links(
         "type_refs_total": 0,
         "type_refs_used": 0,
     }
-    rg_cache: Dict[str, Optional[Tuple[str, int, str]]] = {}
+    rg_cache: dict[str, tuple[str, int, str] | None] = {}
     sources_used: set[str] = set()
 
-    def _prime_rg_cache(pending_symbols: List[str]) -> None:
+    def _prime_rg_cache(pending_symbols: list[str]) -> None:
         if not pending_symbols or not target_files:
             return
         pending = list(dict.fromkeys(sym for sym in pending_symbols if sym and sym not in rg_cache))
@@ -476,8 +475,8 @@ def _build_links(
         )
         stats["type_refs_total"] += len(raw_type_refs)
 
-        symbol_sources: Dict[str, str] = {}
-        symbols: List[str] = []
+        symbol_sources: dict[str, str] = {}
+        symbols: list[str] = []
         seen_symbols: set[str] = set()
 
         def _add_symbol(symbol: str, source: str) -> bool:
@@ -488,7 +487,7 @@ def _build_links(
             symbol_sources[symbol] = source
             return True
 
-        fallback_symbols: List[str] = []
+        fallback_symbols: list[str] = []
         if key_calls_source == "public_symbols":
             for item in raw_public_symbols:
                 _add_symbol(item, "public_symbols")
@@ -556,7 +555,7 @@ def _build_links(
                     sources_used.add(source)
 
         stats["symbols_scanned"] += len(symbols_to_scan)
-        src_matches: Dict[str, Optional[Tuple[int, str]]] = {}
+        src_matches: dict[str, tuple[int, str] | None] = {}
         pending_rg = [symbol for symbol in symbols_to_scan if symbol not in rg_cache]
         for symbol in symbols_to_scan:
             if symbol in missing:
@@ -609,7 +608,7 @@ def _build_links(
                     extractor=extractor,
                 )
                 link_id = hashlib.sha1(
-                    f"{file_id}:{dst_file_id}:{link_type}:{evidence_ref['match_hash']}".encode("utf-8")
+                    f"{file_id}:{dst_file_id}:{link_type}:{evidence_ref['match_hash']}".encode()
                 ).hexdigest()
                 if link_id in links:
                     continue
@@ -658,7 +657,7 @@ def _build_links(
             if not dst_file_id or dst_file_id == file_id:
                 continue
             link_id = hashlib.sha1(
-                f"{file_id}:{dst_file_id}:{link_type}:{evidence_ref['match_hash']}".encode("utf-8")
+                f"{file_id}:{dst_file_id}:{link_type}:{evidence_ref['match_hash']}".encode()
             ).hexdigest()
             if link_id in links:
                 continue
@@ -685,19 +684,19 @@ def _build_links(
     return list(links.values()), truncated, stats
 
 
-def _write_links(path: Path, links: Iterable[Dict[str, object]]) -> None:
+def _write_links(path: Path, links: Iterable[dict[str, object]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as handle:
         for link in links:
             handle.write(json.dumps(link, ensure_ascii=False) + "\n")
 
 
-def _write_stats(path: Path, payload: Dict[str, object]) -> None:
+def _write_stats(path: Path, payload: dict[str, object]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build RLM links from verified nodes.")
     parser.add_argument("--ticket", help="Ticket identifier (defaults to docs/.active.json).")
     parser.add_argument("--nodes", help="Override nodes.jsonl path.")
@@ -706,7 +705,7 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: List[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     workspace_root, project_root = runtime.require_workflow_root()
     ticket, _ = runtime.require_ticket(project_root, ticket=args.ticket, slug_hint=None)
@@ -754,7 +753,7 @@ def main(argv: List[str] | None = None) -> int:
     link_target_threshold = int(settings.get("link_target_threshold") or 0)
     target_files_source = "targets"
     target_files_trimmed = 0
-    scope_stats: Dict[str, object] = {}
+    scope_stats: dict[str, object] = {}
     ignore_dirs = normalize_ignore_dirs(settings.get("ignore_dirs"))
     worklist_scope = _load_worklist_scope(project_root, ticket)
     if not target_files:
@@ -861,7 +860,7 @@ def main(argv: List[str] | None = None) -> int:
         "schema": "aidd.rlm_links_stats.v1",
         "schema_version": "v1",
         "ticket": ticket,
-        "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "generated_at": dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "links_total": len(links),
         "links_truncated": truncated,
         "target_files_source": target_files_source,

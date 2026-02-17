@@ -15,8 +15,8 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, List, Set
 
 from aidd_runtime import gates
 from aidd_runtime.feature_ids import resolve_aidd_root
@@ -39,7 +39,8 @@ DEFAULT_CODE_PREFIXES = (
     "cmd/",
 )
 REVIEW_HEADER = "## PRD Review"
-DIALOG_HEADER = "## Диалог analyst"
+DIALOG_HEADER = "## Dialog analyst"
+LEGACY_DIALOG_HEADER = "## \u0414\u0438\u0430\u043b\u043e\u0433 analyst"
 
 
 
@@ -104,8 +105,8 @@ def _normalize_file_path(raw: str, root: Path) -> str:
     return normalized.lstrip("/")
 
 
-def _normalize_items(values: Iterable[str] | None, *, suffix: str = "") -> List[str]:
-    result: List[str] = []
+def _normalize_items(values: Iterable[str] | None, *, suffix: str = "") -> list[str]:
+    result: list[str] = []
     for item in values or ():
         text = str(item or "").strip()
         if not text:
@@ -133,11 +134,11 @@ def _is_code_path(path: str, prefixes: Iterable[str], globs: Iterable[str]) -> b
     return False
 
 
-def parse_review_section(content: str) -> tuple[bool, str, List[str]]:
+def parse_review_section(content: str) -> tuple[bool, str, list[str]]:
     inside = False
     found = False
     status = ""
-    action_items: List[str] = []
+    action_items: list[str] = []
     for raw in content.splitlines():
         stripped = raw.strip()
         if stripped.startswith("## "):
@@ -165,14 +166,14 @@ def _resolve_report_path(root: Path, template: str) -> Path:
     return report_path
 
 
-def _inflate_columnar(section: object) -> List[dict]:
+def _inflate_columnar(section: object) -> list[dict]:
     if not isinstance(section, dict):
         return list(section) if isinstance(section, list) else []
     cols = section.get("cols")
     rows = section.get("rows")
     if not isinstance(cols, list) or not isinstance(rows, list):
         return []
-    inflated: List[dict] = []
+    inflated: list[dict] = []
     for row in rows:
         if not isinstance(row, list):
             continue
@@ -191,41 +192,41 @@ def format_message(
     human_status = (status or "PENDING").upper()
     if kind == "missing_section":
         return (
-            f"BLOCK: нет раздела '## PRD Review' в aidd/docs/prd/{ticket}.prd.md → выполните /feature-dev-aidd:review-spec {label} после review-plan"
+            f"BLOCK: missing section '## PRD Review' in aidd/docs/prd/{ticket}.prd.md -> run /feature-dev-aidd:review-spec {label} after review-plan"
         )
     if kind == "missing_prd":
         return (
-            f"BLOCK: PRD не найден или не заполнен → откройте docs/prd/{ticket}.prd.md, допишите диалог и завершите /feature-dev-aidd:review-spec {label or ticket}."
+            f"BLOCK: PRD is missing or incomplete -> open docs/prd/{ticket}.prd.md, complete the dialog, and finish /feature-dev-aidd:review-spec {label or ticket}."
         )
     if kind == "blocking_status":
         return (
-            f"BLOCK: PRD Review помечен как '{human_status}' → устраните блокеры и обновите статус через /feature-dev-aidd:review-spec {label or ticket}"
+            f"BLOCK: PRD Review is marked '{human_status}' -> resolve blockers and update status via /feature-dev-aidd:review-spec {label or ticket}"
         )
     if kind == "status_mismatch":
         report_label = (report_status or "PENDING").upper()
         return (
-            f"BLOCK: PRD Review статус в отчёте ({report_label}) не совпадает с PRD ({human_status}) → "
-            f"перезапустите /feature-dev-aidd:review-spec {label or ticket}"
+            f"BLOCK: PRD Review status in report ({report_label}) does not match PRD ({human_status}) -> "
+            f"rerun /feature-dev-aidd:review-spec {label or ticket}"
         )
     if kind == "not_approved":
-        return f"BLOCK: PRD Review не READY (Status: {human_status}) → выполните /feature-dev-aidd:review-spec {label or ticket}"
+        return f"BLOCK: PRD Review is not READY (Status: {human_status}) -> run /feature-dev-aidd:review-spec {label or ticket}"
     if kind == "open_actions":
         return (
-            f"BLOCK: В PRD Review остались незакрытые action items → перенесите их в docs/tasklist/{ticket}.md и отметьте выполнение."
+            f"BLOCK: PRD Review still has open action items -> move them to docs/tasklist/{ticket}.md and track completion."
         )
     if kind == "missing_report":
-        return f"BLOCK: нет отчёта PRD Review (aidd/reports/prd/{ticket}.json) → перезапустите /feature-dev-aidd:review-spec {label or ticket}"
+        return f"BLOCK: missing PRD Review report (aidd/reports/prd/{ticket}.json) -> rerun /feature-dev-aidd:review-spec {label or ticket}"
     if kind == "report_corrupted":
-        return f"BLOCK: отчёт PRD Review повреждён → пересоздайте через /feature-dev-aidd:review-spec {label or ticket}"
+        return f"BLOCK: PRD Review report is corrupted -> regenerate via /feature-dev-aidd:review-spec {label or ticket}"
     if kind == "blocking_finding":
         return (
-            f"BLOCK: отчёт PRD Review содержит критичные findings → устраните замечания и обновите отчёт для {label or ticket}."
+            f"BLOCK: PRD Review report contains critical findings -> address them and update report for {label or ticket}."
         )
     if kind == "draft_dialog":
         return (
-            f"BLOCK: PRD в статусе draft → заполните раздел '## Диалог analyst', обновите Status: READY и только затем запускайте /feature-dev-aidd:review-spec {label or ticket}."
+            f"BLOCK: PRD status is draft -> complete section '{DIALOG_HEADER}', set Status: READY, then run /feature-dev-aidd:review-spec {label or ticket}."
         )
-    return f"BLOCK: PRD Review не готов → выполните /feature-dev-aidd:review-spec {label or ticket}"
+    return f"BLOCK: PRD Review is not ready -> run /feature-dev-aidd:review-spec {label or ticket}"
 
 
 def detect_project_root(target: Path | None = None) -> Path:
@@ -237,7 +238,7 @@ def extract_dialog_status(content: str) -> str | None:
     for raw in content.splitlines():
         stripped = raw.strip()
         lower = stripped.lower()
-        if lower.startswith(DIALOG_HEADER.lower()):
+        if lower.startswith(DIALOG_HEADER.lower()) or lower.startswith(LEGACY_DIALOG_HEADER.lower()):
             inside = True
             continue
         if inside and stripped.startswith("## "):
@@ -282,13 +283,15 @@ def run_gate(args: argparse.Namespace) -> int:
     prd_path = root / "docs" / "prd" / f"{ticket}.prd.md"
     if not prd_path.is_file():
         expected = prd_path.as_posix()
-        print(f"BLOCK: нет PRD (ожидается {expected}) → откройте aidd/docs/prd/{ticket}.prd.md, допишите диалог и завершите /feature-dev-aidd:review-spec {feature_label(ticket, slug_hint) or ticket}.")
+        print(
+            f"BLOCK: missing PRD (expected {expected}) -> open aidd/docs/prd/{ticket}.prd.md, complete the dialog, and finish /feature-dev-aidd:review-spec {feature_label(ticket, slug_hint) or ticket}."
+        )
         return 1
 
     allow_missing = bool(gate.get("allow_missing_section", False))
     require_closed = bool(gate.get("require_action_items_closed", True))
-    approved: Set[str] = {str(item).lower() for item in gate.get("approved_statuses", DEFAULT_APPROVED)}
-    blocking: Set[str] = {str(item).lower() for item in gate.get("blocking_statuses", DEFAULT_BLOCKING)}
+    approved: set[str] = {str(item).lower() for item in gate.get("approved_statuses", DEFAULT_APPROVED)}
+    blocking: set[str] = {str(item).lower() for item in gate.get("blocking_statuses", DEFAULT_BLOCKING)}
 
     content = prd_path.read_text(encoding="utf-8")
     dialog_status = extract_dialog_status(content)
@@ -352,7 +355,7 @@ def run_gate(args: argparse.Namespace) -> int:
     if report_data is not None:
         raw_findings = report_data.get("findings") or []
         findings = _inflate_columnar(raw_findings) if isinstance(raw_findings, dict) else raw_findings
-        blocking_severities: Set[str] = {
+        blocking_severities: set[str] = {
             str(item).lower() for item in gate.get("blocking_severities", DEFAULT_BLOCKING_SEVERITIES)
         }
         if blocking_severities:
@@ -363,7 +366,7 @@ def run_gate(args: argparse.Namespace) -> int:
                 if severity and severity in blocking_severities:
                     label = feature_label(ticket, slug_hint)
                     print(
-                        f"BLOCK: PRD Review содержит findings уровня '{severity}' → обновите PRD и повторно вызовите /feature-dev-aidd:review-spec {label or ticket}."
+                        f"BLOCK: PRD Review contains '{severity}' findings -> update PRD and rerun /feature-dev-aidd:review-spec {label or ticket}."
                     )
                     return 1
     elif not allow_missing_report:
@@ -371,7 +374,7 @@ def run_gate(args: argparse.Namespace) -> int:
             message = format_message("missing_report", ticket, slug_hint)
         else:
             label = feature_label(ticket, slug_hint)
-            message = f"BLOCK: нет отчёта PRD Review ({report_path}) → перезапустите /feature-dev-aidd:review-spec {label or ticket}"
+            message = f"BLOCK: missing PRD Review report ({report_path}) -> rerun /feature-dev-aidd:review-spec {label or ticket}"
         print(message)
         return 1
 

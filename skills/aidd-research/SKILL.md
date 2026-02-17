@@ -18,10 +18,10 @@ RLM 将代码库建模为节点和链接的图结构：
 1. **生成 RLM 工件**：
 ```bash
 # 生成完整 RLM
-python3 $KIMI_AIDD_ROOT/runtime/skills/researcher/runtime/research.py --ticket FUNC-123 --auto
+python3 $AIDD_ROOT/runtime/skills/researcher/runtime/research.py --ticket FUNC-123 --auto
 
 # 按需查询（Slice）
-python3 $KIMI_AIDD_ROOT/runtime/skills/aidd-rlm/runtime/rlm_slice.py \
+python3 $AIDD_ROOT/runtime/skills/aidd-rlm/runtime/rlm_slice.py \
   --ticket FUNC-123 \
   --query "PaymentService"
 ```

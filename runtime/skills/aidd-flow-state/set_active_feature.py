@@ -5,21 +5,25 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Optional
 
-from aidd_runtime import runtime
-from aidd_runtime.feature_ids import read_active_state, write_active_state, read_identifiers, resolve_aidd_root, write_identifiers
-from aidd_runtime import rlm_targets
+from aidd_runtime import rlm_targets, runtime
+from aidd_runtime.feature_ids import (
+    read_active_state,
+    read_identifiers,
+    resolve_aidd_root,
+    write_active_state,
+    write_identifiers,
+)
 from aidd_runtime.rlm_config import load_rlm_settings
 
 
-def _parse_paths(value: Optional[str]) -> list[str]:
+def _parse_paths(value: str | None) -> list[str]:
     if not value:
         return []
     return [chunk.strip() for chunk in re.split(r"[,:]", value) if chunk.strip()]
 
 
-def _parse_keywords(value: Optional[str]) -> list[str]:
+def _parse_keywords(value: str | None) -> list[str]:
     if not value:
         return []
     return [chunk.strip().lower() for chunk in re.split(r"[,\s]+", value) if chunk.strip()]

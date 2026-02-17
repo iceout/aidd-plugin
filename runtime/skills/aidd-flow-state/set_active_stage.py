@@ -6,7 +6,6 @@ from pathlib import Path
 from aidd_runtime import runtime, stage_lexicon
 from aidd_runtime.feature_ids import resolve_aidd_root, write_active_state
 
-
 VALID_STAGES = set(stage_lexicon.CANONICAL_STAGES)
 STAGE_ALIASES = dict(stage_lexicon.STAGE_ALIASES)
 

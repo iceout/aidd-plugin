@@ -7,9 +7,9 @@ import argparse
 import json
 import re
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
 
 from aidd_runtime import runtime
 from aidd_runtime.feature_ids import write_active_state
@@ -45,7 +45,7 @@ def _needs_changelog_master(allowed_paths: Iterable[str]) -> bool:
     return False
 
 
-def _extend_boundaries_for_changelog(boundaries: Dict[str, List[str]]) -> None:
+def _extend_boundaries_for_changelog(boundaries: dict[str, list[str]]) -> None:
     allowed = boundaries.get("allowed_paths")
     if not allowed:
         return
@@ -62,9 +62,9 @@ def _strip_placeholder(value: str) -> str:
     return text
 
 
-def _dedupe_paths(paths: Iterable[str]) -> List[str]:
+def _dedupe_paths(paths: Iterable[str]) -> list[str]:
     seen = set()
-    ordered: List[str] = []
+    ordered: list[str] = []
     for raw in paths:
         item = raw.strip()
         if not item or item in seen:
@@ -74,8 +74,8 @@ def _dedupe_paths(paths: Iterable[str]) -> List[str]:
     return ordered
 
 
-def parse_context_allowed_paths(lines: List[str]) -> List[str]:
-    allowed: List[str] = []
+def parse_context_allowed_paths(lines: list[str]) -> list[str]:
+    allowed: list[str] = []
     in_allowed = False
     header_indent = 0
     for raw in lines:
@@ -104,8 +104,8 @@ def parse_context_allowed_paths(lines: List[str]) -> List[str]:
     return _dedupe_paths(allowed)
 
 
-def _extract_command_paths(commands: Iterable[str], root: Path) -> List[str]:
-    paths: List[str] = []
+def _extract_command_paths(commands: Iterable[str], root: Path) -> list[str]:
+    paths: list[str] = []
     for command in commands:
         for match in PATH_TOKEN_RE.findall(str(command)):
             cleaned = match.strip().strip("`'\" ,);")
@@ -136,15 +136,15 @@ class WorkItem:
     title: str
     state: str
     goal: str
-    boundaries_allowed: Tuple[str, ...]
-    boundaries_forbidden: Tuple[str, ...]
+    boundaries_allowed: tuple[str, ...]
+    boundaries_forbidden: tuple[str, ...]
     boundaries_defined: bool
-    expected_paths: Tuple[str, ...]
-    commands: Tuple[str, ...]
-    tests_required: Tuple[str, ...]
-    size_budget: Dict[str, str]
-    exit_criteria: Tuple[str, ...]
-    excerpt: Tuple[str, ...]
+    expected_paths: tuple[str, ...]
+    commands: tuple[str, ...]
+    tests_required: tuple[str, ...]
+    size_budget: dict[str, str]
+    exit_criteria: tuple[str, ...]
+    excerpt: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -166,7 +166,7 @@ class ReviewPackMeta:
     verdict: str
     work_item_key: str
     scope_key: str
-    handoff_ids: Tuple[str, ...]
+    handoff_ids: tuple[str, ...]
     schema: str = ""
 
 
@@ -177,10 +177,10 @@ def read_text(path: Path) -> str:
         return ""
 
 
-def parse_sections(lines: List[str]) -> Dict[str, List[str]]:
-    sections: Dict[str, List[str]] = {}
-    current: Optional[str] = None
-    current_lines: List[str] = []
+def parse_sections(lines: list[str]) -> dict[str, list[str]]:
+    sections: dict[str, list[str]] = {}
+    current: str | None = None
+    current_lines: list[str] = []
     for line in lines:
         match = SECTION_RE.match(line)
         if match:
@@ -196,8 +196,8 @@ def parse_sections(lines: List[str]) -> Dict[str, List[str]]:
     return sections
 
 
-def parse_review_pack_handoff_ids(lines: List[str]) -> Tuple[str, ...]:
-    handoff_ids: List[str] = []
+def parse_review_pack_handoff_ids(lines: list[str]) -> tuple[str, ...]:
+    handoff_ids: list[str] = []
     in_section = False
     base_indent = 0
     for raw in lines:
@@ -278,9 +278,9 @@ def review_pack_v2_required(root: Path) -> bool:
     return bool(raw)
 
 
-def split_checkbox_blocks(lines: Iterable[str]) -> List[List[str]]:
-    blocks: List[List[str]] = []
-    current: List[str] = []
+def split_checkbox_blocks(lines: Iterable[str]) -> list[list[str]]:
+    blocks: list[list[str]] = []
+    current: list[str] = []
     for line in lines:
         if CHECKBOX_RE.match(line):
             if current:
@@ -295,7 +295,7 @@ def split_checkbox_blocks(lines: Iterable[str]) -> List[List[str]]:
     return blocks
 
 
-def _strip_placeholder(value: str) -> Optional[str]:
+def _strip_placeholder(value: str) -> str | None:
     stripped = value.strip()
     if not stripped:
         return None
@@ -304,7 +304,7 @@ def _strip_placeholder(value: str) -> Optional[str]:
     return stripped
 
 
-def extract_scalar_field(lines: List[str], field: str) -> Optional[str]:
+def extract_scalar_field(lines: list[str], field: str) -> str | None:
     pattern = re.compile(rf"^\s*-\s*{re.escape(field)}\s*:\s*(.+)$", re.IGNORECASE)
     for line in lines:
         match = pattern.match(line)
@@ -314,14 +314,14 @@ def extract_scalar_field(lines: List[str], field: str) -> Optional[str]:
     return None
 
 
-def extract_list_field(lines: List[str], field: str) -> List[str]:
+def extract_list_field(lines: list[str], field: str) -> list[str]:
     pattern = re.compile(rf"^(?P<indent>\s*)-\s*{re.escape(field)}\s*:\s*$", re.IGNORECASE)
     for idx, line in enumerate(lines):
         match = pattern.match(line)
         if not match:
             continue
         base_indent = len(match.group("indent"))
-        items: List[str] = []
+        items: list[str] = []
         for raw in lines[idx + 1 :]:
             if not raw.strip():
                 continue
@@ -338,14 +338,14 @@ def extract_list_field(lines: List[str], field: str) -> List[str]:
     return []
 
 
-def extract_mapping_field(lines: List[str], field: str) -> Dict[str, str]:
+def extract_mapping_field(lines: list[str], field: str) -> dict[str, str]:
     pattern = re.compile(rf"^(?P<indent>\s*)-\s*{re.escape(field)}\s*:\s*$", re.IGNORECASE)
     for idx, line in enumerate(lines):
         match = pattern.match(line)
         if not match:
             continue
         base_indent = len(match.group("indent"))
-        result: Dict[str, str] = {}
+        result: dict[str, str] = {}
         for raw in lines[idx + 1 :]:
             if not raw.strip():
                 continue
@@ -366,7 +366,7 @@ def extract_mapping_field(lines: List[str], field: str) -> Dict[str, str]:
     return {}
 
 
-def extract_title(block: List[str]) -> str:
+def extract_title(block: list[str]) -> str:
     if not block:
         return ""
     match = CHECKBOX_RE.match(block[0])
@@ -377,7 +377,7 @@ def extract_title(block: List[str]) -> str:
     return title or body
 
 
-def extract_checkbox_state(block: List[str]) -> str:
+def extract_checkbox_state(block: list[str]) -> str:
     if not block:
         return "open"
     match = CHECKBOX_RE.match(block[0])
@@ -387,7 +387,7 @@ def extract_checkbox_state(block: List[str]) -> str:
     return "done" if state.lower() == "x" else "open"
 
 
-def _normalize_tests_value(value: Optional[str]) -> Optional[str]:
+def _normalize_tests_value(value: str | None) -> str | None:
     if not value:
         return None
     cleaned = value.strip()
@@ -396,11 +396,11 @@ def _normalize_tests_value(value: Optional[str]) -> Optional[str]:
     return cleaned
 
 
-def _normalize_tests_required(tests_map: Dict[str, str]) -> Tuple[str, ...]:
+def _normalize_tests_required(tests_map: dict[str, str]) -> tuple[str, ...]:
     tasks = _normalize_tests_value(tests_map.get("tasks") or tests_map.get("Tasks"))
     profile = _normalize_tests_value(tests_map.get("profile") or tests_map.get("Profile"))
     filters = _normalize_tests_value(tests_map.get("filters") or tests_map.get("Filters"))
-    required: List[str] = []
+    required: list[str] = []
     if tasks:
         required.append(tasks)
     if profile:
@@ -410,10 +410,10 @@ def _normalize_tests_required(tests_map: Dict[str, str]) -> Tuple[str, ...]:
     return tuple(required)
 
 
-def build_excerpt(block: List[str], max_lines: int = 30) -> Tuple[str, ...]:
+def build_excerpt(block: list[str], max_lines: int = 30) -> tuple[str, ...]:
     if not block:
         return tuple()
-    lines: List[str] = []
+    lines: list[str] = []
     lines.append(block[0].rstrip())
 
     wanted_prefixes = (
@@ -458,8 +458,8 @@ def build_excerpt(block: List[str], max_lines: int = 30) -> Tuple[str, ...]:
     return tuple(lines)
 
 
-def parse_iteration_items(lines: List[str]) -> List[WorkItem]:
-    items: List[WorkItem] = []
+def parse_iteration_items(lines: list[str]) -> list[WorkItem]:
+    items: list[WorkItem] = []
     for block in split_checkbox_blocks(lines):
         item_id = None
         for line in block:
@@ -506,8 +506,8 @@ def parse_iteration_items(lines: List[str]) -> List[WorkItem]:
     return items
 
 
-def parse_handoff_items(lines: List[str]) -> List[WorkItem]:
-    items: List[WorkItem] = []
+def parse_handoff_items(lines: list[str]) -> list[WorkItem]:
+    items: list[WorkItem] = []
     for block in split_checkbox_blocks(lines):
         item_id = None
         for line in block:
@@ -548,8 +548,8 @@ def parse_handoff_items(lines: List[str]) -> List[WorkItem]:
     return items
 
 
-def parse_next3_refs(lines: List[str]) -> List[WorkItemRef]:
-    refs: List[WorkItemRef] = []
+def parse_next3_refs(lines: list[str]) -> list[WorkItemRef]:
+    refs: list[WorkItemRef] = []
     for line in lines:
         if "(none)" in line.lower():
             continue
@@ -564,7 +564,7 @@ def parse_next3_refs(lines: List[str]) -> List[WorkItemRef]:
     return refs
 
 
-def parse_progress_ref(lines: List[str]) -> Optional[WorkItemRef]:
+def parse_progress_ref(lines: list[str]) -> WorkItemRef | None:
     for line in reversed(lines):
         match = PROGRESS_RE.search(line)
         if not match:
@@ -578,7 +578,7 @@ def parse_progress_ref(lines: List[str]) -> Optional[WorkItemRef]:
     return None
 
 
-def find_work_item(items: Iterable[WorkItem], scope_key: str) -> Optional[WorkItem]:
+def find_work_item(items: Iterable[WorkItem], scope_key: str) -> WorkItem | None:
     for item in items:
         if item.scope_key == scope_key:
             return item
@@ -589,7 +589,7 @@ def is_open_item(item: WorkItem) -> bool:
     return item.state != "done"
 
 
-def select_first_matching(refs: Iterable[WorkItemRef], items: Iterable[WorkItem]) -> Optional[WorkItem]:
+def select_first_matching(refs: Iterable[WorkItemRef], items: Iterable[WorkItem]) -> WorkItem | None:
     for ref in refs:
         candidate = find_work_item(items, ref.scope_key)
         if candidate:
@@ -597,7 +597,7 @@ def select_first_matching(refs: Iterable[WorkItemRef], items: Iterable[WorkItem]
     return None
 
 
-def select_first_open(refs: Iterable[WorkItemRef], items: Iterable[WorkItem]) -> Optional[WorkItem]:
+def select_first_open(refs: Iterable[WorkItemRef], items: Iterable[WorkItem]) -> WorkItem | None:
     for ref in refs:
         candidate = find_work_item(items, ref.scope_key)
         if candidate and is_open_item(candidate):
@@ -605,7 +605,7 @@ def select_first_open(refs: Iterable[WorkItemRef], items: Iterable[WorkItem]) ->
     return None
 
 
-def normalize_review_handoff_id(value: str) -> Tuple[str, ...]:
+def normalize_review_handoff_id(value: str) -> tuple[str, ...]:
     raw = value.strip()
     if not raw:
         return tuple()
@@ -621,7 +621,7 @@ def is_review_handoff_id(value: str) -> bool:
     return raw.startswith("review:") or raw.startswith("reviewer:")
 
 
-def select_first_open_handoff(handoff_ids: Iterable[str], handoffs: Iterable[WorkItem]) -> Optional[WorkItem]:
+def select_first_open_handoff(handoff_ids: Iterable[str], handoffs: Iterable[WorkItem]) -> WorkItem | None:
     for item_id in handoff_ids:
         for candidate_id in normalize_review_handoff_id(item_id):
             ref = WorkItemRef("id", candidate_id)
@@ -635,13 +635,13 @@ def build_front_matter(
     *,
     ticket: str,
     work_item: WorkItem,
-    boundaries: Dict[str, List[str]],
-    commands_required: List[str],
-    tests_required: List[str],
+    boundaries: dict[str, list[str]],
+    commands_required: list[str],
+    tests_required: list[str],
     evidence_policy: str,
     updated_at: str,
     reason_code: str = "",
-) -> List[str]:
+) -> list[str]:
     lines = [
         "---",
         "schema: aidd.loop_pack.v1",
@@ -685,9 +685,9 @@ def build_pack(
     *,
     ticket: str,
     work_item: WorkItem,
-    boundaries: Dict[str, List[str]],
-    commands_required: List[str],
-    tests_required: List[str],
+    boundaries: dict[str, list[str]],
+    commands_required: list[str],
+    tests_required: list[str],
     updated_at: str,
     reason_code: str = "",
 ) -> str:
@@ -701,7 +701,7 @@ def build_pack(
         updated_at=updated_at,
         reason_code=reason_code,
     )
-    lines: List[str] = []
+    lines: list[str] = []
     lines.extend(front_matter)
     lines.append("")
     lines.append(f"# Loop Pack — {ticket} / {work_item.scope_key}")
@@ -714,7 +714,7 @@ def build_pack(
     lines.append("")
     lines.append("## Read order")
     lines.append("- Prefer excerpt; read full tasklist/PRD/Plan/Research/Spec only if excerpt misses Goal/DoD/Boundaries/Expected paths/Size budget/Tests/Acceptance or REVISE needs context.")
-    lines.append("- Большие логи/диффы — только ссылки на отчёты")
+    lines.append("- Large logs/diffs: keep only links to reports")
     lines.append("")
     lines.append("## Boundaries")
     lines.append("- allowed_paths:")
@@ -758,8 +758,8 @@ def write_pack_for_item(
     output_dir: Path,
     ticket: str,
     work_item: WorkItem,
-    context_allowed_paths: List[str],
-) -> Tuple[Path, Dict[str, List[str]], List[str], List[str], str, str]:
+    context_allowed_paths: list[str],
+) -> tuple[Path, dict[str, list[str]], list[str], list[str], str, str]:
     if work_item.boundaries_defined:
         boundaries = {
             "allowed_paths": list(work_item.boundaries_allowed),
@@ -857,7 +857,7 @@ def main(argv: list[str] | None = None) -> int:
 
     active_ticket = runtime.read_active_ticket(target)
     active_work_item = runtime.read_active_work_item(target)
-    selected_item: Optional[WorkItem] = None
+    selected_item: WorkItem | None = None
     selection_reason = ""
     review_meta = (
         read_review_pack_meta(target, ticket)
@@ -1073,7 +1073,7 @@ def main(argv: list[str] | None = None) -> int:
 
     output_dir = target / "reports" / "loops" / ticket
 
-    prewarm_items: List[WorkItem] = []
+    prewarm_items: list[WorkItem] = []
     if args.stage == "implement":
         next3_refs = parse_next3_refs(sections.get("AIDD:NEXT_3", []))
         if next3_refs:
@@ -1081,14 +1081,14 @@ def main(argv: list[str] | None = None) -> int:
                 candidate = find_work_item(all_items, ref.scope_key)
                 if candidate and is_open_item(candidate):
                     prewarm_items.append(candidate)
-    prewarm_map: Dict[str, WorkItem] = {selected_item.scope_key: selected_item}
+    prewarm_map: dict[str, WorkItem] = {selected_item.scope_key: selected_item}
     for item in prewarm_items:
         prewarm_map.setdefault(item.scope_key, item)
 
     selected_pack_path = None
-    boundaries: Dict[str, List[str]] = {}
-    commands_required: List[str] = []
-    tests_required: List[str] = []
+    boundaries: dict[str, list[str]] = {}
+    commands_required: list[str] = []
+    tests_required: list[str] = []
     updated_at = utc_timestamp()
 
     selected_reason_code = ""

@@ -8,14 +8,14 @@ import json
 import os
 import re
 import sys
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Dict, Iterable, List, Set
 
 
 def _repo_root() -> Path:
     here = Path(__file__).resolve()
     for candidate in (here.parent, *here.parents):
-        if (candidate / ".claude-plugin").is_dir() and (candidate / "skills").is_dir():
+        if (candidate / ".aidd-plugin").is_dir() and (candidate / "skills").is_dir():
             return candidate
     return here.parents[2]
 
@@ -28,21 +28,20 @@ if __package__ in {None, ""}:
 from aidd_runtime import runtime
 from aidd_runtime.io_utils import utc_timestamp
 
-
-TOOL_PATTERN = re.compile(r"(?:\$\{KIMI_AIDD_ROOT\}/)?tools/([A-Za-z0-9_.-]+\.(?:sh|py))")
+TOOL_PATTERN = re.compile(r"(?:\$\{AIDD_ROOT\}/)?tools/([A-Za-z0-9_.-]+\.(?:sh|py))")
 SKILL_RUNTIME_PATTERN = re.compile(
-    r"(?:\$\{KIMI_AIDD_ROOT\}/)?skills/([A-Za-z0-9_.-]+)/runtime/([A-Za-z0-9_.-]+\.py)"
+    r"(?:\$\{AIDD_ROOT\}/)?skills/([A-Za-z0-9_.-]+)/runtime/([A-Za-z0-9_.-]+\.py)"
 )
-HOOK_PATTERN = re.compile(r"(?:\$\{KIMI_AIDD_ROOT\}/)?hooks/([A-Za-z0-9_.-]+\.sh)")
+HOOK_PATTERN = re.compile(r"(?:\$\{AIDD_ROOT\}/)?hooks/([A-Za-z0-9_.-]+\.sh)")
 
 CANONICAL_EXEC_RE = re.compile(
-    r'exec\s+"?\$\{KIMI_AIDD_ROOT\}/(skills/[A-Za-z0-9_.-]+/runtime/[A-Za-z0-9_.-]+\.py)"?'
+    r'exec\s+"?\$\{AIDD_ROOT\}/(skills/[A-Za-z0-9_.-]+/runtime/[A-Za-z0-9_.-]+\.py)"?'
 )
 SCRIPT_REF_RE = re.compile(
-    r"(?:\$\{KIMI_AIDD_ROOT\}/)?((?:skills/[A-Za-z0-9_.-]+/runtime/[A-Za-z0-9_.-]+\.py)|(?:hooks/[A-Za-z0-9_.-]+\.sh)|(?:tools/[A-Za-z0-9_.-]+\.(?:sh|py)))"
+    r"(?:\$\{AIDD_ROOT\}/)?((?:skills/[A-Za-z0-9_.-]+/runtime/[A-Za-z0-9_.-]+\.py)|(?:hooks/[A-Za-z0-9_.-]+\.sh)|(?:tools/[A-Za-z0-9_.-]+\.(?:sh|py)))"
 )
 PYTHON_CALL_RE = re.compile(
-    r"\bpython(?:3)?\s+(?:\"|')?\$\{KIMI_AIDD_ROOT\}/([A-Za-z0-9_./-]+\.py)(?:\"|')?"
+    r"\bpython(?:3)?\s+(?:\"|')?\$\{AIDD_ROOT\}/([A-Za-z0-9_./-]+\.py)(?:\"|')?"
 )
 AIDD_RUN_PY_MODULE_RE = re.compile(
     r'aidd_run_python_module\s+"[^"]+"\s+"[^"]+"\s+"([^"]+\.py)"'
@@ -85,22 +84,22 @@ def _should_skip_path(path: Path) -> bool:
     return any(part in EXCLUDED_DIRS for part in path.parts)
 
 
-def _collect_tool_entrypoints(repo_root: Path) -> List[str]:
+def _collect_tool_entrypoints(repo_root: Path) -> list[str]:
     tools_dir = repo_root / "tools"
     if not tools_dir.exists():
         return []
     return sorted(path.name for path in tools_dir.glob("*") if path.is_file() and path.suffix in {".sh", ".py"})
 
 
-def _collect_skill_runtime(repo_root: Path) -> List[str]:
+def _collect_skill_runtime(repo_root: Path) -> list[str]:
     return sorted(path.relative_to(repo_root).as_posix() for path in repo_root.glob("skills/*/runtime/*.py"))
 
 
-def _collect_hook_scripts(repo_root: Path) -> List[str]:
+def _collect_hook_scripts(repo_root: Path) -> list[str]:
     return sorted(path.relative_to(repo_root).as_posix() for path in repo_root.glob("hooks/*.sh"))
 
 
-def _collect_entrypoints(repo_root: Path) -> List[str]:
+def _collect_entrypoints(repo_root: Path) -> list[str]:
     tools = [f"tools/{name}" for name in _collect_tool_entrypoints(repo_root)]
     skills = _collect_skill_runtime(repo_root)
     hooks = _collect_hook_scripts(repo_root)
@@ -118,9 +117,9 @@ def _iter_scan_candidates(repo_root: Path) -> Iterable[Path]:
         yield from (path for path in base.rglob("*") if path.is_file())
 
 
-def _scan_consumers(repo_root: Path, entrypoints: Iterable[str]) -> Dict[str, List[str]]:
+def _scan_consumers(repo_root: Path, entrypoints: Iterable[str]) -> dict[str, list[str]]:
     names = set(entrypoints)
-    usage: Dict[str, List[str]] = {name: [] for name in names}
+    usage: dict[str, list[str]] = {name: [] for name in names}
     for path in _iter_scan_candidates(repo_root):
         if _should_skip_path(path):
             continue
@@ -191,8 +190,8 @@ def _classify_entrypoint(rel_path: str, canonical_replacement_path: str | None) 
     return "shared_tool", False, False
 
 
-def _group_consumers(consumers: List[str]) -> Dict[str, List[str]]:
-    grouped: Dict[str, List[str]] = {}
+def _group_consumers(consumers: list[str]) -> dict[str, list[str]]:
+    grouped: dict[str, list[str]] = {}
     for rel_path in consumers:
         ctype = _consumer_type(rel_path)
         grouped.setdefault(ctype, []).append(rel_path)
@@ -205,7 +204,7 @@ def _normalize_repo_rel(raw: str) -> str:
     text = str(raw or "").strip().replace("\\", "/")
     if not text:
         return ""
-    text = text.replace("${KIMI_AIDD_ROOT}/", "")
+    text = text.replace("${AIDD_ROOT}/", "")
     while text.startswith("./"):
         text = text[2:]
     return text.lstrip("/")
@@ -227,8 +226,8 @@ def _script_shebang(text: str) -> str:
     return lines[0].strip()
 
 
-def _extract_direct_python_targets(rel_path: str, text: str, shebang: str) -> List[str]:
-    targets: Set[str] = set()
+def _extract_direct_python_targets(rel_path: str, text: str, shebang: str) -> list[str]:
+    targets: set[str] = set()
     if rel_path.endswith(".py"):
         targets.add(rel_path)
     if shebang.startswith("#!/usr/bin/env python"):
@@ -244,8 +243,8 @@ def _extract_direct_python_targets(rel_path: str, text: str, shebang: str) -> Li
     return sorted(targets)
 
 
-def _extract_direct_shell_targets(text: str) -> List[str]:
-    targets: Set[str] = set()
+def _extract_direct_shell_targets(text: str) -> list[str]:
+    targets: set[str] = set()
     for match in SCRIPT_REF_RE.finditer(text):
         value = _normalize_repo_rel(match.group(1))
         if value.endswith((".sh", ".py")):
@@ -253,8 +252,8 @@ def _extract_direct_shell_targets(text: str) -> List[str]:
     return sorted(targets)
 
 
-def _build_wrapper_meta(repo_root: Path, entrypoints: List[str]) -> Dict[str, Dict[str, object]]:
-    meta: Dict[str, Dict[str, object]] = {}
+def _build_wrapper_meta(repo_root: Path, entrypoints: list[str]) -> dict[str, dict[str, object]]:
+    meta: dict[str, dict[str, object]] = {}
     for rel_path in entrypoints:
         path = repo_root / rel_path
         text = _read_script_text(path)
@@ -272,17 +271,17 @@ def _build_wrapper_meta(repo_root: Path, entrypoints: List[str]) -> Dict[str, Di
 
 def _resolve_python_owners(
     rel_path: str,
-    meta: Dict[str, Dict[str, object]],
-    cache: Dict[str, Set[str]],
-    stack: Set[str],
-) -> Set[str]:
+    meta: dict[str, dict[str, object]],
+    cache: dict[str, set[str]],
+    stack: set[str],
+) -> set[str]:
     if rel_path in cache:
         return set(cache[rel_path])
     if rel_path in stack:
         return set()
     stack.add(rel_path)
     entry = meta.get(rel_path) or {}
-    owners: Set[str] = set(entry.get("direct_python_targets") or [])
+    owners: set[str] = set(entry.get("direct_python_targets") or [])
     for target in entry.get("direct_shell_targets") or []:
         if target in meta:
             owners.update(_resolve_python_owners(target, meta, cache, stack))
@@ -291,7 +290,7 @@ def _resolve_python_owners(
     return set(owners)
 
 
-def _runtime_classification(rel_path: str, *, python_shebang: bool, owners: List[str]) -> str:
+def _runtime_classification(rel_path: str, *, python_shebang: bool, owners: list[str]) -> str:
     if rel_path.endswith(".py"):
         return "python_entrypoint"
     if python_shebang:
@@ -301,12 +300,12 @@ def _runtime_classification(rel_path: str, *, python_shebang: bool, owners: List
     return "legacy_shell_wrapper"
 
 
-def _build_payload(repo_root: Path) -> Dict[str, object]:
+def _build_payload(repo_root: Path) -> dict[str, object]:
     entrypoints = _collect_entrypoints(repo_root)
     usage = _scan_consumers(repo_root, entrypoints)
     meta = _build_wrapper_meta(repo_root, entrypoints)
-    resolved_cache: Dict[str, Set[str]] = {}
-    items: List[Dict[str, object]] = []
+    resolved_cache: dict[str, set[str]] = {}
+    items: list[dict[str, object]] = []
 
     for rel_path in entrypoints:
         abs_path = repo_root / rel_path
@@ -358,7 +357,7 @@ def _build_payload(repo_root: Path) -> Dict[str, object]:
     }
 
 
-def _render_md(payload: Dict[str, object]) -> str:
+def _render_md(payload: dict[str, object]) -> str:
     lines = ["# Tools Inventory", ""]
     lines.append(f"generated_at: {payload.get('generated_at', '')}")
     lines.append("")
@@ -409,7 +408,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--repo-root",
         default=None,
-        help="Repository root (defaults to KIMI_AIDD_ROOT or script parent).",
+        help="Repository root (defaults to AIDD_ROOT or script parent).",
     )
     parser.add_argument(
         "--output-json",
@@ -430,8 +429,8 @@ def main(argv: list[str] | None = None) -> int:
         repo_root = Path(args.repo_root).resolve()
     else:
         repo_root = _repo_root()
-    if "KIMI_AIDD_ROOT" not in os.environ:
-        os.environ["KIMI_AIDD_ROOT"] = str(repo_root)
+    if "AIDD_ROOT" not in os.environ:
+        os.environ["AIDD_ROOT"] = str(repo_root)
     workflow_root: Path | None = None
     if not args.output_json or not args.output_md:
         try:

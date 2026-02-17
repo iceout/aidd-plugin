@@ -8,14 +8,17 @@ import json
 import os
 import subprocess
 import sys
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any
 
-from aidd_runtime import actions_validate
-from aidd_runtime import context_map_validate
-from aidd_runtime import preflight_result_validate
-from aidd_runtime import runtime
-from aidd_runtime import skill_contract_validate
+from aidd_runtime import (
+    actions_validate,
+    context_map_validate,
+    preflight_result_validate,
+    runtime,
+    skill_contract_validate,
+)
 from aidd_runtime.diff_boundary_check import extract_boundaries, parse_front_matter
 from aidd_runtime.io_utils import utc_timestamp
 
@@ -40,12 +43,12 @@ class _SafeDict(dict):
         return "{" + key + "}"
 
 
-def _render_template(value: str, context: Dict[str, str]) -> str:
+def _render_template(value: str, context: dict[str, str]) -> str:
     return str(value).format_map(_SafeDict(context))
 
 
-def _render_items(items: Iterable[str], context: Dict[str, str]) -> List[str]:
-    rendered: List[str] = []
+def _render_items(items: Iterable[str], context: dict[str, str]) -> list[str]:
+    rendered: list[str] = []
     for item in items:
         text = _render_template(str(item), context).strip()
         if text:
@@ -53,7 +56,7 @@ def _render_items(items: Iterable[str], context: Dict[str, str]) -> List[str]:
     return rendered
 
 
-def _parse_ref(ref: str) -> Tuple[str, str]:
+def _parse_ref(ref: str) -> tuple[str, str]:
     raw = str(ref or "").strip()
     if not raw:
         return "", ""
@@ -66,8 +69,8 @@ def _parse_ref(ref: str) -> Tuple[str, str]:
     return raw, ""
 
 
-def _contract_entries(items: Any, context: Dict[str, str], *, required: bool) -> List[Dict[str, Any]]:
-    entries: List[Dict[str, Any]] = []
+def _contract_entries(items: Any, context: dict[str, str], *, required: bool) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
     if not isinstance(items, list):
         return entries
     for item in items:
@@ -96,8 +99,8 @@ def _contract_entries(items: Any, context: Dict[str, str], *, required: bool) ->
     return entries
 
 
-def _dedupe_str(items: Iterable[str]) -> List[str]:
-    result: List[str] = []
+def _dedupe_str(items: Iterable[str]) -> list[str]:
+    result: list[str] = []
     seen: set[str] = set()
     for item in items:
         value = str(item or "").strip()
@@ -112,7 +115,7 @@ def _resolve_rel(path_value: str, target: Path) -> str:
     return runtime.rel_path(runtime.resolve_path_for_target(Path(path_value), target), target)
 
 
-def _read_loop_allowed_paths(loop_pack_path: Path) -> List[str]:
+def _read_loop_allowed_paths(loop_pack_path: Path) -> list[str]:
     if not loop_pack_path.exists():
         return []
     lines = loop_pack_path.read_text(encoding="utf-8").splitlines()
@@ -120,7 +123,7 @@ def _read_loop_allowed_paths(loop_pack_path: Path) -> List[str]:
     return _dedupe_str(allowed)
 
 
-def _render_readmap_md(readmap: Dict[str, Any]) -> str:
+def _render_readmap_md(readmap: dict[str, Any]) -> str:
     lines = [
         "# Read Map",
         "",
@@ -166,7 +169,7 @@ def _render_readmap_md(readmap: Dict[str, Any]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _render_writemap_md(writemap: Dict[str, Any]) -> str:
+def _render_writemap_md(writemap: dict[str, Any]) -> str:
     lines = [
         "# Write Map",
         "",
@@ -201,7 +204,7 @@ def _render_writemap_md(writemap: Dict[str, Any]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _write_json(path: Path, payload: Dict[str, Any]) -> None:
+def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
@@ -211,7 +214,7 @@ def _write_text(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def _run_loop_pack(target: Path, *, ticket: str, stage: str, work_item_key: str) -> Dict[str, Any]:
+def _run_loop_pack(target: Path, *, ticket: str, stage: str, work_item_key: str) -> dict[str, Any]:
     if stage == "review":
         loop_stage = "review"
     else:
@@ -230,11 +233,11 @@ def _run_loop_pack(target: Path, *, ticket: str, stage: str, work_item_key: str)
         "json",
     ]
     env = os.environ.copy()
-    env["KIMI_AIDD_ROOT"] = str(plugin_root)
+    env["AIDD_ROOT"] = str(plugin_root)
     env["PYTHONPATH"] = str(plugin_root) if not env.get("PYTHONPATH") else f"{plugin_root}:{env['PYTHONPATH']}"
     proc = subprocess.run(cmd, cwd=target, text=True, capture_output=True, env=env)
     raw = (proc.stdout or "").strip()
-    payload: Dict[str, Any] = {}
+    payload: dict[str, Any] = {}
     if raw:
         try:
             maybe = json.loads(raw)
@@ -262,13 +265,13 @@ def _run_loop_pack(target: Path, *, ticket: str, stage: str, work_item_key: str)
 
 def _build_readmap(
     *,
-    contract: Dict[str, Any],
-    context: Dict[str, str],
+    contract: dict[str, Any],
+    context: dict[str, str],
     target: Path,
     loop_pack_rel: str,
     review_pack_rel: str,
-    loop_allowed_paths: List[str],
-) -> Dict[str, Any]:
+    loop_allowed_paths: list[str],
+) -> dict[str, Any]:
     reads = contract.get("reads") if isinstance(contract, dict) else {}
     required_entries = _contract_entries((reads or {}).get("required"), context, required=True)
     optional_entries = _contract_entries((reads or {}).get("optional"), context, required=False)
@@ -316,11 +319,11 @@ def _build_readmap(
 
 def _build_writemap(
     *,
-    contract: Dict[str, Any],
-    context: Dict[str, str],
+    contract: dict[str, Any],
+    context: dict[str, str],
     target: Path,
-    loop_allowed_paths: List[str],
-) -> Dict[str, Any]:
+    loop_allowed_paths: list[str],
+) -> dict[str, Any]:
     writes = contract.get("writes") if isinstance(contract, dict) else {}
     outputs = contract.get("outputs") if isinstance(contract, dict) else []
 
@@ -351,7 +354,7 @@ def _build_writemap(
     return writemap
 
 
-def _build_actions_template(contract: Dict[str, Any], context: Dict[str, str]) -> Dict[str, Any]:
+def _build_actions_template(contract: dict[str, Any], context: dict[str, str]) -> dict[str, Any]:
     actions = contract.get("actions") if isinstance(contract, dict) else {}
     allowed_types = actions.get("allowed_types") if isinstance(actions, dict) else None
     if not isinstance(allowed_types, list) or not allowed_types:
@@ -377,10 +380,10 @@ def _build_preflight_result(
     status: str,
     reason_code: str,
     reason: str,
-    context: Dict[str, str],
-    artifacts: Dict[str, str],
-) -> Dict[str, Any]:
-    payload: Dict[str, Any] = {
+    context: dict[str, str],
+    artifacts: dict[str, str],
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
         "schema": "aidd.stage_result.preflight.v1",
         "ticket": context["ticket"],
         "stage": context["stage"],
@@ -399,7 +402,7 @@ def _build_preflight_result(
     return payload
 
 
-def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate preflight artifacts for loop stages.")
     parser.add_argument("--ticket", required=True)
     parser.add_argument("--scope-key", required=True)
@@ -416,7 +419,7 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: List[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     _, target = runtime.require_workflow_root(Path.cwd())
 
@@ -442,7 +445,7 @@ def main(argv: List[str] | None = None) -> int:
         "contract_rel": runtime.rel_path(contract_path, target),
     }
 
-    artifacts: Dict[str, str] = {
+    artifacts: dict[str, str] = {
         "actions_template": runtime.rel_path(actions_template_path, target),
         "readmap_json": runtime.rel_path(readmap_json_path, target),
         "readmap_md": runtime.rel_path(readmap_md_path, target),

@@ -7,17 +7,16 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import List
 
 from aidd_runtime import runtime
 from aidd_runtime.md_slice import parse_ref
 
 
-def _extract_content(path: Path) -> List[str]:
+def _extract_content(path: Path) -> list[str]:
     return path.read_text(encoding="utf-8").splitlines()
 
 
-def _patch_section(lines: List[str], section_name: str, content: List[str]) -> List[str]:
+def _patch_section(lines: list[str], section_name: str, content: list[str]) -> list[str]:
     heading = f"## {section_name}"
     start = -1
     for idx, line in enumerate(lines):
@@ -39,7 +38,7 @@ def _patch_section(lines: List[str], section_name: str, content: List[str]) -> L
     return lines[: start + 1] + replacement + lines[end:]
 
 
-def _patch_handoff(lines: List[str], handoff_id: str, content: List[str]) -> List[str]:
+def _patch_handoff(lines: list[str], handoff_id: str, content: list[str]) -> list[str]:
     start = -1
     end = -1
     start_marker = f"<!-- handoff:{handoff_id} start"

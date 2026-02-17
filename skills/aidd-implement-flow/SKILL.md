@@ -64,7 +64,7 @@ flowchart TD
 
 应用 Actions：
 ```bash
-python3 $KIMI_AIDD_ROOT/runtime/skills/aidd-docio/runtime/actions_apply.py \
+python3 $AIDD_ROOT/runtime/skills/aidd-docio/runtime/actions_apply.py \
   --actions aidd/reports/actions/{ticket}/{scope_key}/implement.actions.json
 ```
 

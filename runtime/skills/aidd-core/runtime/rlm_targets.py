@@ -7,11 +7,10 @@ import json
 import os
 import re
 import subprocess
+from collections.abc import Iterable, Sequence
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
-from aidd_runtime import runtime
-from aidd_runtime import research_hints
+from aidd_runtime import research_hints, runtime
 from aidd_runtime.rlm_config import (
     base_label,
     detect_lang,
@@ -23,11 +22,10 @@ from aidd_runtime.rlm_config import (
     workspace_root_for,
 )
 
-
 SCHEMA = "aidd.rlm_targets.v1"
 
 
-def _load_hints(target: Path, ticket: str) -> tuple[research_hints.ResearchHints, Optional[str]]:
+def _load_hints(target: Path, ticket: str) -> tuple[research_hints.ResearchHints, str | None]:
     prd_path = target / "docs" / "prd" / f"{ticket}.prd.md"
     hints = research_hints.load_research_hints(target, ticket)
     if prd_path.exists():
@@ -37,8 +35,8 @@ def _load_hints(target: Path, ticket: str) -> tuple[research_hints.ResearchHints
     return hints, source
 
 
-def _resolve_roots(target: Path, paths: Sequence[str], *, base_root: Path) -> List[Path]:
-    roots: List[Path] = []
+def _resolve_roots(target: Path, paths: Sequence[str], *, base_root: Path) -> list[Path]:
+    roots: list[Path] = []
     workspace_root = workspace_root_for(target)
     for raw in paths:
         if not raw:
@@ -59,7 +57,7 @@ def _discover_common_paths(
     *,
     ignore_dirs: set[str],
     max_depth: int = 4,
-) -> List[str]:
+) -> list[str]:
     base_root = base_root.resolve()
     candidates = [
         Path("src/main"),
@@ -69,7 +67,7 @@ def _discover_common_paths(
         Path("backend/src/main"),
         Path("backend/src/test"),
     ]
-    discovered: List[str] = []
+    discovered: list[str] = []
     for candidate in candidates:
         path = (base_root / candidate).resolve()
         if path.exists():
@@ -89,8 +87,8 @@ def _discover_common_paths(
     return sorted(dict.fromkeys(discovered))
 
 
-def _normalize_prefixes(values: Iterable[str]) -> List[str]:
-    prefixes: List[str] = []
+def _normalize_prefixes(values: Iterable[str]) -> list[str]:
+    prefixes: list[str] = []
     for raw in values:
         text = str(raw or "").strip().replace("\\", "/")
         if not text:
@@ -101,11 +99,11 @@ def _normalize_prefixes(values: Iterable[str]) -> List[str]:
     return prefixes
 
 
-def _filter_prefixes(paths: Iterable[str], prefixes: Iterable[str]) -> List[str]:
+def _filter_prefixes(paths: Iterable[str], prefixes: Iterable[str]) -> list[str]:
     if not prefixes:
         return [str(item) for item in paths if str(item).strip()]
     normalized_prefixes = _normalize_prefixes(prefixes)
-    filtered: List[str] = []
+    filtered: list[str] = []
     for raw in paths:
         text = str(raw or "").strip()
         if not text:
@@ -120,11 +118,11 @@ def _filter_prefixes(paths: Iterable[str], prefixes: Iterable[str]) -> List[str]
     return filtered
 
 
-def _include_prefixes(paths: Iterable[str], prefixes: Iterable[str]) -> List[str]:
+def _include_prefixes(paths: Iterable[str], prefixes: Iterable[str]) -> list[str]:
     normalized_prefixes = _normalize_prefixes(prefixes)
     if not normalized_prefixes:
         return [str(item) for item in paths if str(item).strip()]
-    filtered: List[str] = []
+    filtered: list[str] = []
     for raw in paths:
         text = str(raw or "").strip()
         if not text:
@@ -138,15 +136,15 @@ def _include_prefixes(paths: Iterable[str], prefixes: Iterable[str]) -> List[str
     return filtered
 
 
-def normalize_prefixes(values: Iterable[str]) -> List[str]:
+def normalize_prefixes(values: Iterable[str]) -> list[str]:
     return _normalize_prefixes(values)
 
 
-def filter_prefixes(paths: Iterable[str], prefixes: Iterable[str]) -> List[str]:
+def filter_prefixes(paths: Iterable[str], prefixes: Iterable[str]) -> list[str]:
     return _filter_prefixes(paths, prefixes)
 
 
-def _parse_files_touched(plan_path: Path) -> List[str]:
+def _parse_files_touched(plan_path: Path) -> list[str]:
     if not plan_path.exists():
         return []
     text = plan_path.read_text(encoding="utf-8", errors="replace")
@@ -158,7 +156,7 @@ def _parse_files_touched(plan_path: Path) -> List[str]:
             break
     if start is None:
         return []
-    items: List[str] = []
+    items: list[str] = []
     for line in lines[start:]:
         if line.strip().startswith("## "):
             break
@@ -183,8 +181,8 @@ def _walk_files(
     ignore_dirs: set[str],
     max_files: int,
     max_file_bytes: int,
-) -> List[str]:
-    files: List[str] = []
+) -> list[str]:
+    files: list[str] = []
     base_root = base_root.resolve()
     for root in roots:
         if max_files and len(files) >= max_files:
@@ -278,10 +276,10 @@ def _rg_files_with_matches(
     return hits
 
 
-def _parse_override_paths(raw: Optional[str]) -> List[str]:
+def _parse_override_paths(raw: str | None) -> list[str]:
     if not raw:
         return []
-    items: List[str] = []
+    items: list[str] = []
     for chunk in re.split(r"[,:]", raw):
         cleaned = chunk.strip()
         if cleaned:
@@ -310,19 +308,19 @@ def build_targets(
     target: Path,
     ticket: str,
     *,
-    settings: Dict,
-    targets_mode: Optional[str] = None,
-    paths_override: Optional[Sequence[str]] = None,
-    keywords_override: Optional[Sequence[str]] = None,
-    notes_override: Optional[Sequence[str]] = None,
-    base_root: Optional[Path] = None,
-) -> Dict[str, object]:
+    settings: dict,
+    targets_mode: str | None = None,
+    paths_override: Sequence[str] | None = None,
+    keywords_override: Sequence[str] | None = None,
+    notes_override: Sequence[str] | None = None,
+    base_root: Path | None = None,
+) -> dict[str, object]:
     hints, config_source = _load_hints(target, ticket)
     if paths_override:
         paths = _normalize_prefixes(paths_override)
     else:
         paths = _normalize_prefixes(hints.paths)
-    paths_discovered: List[str] = []
+    paths_discovered: list[str] = []
     keywords = [str(item).strip().lower() for item in hints.keywords if str(item).strip()]
     notes = [str(item).strip() for item in hints.notes if str(item).strip()]
     if keywords_override:
@@ -360,7 +358,7 @@ def build_targets(
     max_file_bytes = int(settings.get("max_file_bytes") or 0)
 
     base_root = base_root or paths_base_for(target)
-    auto_paths: List[str] = []
+    auto_paths: list[str] = []
     if not (targets_mode == "explicit" and paths):
         auto_paths = _discover_common_paths(base_root, ignore_dirs=ignore_dirs)
     if auto_paths:
@@ -403,7 +401,7 @@ def build_targets(
         "ticket": ticket,
         "slug": slug_hint or ticket,
         "slug_hint": slug_hint,
-        "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "generated_at": dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "config_source": config_source,
         "targets_mode": targets_mode,
         "paths_base": base_label(target, base_root),
@@ -421,7 +419,7 @@ def build_targets(
     }
 
 
-def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate deterministic RLM targets.")
     parser.add_argument("--ticket", help="Ticket identifier (defaults to docs/.active.json).")
     parser.add_argument("--output", help="Optional output path for rlm-targets.json.")
@@ -437,7 +435,7 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: List[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     _, target = runtime.require_workflow_root()
     ticket, context = runtime.require_ticket(target, ticket=args.ticket, slug_hint=None)

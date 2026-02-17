@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from typing import Sequence
+from collections.abc import Sequence
 
 from aidd_runtime import progress as _progress
 from aidd_runtime import runtime
@@ -105,26 +105,26 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{prefix}{item}")
 
     if result.status.startswith("error:"):
-        print(result.message or "BLOCK: проверка прогресса не пройдена.")
+        print(result.message or "BLOCK: progress check failed.")
         if args.verbose and result.code_files:
-            print("Изменённые файлы:")
+            print("Changed files:")
             _print_items(result.code_files)
         return result.exit_code()
 
     if result.status.startswith("skip:"):
-        print(result.message or "Прогресс-чек пропущен.")
+        print(result.message or "Progress check skipped.")
         if args.verbose and result.code_files:
-            print("Изменённые файлы:")
+            print("Changed files:")
             _print_items(result.code_files)
         return 0
 
     label = runtime.format_ticket_label(context)
-    print(f"✅ Прогресс tasklist для `{label}` подтверждён.")
+    print(f"Tasklist progress confirmed for `{label}`.")
     if result.new_items:
-        print("Новые чекбоксы:")
+        print("New checkboxes:")
         _print_items(result.new_items)
     if args.verbose and result.code_files:
-        print("Затронутые файлы:")
+        print("Affected files:")
         _print_items(result.code_files)
     return 0
 

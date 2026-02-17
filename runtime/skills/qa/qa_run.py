@@ -8,13 +8,11 @@ import sys
 from pathlib import Path
 
 _PLUGIN_ROOT = Path(__file__).resolve().parents[3]
-os.environ.setdefault("KIMI_AIDD_ROOT", str(_PLUGIN_ROOT))
+os.environ.setdefault("AIDD_ROOT", str(_PLUGIN_ROOT))
 if str(_PLUGIN_ROOT) not in sys.path:
     sys.path.insert(0, str(_PLUGIN_ROOT))
 
-from aidd_runtime import actions_validate
-from aidd_runtime import launcher
-from aidd_runtime import runtime
+from aidd_runtime import actions_validate, launcher, runtime
 
 DEFAULT_STAGE = "qa"
 _ALLOWED_ACTION_TYPES = [

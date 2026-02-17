@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 
 def _repo_root() -> Path:
     here = Path(__file__).resolve()
     for candidate in (here.parent, *here.parents):
-        if (candidate / ".claude-plugin").is_dir() and (candidate / "skills").is_dir():
+        if (candidate / ".aidd-plugin").is_dir() and (candidate / "skills").is_dir():
             return candidate
     return here.parents[3]
 
@@ -16,7 +16,7 @@ def _repo_root() -> Path:
 SCHEMA_DIR = Path(__file__).resolve().parent / "schemas" / "aidd"
 
 
-SCHEMA_FILES: Dict[str, str] = {
+SCHEMA_FILES: dict[str, str] = {
     "aidd.actions.v0": "aidd.actions.v0.schema.json",
     "aidd.actions.v1": "aidd.actions.v1.json",
     "aidd.skill_contract.v1": "aidd.skill_contract.v1.json",
@@ -33,7 +33,7 @@ def schema_path(schema_name: str) -> Path:
     return SCHEMA_DIR / filename
 
 
-def load_schema(schema_name: str) -> Dict[str, Any]:
+def load_schema(schema_name: str) -> dict[str, Any]:
     path = schema_path(schema_name)
     return json.loads(path.read_text(encoding="utf-8"))
 

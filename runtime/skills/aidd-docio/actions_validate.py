@@ -7,8 +7,9 @@ import argparse
 import json
 import re
 import sys
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable, List
+from typing import Any
 
 from aidd_runtime import aidd_schemas
 
@@ -38,13 +39,13 @@ def _is_str(value: Any) -> bool:
     return isinstance(value, str)
 
 
-def _require_fields(obj: dict, fields: Iterable[str], errors: List[str], *, prefix: str = "") -> None:
+def _require_fields(obj: dict, fields: Iterable[str], errors: list[str], *, prefix: str = "") -> None:
     for field in fields:
         if field not in obj:
             errors.append(f"{prefix}missing field: {field}")
 
 
-def _validate_progress_params(params: dict, errors: List[str], *, prefix: str = "") -> None:
+def _validate_progress_params(params: dict, errors: list[str], *, prefix: str = "") -> None:
     required = ["date", "source", "item_id", "kind", "hash", "msg"]
     _require_fields(params, required, errors, prefix=prefix)
     date = params.get("date")
@@ -71,7 +72,7 @@ def _validate_progress_params(params: dict, errors: List[str], *, prefix: str = 
         errors.append(f"{prefix}link must be string")
 
 
-def _validate_set_done_params(params: dict, errors: List[str], *, prefix: str = "") -> None:
+def _validate_set_done_params(params: dict, errors: list[str], *, prefix: str = "") -> None:
     _require_fields(params, ["item_id"], errors, prefix=prefix)
     item_id = params.get("item_id")
     if item_id is not None and not _is_str(item_id):
@@ -84,7 +85,7 @@ def _validate_set_done_params(params: dict, errors: List[str], *, prefix: str = 
             errors.append(f"{prefix}kind must be 'iteration' or 'handoff'")
 
 
-def _validate_context_pack_params(params: dict, errors: List[str], *, prefix: str = "") -> None:
+def _validate_context_pack_params(params: dict, errors: list[str], *, prefix: str = "") -> None:
     allowed_keys = {
         "read_log",
         "read_next",
@@ -96,7 +97,7 @@ def _validate_context_pack_params(params: dict, errors: List[str], *, prefix: st
     if not params:
         errors.append(f"{prefix}context_pack_update params cannot be empty")
         return
-    unknown = [key for key in params.keys() if key not in allowed_keys]
+    unknown = [key for key in params if key not in allowed_keys]
     if unknown:
         errors.append(f"{prefix}unknown context_pack_update fields: {', '.join(sorted(unknown))}")
     for key in ("read_log", "read_next", "artefact_links"):
@@ -109,7 +110,7 @@ def _validate_context_pack_params(params: dict, errors: List[str], *, prefix: st
             errors.append(f"{prefix}{key} must be string")
 
 
-def _validate_action_item(action: dict, errors: List[str], *, prefix: str, allowed_types: set[str]) -> None:
+def _validate_action_item(action: dict, errors: list[str], *, prefix: str, allowed_types: set[str]) -> None:
     action_type = action.get("type")
     if not action_type or not _is_str(action_type):
         errors.append(f"{prefix}missing or invalid type")
@@ -137,7 +138,7 @@ def _validate_action_item(action: dict, errors: List[str], *, prefix: str, allow
         _validate_context_pack_params(params, errors, prefix=prefix)
 
 
-def _validate_v0(payload: dict, errors: List[str]) -> None:
+def _validate_v0(payload: dict, errors: list[str]) -> None:
     for key in ("stage", "ticket", "scope_key", "work_item_key"):
         if key not in payload:
             errors.append(f"missing field: {key}")
@@ -161,7 +162,7 @@ def _validate_v0(payload: dict, errors: List[str]) -> None:
         _validate_action_item(action, errors, prefix=prefix, allowed_types=allowed_types)
 
 
-def _validate_v1(payload: dict, errors: List[str]) -> None:
+def _validate_v1(payload: dict, errors: list[str]) -> None:
     for key in ("stage", "ticket", "scope_key", "work_item_key"):
         if key not in payload:
             errors.append(f"missing field: {key}")
@@ -197,8 +198,8 @@ def _validate_v1(payload: dict, errors: List[str]) -> None:
         _validate_action_item(action, errors, prefix=prefix, allowed_types=allowed_types)
 
 
-def validate_actions_data(payload: dict) -> List[str]:
-    errors: List[str] = []
+def validate_actions_data(payload: dict) -> list[str]:
+    errors: list[str] = []
     if not isinstance(payload, dict):
         return ["payload must be a JSON object"]
 

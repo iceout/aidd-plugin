@@ -3,12 +3,11 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from aidd_runtime import active_state as _active_state
 from aidd_runtime.io_utils import utc_timestamp
-
-from aidd_runtime.resources import DEFAULT_PROJECT_SUBDIR, resolve_project_root as resolve_workspace_root
+from aidd_runtime.resources import DEFAULT_PROJECT_SUBDIR
+from aidd_runtime.resources import resolve_project_root as resolve_workspace_root
 
 ACTIVE_STATE_FILE = Path("docs") / ".active.json"
 PRD_TEMPLATE_FILE = Path("docs") / "prd" / "template.md"
@@ -23,11 +22,11 @@ def resolve_aidd_root(raw: Path) -> Path:
 
 @dataclass(frozen=True)
 class FeatureIdentifiers:
-    ticket: Optional[str] = None
-    slug_hint: Optional[str] = None
+    ticket: str | None = None
+    slug_hint: str | None = None
 
     @property
-    def resolved_ticket(self) -> Optional[str]:
+    def resolved_ticket(self) -> str | None:
         return (self.ticket or self.slug_hint or "").strip() or None
 
     @property
@@ -64,10 +63,10 @@ def read_active_state(root: Path) -> ActiveState:
 def write_active_state(
     root: Path,
     *,
-    ticket: Optional[str] = None,
-    slug_hint: Optional[str] = None,
-    stage: Optional[str] = None,
-    work_item: Optional[str] = None,
+    ticket: str | None = None,
+    slug_hint: str | None = None,
+    stage: str | None = None,
+    work_item: str | None = None,
 ) -> ActiveState:
     root = resolve_aidd_root(root)
     current = read_active_state(root)
@@ -105,8 +104,8 @@ def write_active_state(
 def resolve_identifiers(
     root: Path,
     *,
-    ticket: Optional[str] = None,
-    slug_hint: Optional[str] = None,
+    ticket: str | None = None,
+    slug_hint: str | None = None,
 ) -> FeatureIdentifiers:
     stored = read_identifiers(root)
     resolved_ticket = (ticket or "").strip() or stored.resolved_ticket
@@ -119,7 +118,6 @@ def resolve_identifiers(
 
 def scaffold_prd(root: Path, ticket: str) -> bool:
     """Ensure docs/prd/<ticket>.prd.md exists by copying the template."""
-
     root = resolve_aidd_root(root)
     ticket_value = ticket.strip()
     if not ticket_value:
@@ -150,7 +148,7 @@ def write_identifiers(
     root: Path,
     *,
     ticket: str,
-    slug_hint: Optional[str] = None,
+    slug_hint: str | None = None,
     scaffold_prd_file: bool = True,
 ) -> None:
     root = resolve_aidd_root(root)
@@ -186,16 +184,16 @@ def _read_active_state_payload(root: Path) -> dict:
     return payload if isinstance(payload, dict) else {}
 
 
-def _normalize_state_value(value: object) -> Optional[str]:
+def _normalize_state_value(value: object) -> str | None:
     text = str(value).strip() if value is not None else ""
     return text or None
 
 
 @dataclass(frozen=True)
 class ActiveState:
-    ticket: Optional[str] = None
-    slug_hint: Optional[str] = None
-    stage: Optional[str] = None
-    work_item: Optional[str] = None
-    last_review_report_id: Optional[str] = None
-    updated_at: Optional[str] = None
+    ticket: str | None = None
+    slug_hint: str | None = None
+    stage: str | None = None
+    work_item: str | None = None
+    last_review_report_id: str | None = None
+    updated_at: str | None = None

@@ -6,27 +6,30 @@ import os
 import shutil
 import sys
 from pathlib import Path
-from typing import List
 
-_PLUGIN_ROOT = Path(__file__).resolve().parents[3]
-os.environ.setdefault("KIMI_AIDD_ROOT", str(_PLUGIN_ROOT))
+# runtime/skills/aidd-init/runtime/init.py → repo root is four levels up
+_PLUGIN_ROOT = Path(__file__).resolve().parents[4]
+_RUNTIME_PATH = _PLUGIN_ROOT / "runtime"
+os.environ.setdefault("AIDD_ROOT", str(_PLUGIN_ROOT))
 if str(_PLUGIN_ROOT) not in sys.path:
     sys.path.insert(0, str(_PLUGIN_ROOT))
+if str(_RUNTIME_PATH) not in sys.path:
+    sys.path.insert(0, str(_RUNTIME_PATH))
 
 from aidd_runtime import runtime
 from aidd_runtime.resources import DEFAULT_PROJECT_SUBDIR
 
 SKILL_TEMPLATE_SEEDS: tuple[tuple[str, str], ...] = (
-    ("skills/aidd-core/templates/workspace-agents.md", "AGENTS.md"),
-    ("skills/aidd-core/templates/stage-lexicon.md", "docs/shared/stage-lexicon.md"),
-    ("skills/aidd-core/templates/index.schema.json", "docs/index/schema.json"),
-    ("skills/idea-new/templates/prd.template.md", "docs/prd/template.md"),
-    ("skills/plan-new/templates/plan.template.md", "docs/plan/template.md"),
-    ("skills/researcher/templates/research.template.md", "docs/research/template.md"),
-    ("skills/spec-interview/templates/spec.template.yaml", "docs/spec/template.spec.yaml"),
-    ("skills/tasks-new/templates/tasklist.template.md", "docs/tasklist/template.md"),
-    ("skills/aidd-loop/templates/loop-pack.template.md", "docs/loops/template.loop-pack.md"),
-    ("skills/aidd-core/templates/context-pack.template.md", "reports/context/template.context-pack.md"),
+    ("templates/aidd/AGENTS.md", "AGENTS.md"),
+    ("templates/aidd/docs/shared/stage-lexicon.md", "docs/shared/stage-lexicon.md"),
+    ("templates/aidd/docs/index/schema.json", "docs/index/schema.json"),
+    ("templates/aidd/docs/prd/template.md", "docs/prd/template.md"),
+    ("templates/aidd/docs/plan/template.md", "docs/plan/template.md"),
+    ("templates/aidd/docs/research/template.md", "docs/research/template.md"),
+    ("templates/aidd/docs/spec/template.spec.yaml", "docs/spec/template.spec.yaml"),
+    ("templates/aidd/docs/tasklist/template.md", "docs/tasklist/template.md"),
+    ("templates/aidd/docs/loops/template.loop-pack.md", "docs/loops/template.loop-pack.md"),
+    ("templates/aidd/reports/context/template.context-pack.md", "reports/context/template.context-pack.md"),
 )
 _SEED_TARGETS = {target for _, target in SKILL_TEMPLATE_SEEDS}
 _SEED_DIRECTORIES = {str(Path(target).parent.as_posix()) for target in _SEED_TARGETS}
@@ -77,21 +80,21 @@ def _copy_seed_files(plugin_root: Path, project_root: Path, *, force: bool) -> l
 
 
 def _write_test_settings(workspace_root: Path, *, force: bool) -> None:
-    from aidd_runtime.test_settings_defaults import detect_build_tools, test_settings_payload
+    from aidd_runtime.test_settings_defaults import build_settings_payload, detect_build_tools
 
-    settings_path = workspace_root / ".claude" / "settings.json"
+    settings_path = workspace_root / ".aidd" / "settings.json"
     data: dict = {}
     if settings_path.exists():
         try:
             data = json.loads(settings_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
-            print(f"[aidd:init] skip .claude/settings.json (invalid JSON): {exc}")
+            print(f"[aidd:init] skip .aidd/settings.json (invalid JSON): {exc}")
             return
         if not isinstance(data, dict):
             data = {}
 
     detected = detect_build_tools(workspace_root)
-    payload = test_settings_payload(detected)
+    payload = build_settings_payload(detected)
     automation = data.setdefault("automation", {})
     if not isinstance(automation, dict):
         automation = {}
@@ -111,12 +114,12 @@ def _write_test_settings(workspace_root: Path, *, force: bool) -> None:
         tools_label = ", ".join(sorted(detected)) or "default"
         settings_path.parent.mkdir(parents=True, exist_ok=True)
         settings_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-        print(f"[aidd:init] updated .claude/settings.json (build tools: {tools_label})")
+        print(f"[aidd:init] updated .aidd/settings.json (build tools: {tools_label})")
     else:
-        print("[aidd:init] .claude/settings.json already contains automation.tests defaults")
+        print("[aidd:init] .aidd/settings.json already contains automation.tests defaults")
 
 
-def run_init(target: Path, extra_args: List[str] | None = None) -> None:
+def run_init(target: Path, extra_args: list[str] | None = None) -> None:
     extra_args = extra_args or []
     workspace_root, project_root = runtime.resolve_roots(target, create=True)
 
@@ -144,12 +147,12 @@ def run_init(target: Path, extra_args: List[str] | None = None) -> None:
         print(f"[aidd:init] no changes (already initialized) in {project_root}")
     loops_reports = project_root / "reports" / "loops"
     loops_reports.mkdir(parents=True, exist_ok=True)
-    settings_path = workspace_root / ".claude" / "settings.json"
+    settings_path = workspace_root / ".aidd" / "settings.json"
     if detect_build_tools or not settings_path.exists():
         _write_test_settings(workspace_root, force=force if detect_build_tools else False)
 
 
-def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate workflow scaffolding in the current workspace.",
     )
@@ -161,7 +164,7 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--detect-build-tools",
         action="store_true",
-        help="Populate .claude/settings.json with default automation.tests settings.",
+        help="Populate .aidd/settings.json with default automation.tests settings.",
     )
     parser.add_argument(
         "--detect-stack",
@@ -172,7 +175,7 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: List[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     script_args: list[str] = []
     if args.force:

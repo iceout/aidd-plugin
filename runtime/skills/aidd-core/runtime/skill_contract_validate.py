@@ -6,8 +6,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Iterable, Sequence
 from pathlib import Path
-from typing import Any, Iterable, List, Sequence
+from typing import Any
 
 from aidd_runtime import aidd_schemas
 
@@ -48,7 +49,7 @@ class ValidationError(ValueError):
 def _repo_root() -> Path:
     here = Path(__file__).resolve()
     for candidate in (here.parent, *here.parents):
-        if (candidate / ".claude-plugin").is_dir() and (candidate / "skills").is_dir():
+        if (candidate / ".aidd-plugin").is_dir() and (candidate / "skills").is_dir():
             return candidate
     return here.parents[2]
 
@@ -94,18 +95,18 @@ def load_contract(path: Path) -> dict[str, Any]:
     return payload
 
 
-def _require_fields(obj: dict[str, Any], fields: Iterable[str], errors: List[str], *, prefix: str = "") -> None:
+def _require_fields(obj: dict[str, Any], fields: Iterable[str], errors: list[str], *, prefix: str = "") -> None:
     for field in fields:
         if field not in obj:
             errors.append(f"{prefix}missing field: {field}")
 
 
-def _validate_list_of_strings(value: Any, errors: List[str], *, field: str) -> None:
+def _validate_list_of_strings(value: Any, errors: list[str], *, field: str) -> None:
     if not isinstance(value, list) or not all(isinstance(item, str) and item.strip() for item in value):
         errors.append(f"field {field} must be list[str]")
 
 
-def _validate_read_items(value: Any, errors: List[str], *, field: str) -> None:
+def _validate_read_items(value: Any, errors: list[str], *, field: str) -> None:
     if not isinstance(value, list):
         errors.append(f"field {field} must be list")
         return
@@ -132,8 +133,8 @@ def _strip_ref_selector(value: str) -> str:
     return raw
 
 
-def _collect_ref_paths(items: Any) -> List[str]:
-    paths: List[str] = []
+def _collect_ref_paths(items: Any) -> list[str]:
+    paths: list[str] = []
     if not isinstance(items, list):
         return paths
     for item in items:
@@ -161,8 +162,8 @@ def _collect_string_set(items: Any) -> set[str]:
     return values
 
 
-def validate_contract_data(payload: dict[str, Any], *, contract_path: Path | None = None) -> List[str]:
-    errors: List[str] = []
+def validate_contract_data(payload: dict[str, Any], *, contract_path: Path | None = None) -> list[str]:
+    errors: list[str] = []
     if not isinstance(payload, dict):
         return ["payload must be a JSON/YAML object"]
 
@@ -266,7 +267,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def _validate_one(path: Path) -> List[str]:
+def _validate_one(path: Path) -> list[str]:
     payload = load_contract(path)
     return validate_contract_data(payload, contract_path=path)
 

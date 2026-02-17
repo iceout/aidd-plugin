@@ -4,24 +4,28 @@ import argparse
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from aidd_runtime import gates
 from aidd_runtime.feature_ids import resolve_aidd_root
 
 # Allow Markdown prefixes (headings/bullets/bold) so analyst output doesn't trip the gate.
-QUESTION_RE = re.compile(r"^\s*(?:[#>*-]+\s*)?(?:\*\*)?Вопрос\s+(\d+)\b[^:\n]*:(?:\*\*)?", re.MULTILINE)
+QUESTION_RE = re.compile(
+    r"^\s*(?:[#>*-]+\s*)?(?:\*\*)?(?:Question|\u0412\u043e\u043f\u0440\u043e\u0441)\s+(\d+)\b[^:\n]*:(?:\*\*)?",
+    re.MULTILINE,
+)
 ANSWER_RE = re.compile(
-    r"^\s*(?:[#>*-]+\s*)?(?:\*\*)?(?:Ответ|Answer)\s+(\d+)\b(?:\*\*)?\s*:",
+    r"^\s*(?:[#>*-]+\s*)?(?:\*\*)?(?:Answer|\u041e\u0442\u0432\u0435\u0442)\s+(\d+)\b(?:\*\*)?\s*:",
     re.MULTILINE,
 )
 STATUS_RE = re.compile(r"^\s*Status:\s*([A-Za-z]+)", re.MULTILINE)
-DIALOG_HEADING = "## Диалог analyst"
+DIALOG_HEADING = "## Dialog analyst"
+LEGACY_DIALOG_HEADING = "## \u0414\u0438\u0430\u043b\u043e\u0433 analyst"
 ANSWERS_HEADING = "## AIDD:ANSWERS"
-OPEN_QUESTIONS_HEADING = "## 10. Открытые вопросы"
+OPEN_QUESTIONS_HEADING = "## 10. Open Questions"
+LEGACY_OPEN_QUESTIONS_HEADING = "## 10. \u041e\u0442\u043a\u0440\u044b\u0442\u044b\u0435 \u0432\u043e\u043f\u0440\u043e\u0441\u044b"
 AIDD_OPEN_QUESTIONS_HEADING = "## AIDD:OPEN_QUESTIONS"
 Q_RE = re.compile(r"\bQ(\d+)\b")
-NONE_VALUES = {"none", "нет", "n/a", "na"}
+NONE_VALUES = {"none", "n/a", "na"}
 OPEN_ITEM_PREFIX_RE = re.compile(r"^(?:[-*+]\s+|\d+\.\s+)")
 CHECKBOX_PREFIX_RE = re.compile(r"^\[[ xX]\]\s*")
 ALLOWED_STATUSES = {"READY", "BLOCKED", "PENDING"}
@@ -40,13 +44,13 @@ class AnalystSettings:
     allow_blocked: bool = False
     check_open_questions: bool = True
     require_dialog_section: bool = True
-    branches: Optional[list[str]] = None
-    skip_branches: Optional[list[str]] = None
+    branches: list[str] | None = None
+    skip_branches: list[str] | None = None
 
 
 @dataclass
 class AnalystCheckSummary:
-    status: Optional[str]
+    status: str | None
     question_count: int
     answered_count: int
 
@@ -66,7 +70,7 @@ def load_settings(root: Path) -> AnalystSettings:
             try:
                 settings.min_questions = max(int(raw["min_questions"]), 0)
             except (ValueError, TypeError):
-                raise AnalystValidationError("config/gates.json: поле analyst.min_questions должно быть числом")
+                raise AnalystValidationError("config/gates.json: analyst.min_questions must be a number")
         if "require_ready" in raw:
             settings.require_ready = bool(raw["require_ready"])
         if "allow_blocked" in raw:
@@ -83,7 +87,7 @@ def load_settings(root: Path) -> AnalystSettings:
 
 def _extract_section(text: str, heading_prefix: str) -> str | None:
     lines = text.splitlines()
-    start_idx: Optional[int] = None
+    start_idx: int | None = None
     heading_lower = heading_prefix.strip().lower()
     for idx, raw in enumerate(lines):
         if raw.strip().lower().startswith(heading_lower):
@@ -147,20 +151,22 @@ def validate_prd(
     ticket: str,
     *,
     settings: AnalystSettings,
-    branch: Optional[str] = None,
-    require_ready_override: Optional[bool] = None,
-    allow_blocked_override: Optional[bool] = None,
-    min_questions_override: Optional[int] = None,
+    branch: str | None = None,
+    require_ready_override: bool | None = None,
+    allow_blocked_override: bool | None = None,
+    min_questions_override: int | None = None,
 ) -> AnalystCheckSummary:
     if not settings.enabled or not gates.branch_enabled(branch, allow=settings.branches, skip=settings.skip_branches):
         return AnalystCheckSummary(status=None, question_count=0, answered_count=0)
 
     prd_path = root / "docs" / "prd" / f"{ticket}.prd.md"
     if not prd_path.exists():
-        raise AnalystValidationError(f"BLOCK: нет PRD → запустите /feature-dev-aidd:idea-new {ticket}")
+        raise AnalystValidationError(f"BLOCK: missing PRD -> run /feature-dev-aidd:idea-new {ticket}")
 
     text = prd_path.read_text(encoding="utf-8")
     dialog_section = _extract_section(text, DIALOG_HEADING)
+    if dialog_section is None:
+        dialog_section = _extract_section(text, LEGACY_DIALOG_HEADING)
     questions_source = dialog_section or text
     answers_section = _extract_section(text, ANSWERS_HEADING)
     answers_source = answers_section if answers_section is not None else (dialog_section or text)
@@ -172,11 +178,13 @@ def validate_prd(
         min_questions = max(min_questions_override, 0)
 
     if settings.require_dialog_section and dialog_section is None:
-        raise AnalystValidationError("BLOCK: PRD не содержит раздела `## Диалог analyst` → повторите /feature-dev-aidd:idea-new с уточнениями.")
+        raise AnalystValidationError(
+            f"BLOCK: PRD does not contain section `{DIALOG_HEADING}` -> rerun /feature-dev-aidd:idea-new with clarifications."
+        )
 
     if min_questions and len(set(questions)) < min_questions:
         raise AnalystValidationError(
-            f"BLOCK: analyst должен задать минимум {min_questions} вопрос(ов) в формате «Вопрос N: …»."
+            f"BLOCK: analyst must ask at least {min_questions} question(s) in 'Question N: ...' format."
         )
 
     if questions:
@@ -188,12 +196,14 @@ def validate_prd(
             if len(missing) > 3:
                 missing_repr += ", …"
             raise AnalystValidationError(
-                f"BLOCK: нарушена последовательность нумерации вопросов (пропущены {missing_repr}). Перенумеруйте вопросы и ответы."
+                f"BLOCK: question numbering sequence is broken (missing {missing_repr}). Renumber questions and answers."
             )
 
     status_match = STATUS_RE.search(text)
     status = status_match.group(1).upper() if status_match else None
     open_section = _extract_section(text, OPEN_QUESTIONS_HEADING)
+    if open_section is None:
+        open_section = _extract_section(text, LEGACY_OPEN_QUESTIONS_HEADING)
     aidd_open_section = _extract_section(text, AIDD_OPEN_QUESTIONS_HEADING)
     if settings.check_open_questions and aidd_open_section:
         q_numbers = _collect_q_numbers(aidd_open_section)
@@ -206,7 +216,7 @@ def validate_prd(
                 if len(missing_q) > 3:
                     sample = f"{sample}..."
                 raise AnalystValidationError(
-                    f"BLOCK: AIDD:OPEN_QUESTIONS содержит {sample}, но нет соответствующих «Вопрос N»."
+                    f"BLOCK: AIDD:OPEN_QUESTIONS contains {sample}, but matching 'Question N' entries are missing."
                 )
             missing_answer = sorted(q_numbers - answer_numbers)
             if missing_answer:
@@ -214,7 +224,7 @@ def validate_prd(
                 if len(missing_answer) > 3:
                     sample = f"{sample}..."
                 raise AnalystValidationError(
-                    f"BLOCK: AIDD:OPEN_QUESTIONS содержит {sample}, но нет соответствующих «Answer N»."
+                    f"BLOCK: AIDD:OPEN_QUESTIONS contains {sample}, but matching 'Answer N' entries are missing."
                 )
 
     if settings.check_open_questions and status == "READY":
@@ -225,11 +235,11 @@ def validate_prd(
                     continue
                 if stripped.startswith("- [ ]"):
                     raise AnalystValidationError(
-                        "BLOCK: статус READY, но раздел «Открытые вопросы» содержит незакрытые пункты."
+                        "BLOCK: status is READY, but 'Open Questions' still has unchecked items."
                     )
         if aidd_open_section and _has_open_items(aidd_open_section):
             raise AnalystValidationError(
-                "BLOCK: статус READY, но AIDD:OPEN_QUESTIONS содержит незакрытые пункты."
+                "BLOCK: status is READY, but AIDD:OPEN_QUESTIONS still has open items."
             )
 
     missing_answers = sorted(set(questions) - set(answers))
@@ -238,7 +248,7 @@ def validate_prd(
         if len(missing_answers) > 3:
             sample += ", …"
         raise AnalystValidationError(
-            f"BLOCK: отсутствуют ответы для вопросов {sample}. Ответьте в формате «Ответ N: …» и повторите /feature-dev-aidd:idea-new {ticket}."
+            f"BLOCK: missing answers for questions {sample}. Reply in 'Answer N: ...' format and rerun /feature-dev-aidd:idea-new {ticket}."
         )
 
     extra_answers = sorted(set(answers) - set(questions))
@@ -247,18 +257,20 @@ def validate_prd(
         if len(extra_answers) > 3:
             sample += ", …"
         raise AnalystValidationError(
-            f"BLOCK: найдены ответы без соответствующих вопросов ({sample}). Согласуйте пары «Вопрос N»/«Ответ N»."
+            f"BLOCK: found answers without matching questions ({sample}). Align 'Question N' with 'Answer N'."
         )
 
     if status is None:
-        raise AnalystValidationError("BLOCK: в PRD отсутствует строка `Status:` → обновите раздел `## Диалог analyst`.")
+        raise AnalystValidationError(
+            f"BLOCK: missing `Status:` line in PRD -> update section `{DIALOG_HEADING}`."
+        )
     if status == "DRAFT":
         raise AnalystValidationError(
-            "BLOCK: PRD в статусе draft. Заполните диалог analyst и обновите Status: READY перед запуском analyst-check."
+            "BLOCK: PRD status is draft. Complete analyst dialog and set Status: READY before analyst-check."
         )
     if status not in ALLOWED_STATUSES:
         raise AnalystValidationError(
-            f"BLOCK: некорректное значение статуса (`{status}`), допустимо READY|BLOCKED|PENDING."
+            f"BLOCK: invalid status (`{status}`), expected READY|BLOCKED|PENDING."
         )
 
     require_ready = settings.require_ready
@@ -272,15 +284,15 @@ def validate_prd(
     if require_ready and status != "READY":
         if status == "BLOCKED" and not allow_blocked:
             raise AnalystValidationError(
-                f"BLOCK: PRD помечен Status: {status}. Ответьте на вопросы и доведите аналитический цикл до READY."
+                f"BLOCK: PRD is marked Status: {status}. Resolve open questions and move the cycle to READY."
             )
         if status == "PENDING":
-            raise AnalystValidationError("BLOCK: статус PENDING. Закройте вопросы и установите Status: READY.")
+            raise AnalystValidationError("BLOCK: status is PENDING. Close open questions and set Status: READY.")
 
     research_ref = RESEARCH_REF_TEMPLATE.format(ticket=ticket)
     if research_ref not in text:
         raise AnalystValidationError(
-            f"BLOCK: PRD должен ссылаться на `{research_ref}` в разделе `## Диалог analyst` → добавьте ссылку на отчёт Researcher."
+            f"BLOCK: PRD must reference `{research_ref}` in section `{DIALOG_HEADING}` -> add the Researcher report link."
         )
 
     return AnalystCheckSummary(status=status, question_count=len(set(questions)), answered_count=len(set(answers)))
@@ -313,7 +325,7 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
     root = resolve_aidd_root(Path.cwd())
@@ -331,7 +343,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     except AnalystValidationError as exc:
         parser.exit(1, f"{exc}\n")
     if summary.status is None:
-        print("analyst gate disabled — ничего проверять.")
+        print("analyst gate disabled - nothing to validate.")
     else:
         print(
             f"analyst dialog OK (status: {summary.status}, questions: {summary.question_count})"

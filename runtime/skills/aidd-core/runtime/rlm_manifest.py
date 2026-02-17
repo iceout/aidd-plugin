@@ -4,8 +4,8 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Dict, Iterable, List
 
 from aidd_runtime import runtime
 from aidd_runtime.rlm_config import (
@@ -20,11 +20,10 @@ from aidd_runtime.rlm_config import (
     workspace_root_for,
 )
 
-
 SCHEMA = "aidd.rlm_manifest.v1"
 
 
-def _load_targets(path: Path) -> Dict:
+def _load_targets(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -34,8 +33,8 @@ def _iter_files(
     max_file_bytes: int,
     *,
     base_root: Path,
-) -> List[Dict[str, object]]:
-    entries: List[Dict[str, object]] = []
+) -> list[dict[str, object]]:
+    entries: list[dict[str, object]] = []
     workspace_root = workspace_root_for(target)
     for raw in files:
         if not raw:
@@ -82,10 +81,10 @@ def build_manifest(
     target: Path,
     ticket: str,
     *,
-    settings: Dict,
+    settings: dict,
     targets_path: Path,
     base_root: Path | None = None,
-) -> Dict[str, object]:
+) -> dict[str, object]:
     payload = _load_targets(targets_path)
     files = payload.get("files") or []
     if not isinstance(files, list):
@@ -109,7 +108,7 @@ def build_manifest(
         "ticket": ticket,
         "slug": payload.get("slug") or ticket,
         "slug_hint": payload.get("slug_hint"),
-        "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "generated_at": dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "targets_path": runtime.rel_path(targets_path, target),
         "files": entries,
         "stats": {
@@ -118,7 +117,7 @@ def build_manifest(
     }
 
 
-def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate RLM manifest for target files.")
     parser.add_argument("--ticket", help="Ticket identifier (defaults to docs/.active.json).")
     parser.add_argument("--targets", help="Override rlm-targets.json path.")
@@ -126,7 +125,7 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: List[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     _, target = runtime.require_workflow_root()
     ticket, _ = runtime.require_ticket(target, ticket=args.ticket, slug_hint=None)

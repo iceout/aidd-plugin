@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Tuple
 
 DEFAULT_PROJECT_SUBDIR = "aidd"
-_WORKSPACE_MARKERS = (".git", ".claude-plugin", "pyproject.toml")
+_WORKSPACE_MARKERS = (".git", ".aidd-plugin", "pyproject.toml")
 
 
 def _find_workspace_boundary(target: Path) -> Path | None:
@@ -16,9 +15,8 @@ def _find_workspace_boundary(target: Path) -> Path | None:
     return None
 
 
-def resolve_project_root(target: Path, subdir: str = DEFAULT_PROJECT_SUBDIR) -> Tuple[Path, Path]:
-    """
-    Resolve workspace and workflow roots for any path inside the workspace.
+def resolve_project_root(target: Path, subdir: str = DEFAULT_PROJECT_SUBDIR) -> tuple[Path, Path]:
+    """Resolve workspace and workflow roots for any path inside the workspace.
 
     - If ``target`` is inside an existing ``<subdir>`` directory, use that as workflow root.
     - If ``target`` is the workflow root itself, workspace is its parent.

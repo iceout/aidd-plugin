@@ -8,18 +8,18 @@ import json
 import os
 import subprocess
 import sys
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Dict, Iterable, List
+from typing import Any
 
-from aidd_runtime import runtime
-from aidd_runtime import context_map_validate
+from aidd_runtime import context_map_validate, runtime
 from aidd_runtime.io_utils import append_jsonl, utc_timestamp
 
 ALWAYS_ALLOW_REPORTS = ["aidd/reports/**", "aidd/reports/actions/**"]
 
 
-def _dedupe_str(items: Iterable[str]) -> List[str]:
-    out: List[str] = []
+def _dedupe_str(items: Iterable[str]) -> list[str]:
+    out: list[str] = []
     seen: set[str] = set()
     for item in items:
         value = str(item or "").strip()
@@ -43,16 +43,16 @@ def _parse_ref(value: str) -> tuple[str, str]:
     return raw, ""
 
 
-def _load_json(path: Path) -> Dict[str, Any]:
+def _load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _write_json(path: Path, payload: Dict[str, Any]) -> None:
+def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def _render_readmap_md(readmap: Dict[str, Any]) -> str:
+def _render_readmap_md(readmap: dict[str, Any]) -> str:
     lines = [
         "# Read Map",
         "",
@@ -85,7 +85,7 @@ def _render_readmap_md(readmap: Dict[str, Any]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _render_writemap_md(writemap: Dict[str, Any]) -> str:
+def _render_writemap_md(writemap: dict[str, Any]) -> str:
     lines = [
         "# Write Map",
         "",
@@ -120,7 +120,7 @@ def _render_writemap_md(writemap: Dict[str, Any]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _resolve_map_paths(target: Path, ticket: str, scope_key: str) -> Dict[str, Path]:
+def _resolve_map_paths(target: Path, ticket: str, scope_key: str) -> dict[str, Path]:
     base = target / "reports" / "actions" / ticket / scope_key
     return {
         "base": base,
@@ -132,7 +132,7 @@ def _resolve_map_paths(target: Path, ticket: str, scope_key: str) -> Dict[str, P
     }
 
 
-def _append_read_entry(readmap: Dict[str, Any], *, ref: str, reason_code: str, reason: str) -> None:
+def _append_read_entry(readmap: dict[str, Any], *, ref: str, reason_code: str, reason: str) -> None:
     path, selector = _parse_ref(ref)
     if not path:
         return
@@ -172,7 +172,7 @@ def _append_read_entry(readmap: Dict[str, Any], *, ref: str, reason_code: str, r
     readmap["generated_at"] = utc_timestamp()
 
 
-def _append_write_entry(writemap: Dict[str, Any], *, ref: str, reason_code: str, reason: str) -> None:
+def _append_write_entry(writemap: dict[str, Any], *, ref: str, reason_code: str, reason: str) -> None:
     path, _selector = _parse_ref(ref)
     if not path:
         return
@@ -215,7 +215,7 @@ def _regenerate_loop_pack(target: Path, *, ticket: str, stage: str, work_item_ke
         work_item_key,
     ]
     env = os.environ.copy()
-    env["KIMI_AIDD_ROOT"] = str(plugin_root)
+    env["AIDD_ROOT"] = str(plugin_root)
     env["PYTHONPATH"] = str(plugin_root) if not env.get("PYTHONPATH") else f"{plugin_root}:{env['PYTHONPATH']}"
     proc = subprocess.run(cmd, cwd=target, text=True, capture_output=True, env=env)
     output = (proc.stdout or "").strip() or (proc.stderr or "").strip()
@@ -305,7 +305,7 @@ def main(argv: list[str] | None = None) -> int:
             work_item_key=work_item_key,
         )
 
-    audit_payload: Dict[str, Any] = {
+    audit_payload: dict[str, Any] = {
         "schema": "aidd.context_expand.audit.v1",
         "ts": utc_timestamp(),
         "ticket": ticket,

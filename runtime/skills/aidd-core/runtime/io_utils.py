@@ -2,19 +2,19 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Dict, Iterable, List
 
 
 def utc_timestamp() -> str:
-    return dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    return dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
-def parse_front_matter(raw: str | Iterable[str]) -> Dict[str, str]:
+def parse_front_matter(raw: str | Iterable[str]) -> dict[str, str]:
     lines = raw.splitlines() if isinstance(raw, str) else list(raw)
     if not lines or lines[0].strip() != "---":
         return {}
-    data: Dict[str, str] = {}
+    data: dict[str, str] = {}
     for line in lines[1:]:
         if line.strip() == "---":
             break
@@ -25,8 +25,8 @@ def parse_front_matter(raw: str | Iterable[str]) -> Dict[str, str]:
     return data
 
 
-def dump_yaml(data: object, indent: int = 0) -> List[str]:
-    lines: List[str] = []
+def dump_yaml(data: object, indent: int = 0) -> list[str]:
+    lines: list[str] = []
     prefix = " " * indent
     if isinstance(data, dict):
         for key, value in data.items():
@@ -47,8 +47,8 @@ def dump_yaml(data: object, indent: int = 0) -> List[str]:
     return lines
 
 
-def read_jsonl(path: Path) -> List[Dict[str, object]]:
-    items: List[Dict[str, object]] = []
+def read_jsonl(path: Path) -> list[dict[str, object]]:
+    items: list[dict[str, object]] = []
     if not path.exists():
         return items
     try:
@@ -68,7 +68,7 @@ def read_jsonl(path: Path) -> List[Dict[str, object]]:
     return items
 
 
-def write_jsonl(path: Path, items: Iterable[Dict[str, object]]) -> None:
+def write_jsonl(path: Path, items: Iterable[dict[str, object]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_suffix(path.suffix + ".tmp")
     with tmp_path.open("w", encoding="utf-8") as handle:
@@ -77,7 +77,7 @@ def write_jsonl(path: Path, items: Iterable[Dict[str, object]]) -> None:
     tmp_path.replace(path)
 
 
-def append_jsonl(path: Path, payload: Dict[str, object]) -> None:
+def append_jsonl(path: Path, payload: dict[str, object]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(payload, ensure_ascii=False) + "\n")

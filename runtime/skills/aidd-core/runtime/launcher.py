@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import io
 import os
+from collections.abc import Callable
 from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Callable
 
 from aidd_runtime import runtime
-
 
 STDOUT_MAX_LINES = 200
 STDOUT_MAX_BYTES = 50 * 1024
@@ -109,7 +108,7 @@ def log_path(
     *,
     now: datetime | None = None,
 ) -> Path:
-    ts = (now or datetime.now(timezone.utc)).strftime("%Y%m%dT%H%M%SZ")
+    ts = (now or datetime.now(UTC)).strftime("%Y%m%dT%H%M%SZ")
     log_dir = root / "reports" / "logs" / stage / ticket / scope_key
     log_dir.mkdir(parents=True, exist_ok=True)
     return log_dir / f"wrapper.{name}.{ts}.log"

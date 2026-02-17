@@ -5,11 +5,8 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
 
 from aidd_runtime import runtime
 from aidd_runtime.io_utils import dump_yaml, parse_front_matter, utc_timestamp
@@ -24,7 +21,7 @@ def read_text(path: Path) -> str:
         return ""
 
 
-def load_loop_pack_meta(root: Path, ticket: str) -> Tuple[str, str, str]:
+def load_loop_pack_meta(root: Path, ticket: str) -> tuple[str, str, str]:
     stored_ticket = runtime.read_active_ticket(root)
     stored_item = runtime.read_active_work_item(root)
     if not stored_ticket or stored_ticket != ticket or not stored_item:
@@ -40,18 +37,18 @@ def load_loop_pack_meta(root: Path, ticket: str) -> Tuple[str, str, str]:
     return work_item_id, work_item_key, scope_key
 
 
-def inflate_columnar(section: object) -> List[Dict[str, object]]:
+def inflate_columnar(section: object) -> list[dict[str, object]]:
     if not isinstance(section, dict):
         return []
     cols = section.get("cols")
     rows = section.get("rows")
     if not isinstance(cols, list) or not isinstance(rows, list):
         return []
-    items: List[Dict[str, object]] = []
+    items: list[dict[str, object]] = []
     for row in rows:
         if not isinstance(row, list):
             continue
-        record: Dict[str, object] = {}
+        record: dict[str, object] = {}
         for idx, col in enumerate(cols):
             if idx >= len(row):
                 break
@@ -61,7 +58,7 @@ def inflate_columnar(section: object) -> List[Dict[str, object]]:
     return items
 
 
-def extract_findings(payload: Dict[str, object]) -> List[Dict[str, object]]:
+def extract_findings(payload: dict[str, object]) -> list[dict[str, object]]:
     findings = payload.get("findings")
     if isinstance(findings, dict) and findings.get("cols") and findings.get("rows"):
         return inflate_columnar(findings)
@@ -76,7 +73,7 @@ def normalize_text(value: object) -> str:
     return " ".join(str(value or "").strip().split())
 
 
-def finding_summary(entry: Dict[str, object]) -> str:
+def finding_summary(entry: dict[str, object]) -> str:
     for key in ("summary", "title", "message", "details", "recommendation"):
         value = entry.get(key)
         if value:
@@ -84,7 +81,7 @@ def finding_summary(entry: Dict[str, object]) -> str:
     return "n/a"
 
 
-def normalize_links(entry: Dict[str, object]) -> List[str]:
+def normalize_links(entry: dict[str, object]) -> list[str]:
     links = entry.get("links")
     if isinstance(links, list):
         return [str(item).strip() for item in links if str(item).strip()]
@@ -94,7 +91,7 @@ def normalize_links(entry: Dict[str, object]) -> List[str]:
     return []
 
 
-def normalize_finding(entry: Dict[str, object]) -> Dict[str, object]:
+def normalize_finding(entry: dict[str, object]) -> dict[str, object]:
     entry_id = str(entry.get("id") or "").strip() or "n/a"
     severity = normalize_severity(entry.get("severity"))
     blocking = entry.get("blocking") is True or severity in {"blocker", "critical", "blocking"}
@@ -108,9 +105,9 @@ def normalize_finding(entry: Dict[str, object]) -> Dict[str, object]:
     }
 
 
-def dedupe_findings(findings: List[Dict[str, object]]) -> List[Dict[str, object]]:
+def dedupe_findings(findings: list[dict[str, object]]) -> list[dict[str, object]]:
     seen: set[str] = set()
-    deduped: List[Dict[str, object]] = []
+    deduped: list[dict[str, object]] = []
     for entry in findings:
         entry_id = normalize_text(entry.get("id")) if entry.get("id") else ""
         signature = entry_id or normalize_text(
@@ -147,8 +144,8 @@ SEVERITY_ORDER = {
 }
 
 
-def sort_findings(findings: List[Dict[str, object]]) -> List[Dict[str, object]]:
-    def sort_key(item: Dict[str, object]) -> Tuple[int, str]:
+def sort_findings(findings: list[dict[str, object]]) -> list[dict[str, object]]:
+    def sort_key(item: dict[str, object]) -> tuple[int, str]:
         severity = normalize_severity(item.get("severity"))
         return (SEVERITY_ORDER.get(severity, 6), str(item.get("id") or item.get("title") or ""))
 
@@ -159,9 +156,9 @@ def _reviewer_requirements(
     target: Path,
     *,
     ticket: str,
-    slug_hint: Optional[str],
+    slug_hint: str | None,
     scope_key: str,
-) -> Tuple[bool, bool]:
+) -> tuple[bool, bool]:
     config = runtime.load_gates_config(target)
     reviewer_cfg = config.get("reviewer") if isinstance(config, dict) else None
     if not isinstance(reviewer_cfg, dict):
@@ -203,9 +200,9 @@ def _tests_policy(
     target: Path,
     *,
     ticket: str,
-    slug_hint: Optional[str],
+    slug_hint: str | None,
     scope_key: str,
-) -> Tuple[bool, bool]:
+) -> tuple[bool, bool]:
     config = runtime.load_gates_config(target)
     mode = str(config.get("tests_required", "disabled") if isinstance(config, dict) else "disabled").strip().lower()
     require = mode in {"soft", "hard"}
@@ -222,21 +219,21 @@ def _tests_policy(
     return require, block
 
 
-def _tests_entry_has_evidence(entry: Optional[Dict[str, object]]) -> bool:
+def _tests_entry_has_evidence(entry: dict[str, object] | None) -> bool:
     if not isinstance(entry, dict):
         return False
     status = str(entry.get("status") or "").strip().lower()
     return status in {"pass", "fail"}
 
 
-def parse_loop_pack_boundaries(loop_pack_path: Path) -> Dict[str, List[str]]:
-    boundaries: Dict[str, List[str]] = {"allowed_paths": [], "forbidden_paths": []}
+def parse_loop_pack_boundaries(loop_pack_path: Path) -> dict[str, list[str]]:
+    boundaries: dict[str, list[str]] = {"allowed_paths": [], "forbidden_paths": []}
     if not loop_pack_path.exists():
         return boundaries
     lines = read_text(loop_pack_path).splitlines()
     if not lines or lines[0].strip() != "---":
         return boundaries
-    current_list: Optional[str] = None
+    current_list: str | None = None
     in_front = False
     for raw in lines:
         line = raw.rstrip()
@@ -264,7 +261,7 @@ def parse_loop_pack_boundaries(loop_pack_path: Path) -> Dict[str, List[str]]:
     return boundaries
 
 
-def _normalize_list(raw: object) -> List[str]:
+def _normalize_list(raw: object) -> list[str]:
     if raw is None:
         return []
     if isinstance(raw, str):
@@ -279,13 +276,13 @@ def _normalize_list(raw: object) -> List[str]:
 def normalize_fix_plan(
     raw: object,
     *,
-    findings: List[Dict[str, object]],
-    boundaries: Dict[str, List[str]],
+    findings: list[dict[str, object]],
+    boundaries: dict[str, list[str]],
     review_report: str,
     loop_pack: str,
     missing_tests: bool = False,
-) -> Dict[str, object]:
-    plan: Dict[str, object] = {}
+) -> dict[str, object]:
+    plan: dict[str, object] = {}
     if isinstance(raw, dict):
         plan.update(raw)
     steps = _normalize_list(plan.get("steps"))
@@ -348,7 +345,7 @@ def normalize_fix_plan(
     }
 
 
-def verdict_from_status(status: str, findings: List[Dict[str, object]]) -> str:
+def verdict_from_status(status: str, findings: list[dict[str, object]]) -> str:
     status = status.strip().lower()
     if status == "ready":
         return "SHIP"
@@ -370,17 +367,17 @@ def render_pack(
     work_item_id: str,
     work_item_key: str,
     scope_key: str,
-    findings: List[Dict[str, object]],
-    next_actions: List[str],
+    findings: list[dict[str, object]],
+    next_actions: list[str],
     review_report: str,
-    handoff_ids: List[str],
+    handoff_ids: list[str],
     blocking_findings_count: int,
-    handoff_ids_added: List[str],
+    handoff_ids_added: list[str],
     next_recommended_work_item: str,
-    evidence_links: List[str],
-    fix_plan: Optional[Dict[str, object]] = None,
+    evidence_links: list[str],
+    fix_plan: dict[str, object] | None = None,
 ) -> str:
-    lines: List[str] = [
+    lines: list[str] = [
         "---",
         "schema: aidd.review_pack.v2",
         f"updated_at: {updated_at}",
@@ -570,7 +567,7 @@ def main(argv: list[str] | None = None) -> int:
             verdict = "REVISE"
     updated_at = utc_timestamp()
 
-    handoff_ids: List[str] = []
+    handoff_ids: list[str] = []
     for entry in findings:
         item_id = entry.get("id")
         if item_id:
@@ -580,7 +577,7 @@ def main(argv: list[str] | None = None) -> int:
 
     blocking_findings_count = sum(1 for entry in findings if entry.get("blocking"))
 
-    next_actions: List[str] = []
+    next_actions: list[str] = []
     for entry in findings_raw:
         action = entry.get("recommendation") or entry.get("title") or entry.get("summary") or entry.get("message") or entry.get("details")
         if action:
@@ -588,7 +585,7 @@ def main(argv: list[str] | None = None) -> int:
     next_actions = list(dict.fromkeys(next_actions))[:5]
 
     next_recommended_work_item = work_item_key if verdict == "REVISE" else ""
-    evidence_links: List[str] = [runtime.rel_path(report_path, target)]
+    evidence_links: list[str] = [runtime.rel_path(report_path, target)]
     try:
         from aidd_runtime.reports import tests_log as _tests_log
 

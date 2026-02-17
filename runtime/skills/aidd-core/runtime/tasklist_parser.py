@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import re
-from typing import Dict, List, Optional, Tuple
 
 
-def _strip_placeholder(value: str) -> Optional[str]:
+def _strip_placeholder(value: str) -> str | None:
     stripped = value.strip()
     if not stripped:
         return None
@@ -13,7 +12,7 @@ def _strip_placeholder(value: str) -> Optional[str]:
     return stripped
 
 
-def extract_scalar_field(lines: List[str], field: str) -> Optional[str]:
+def extract_scalar_field(lines: list[str], field: str) -> str | None:
     pattern = re.compile(rf"^\s*-\s*{re.escape(field)}\s*:\s*(.+)$", re.IGNORECASE)
     for line in lines:
         match = pattern.match(line)
@@ -23,14 +22,14 @@ def extract_scalar_field(lines: List[str], field: str) -> Optional[str]:
     return None
 
 
-def extract_list_field(lines: List[str], field: str) -> List[str]:
+def extract_list_field(lines: list[str], field: str) -> list[str]:
     pattern = re.compile(rf"^(?P<indent>\s*)-\s*{re.escape(field)}\s*:\s*$", re.IGNORECASE)
     for idx, line in enumerate(lines):
         match = pattern.match(line)
         if not match:
             continue
         base_indent = len(match.group("indent"))
-        items: List[str] = []
+        items: list[str] = []
         for raw in lines[idx + 1 :]:
             if not raw.strip():
                 continue
@@ -47,14 +46,14 @@ def extract_list_field(lines: List[str], field: str) -> List[str]:
     return []
 
 
-def extract_mapping_field(lines: List[str], field: str) -> Dict[str, str]:
+def extract_mapping_field(lines: list[str], field: str) -> dict[str, str]:
     pattern = re.compile(rf"^(?P<indent>\s*)-\s*{re.escape(field)}\s*:\s*$", re.IGNORECASE)
     for idx, line in enumerate(lines):
         match = pattern.match(line)
         if not match:
             continue
         base_indent = len(match.group("indent"))
-        result: Dict[str, str] = {}
+        result: dict[str, str] = {}
         for raw in lines[idx + 1 :]:
             if not raw.strip():
                 continue
@@ -82,9 +81,9 @@ PATH_TOKEN_RE = re.compile(
 SECTION_HEADER_RE = re.compile(r"^##\s+(.+?)\s*$")
 
 
-def _dedupe(items: List[str]) -> List[str]:
+def _dedupe(items: list[str]) -> list[str]:
     seen = set()
-    deduped: List[str] = []
+    deduped: list[str] = []
     for item in items:
         key = item.strip()
         if not key or key in seen:
@@ -94,8 +93,8 @@ def _dedupe(items: List[str]) -> List[str]:
     return deduped
 
 
-def _extract_paths_from_brackets(text: str) -> List[str]:
-    results: List[str] = []
+def _extract_paths_from_brackets(text: str) -> list[str]:
+    results: list[str] = []
     for match in re.findall(r"\[([^\]]+)\]", text):
         parts = re.split(r"[,\n]", match)
         for part in parts:
@@ -105,8 +104,8 @@ def _extract_paths_from_brackets(text: str) -> List[str]:
     return results
 
 
-def _extract_paths_from_text(text: str) -> List[str]:
-    candidates: List[str] = []
+def _extract_paths_from_text(text: str) -> list[str]:
+    candidates: list[str] = []
     candidates.extend(_extract_paths_from_brackets(text))
     for match in PATH_TOKEN_RE.findall(text):
         cleaned = match.strip().strip("`'\" ,;)")
@@ -115,15 +114,15 @@ def _extract_paths_from_text(text: str) -> List[str]:
     return candidates
 
 
-def extract_boundaries(lines: List[str]) -> Tuple[List[str], List[str], bool]:
+def extract_boundaries(lines: list[str]) -> tuple[list[str], list[str], bool]:
     """Return (allowed_paths, forbidden_paths, has_boundaries)."""
     items = extract_list_field(lines, "Boundaries")
     scalar = extract_scalar_field(lines, "Boundaries")
     has_boundaries = bool(items or scalar)
     if not items and scalar:
         items = [scalar]
-    allowed: List[str] = []
-    forbidden: List[str] = []
+    allowed: list[str] = []
+    forbidden: list[str] = []
     for item in items:
         lower = item.lower()
         paths = _extract_paths_from_text(item)
@@ -138,10 +137,10 @@ def extract_boundaries(lines: List[str]) -> Tuple[List[str], List[str], bool]:
     return _dedupe(allowed), _dedupe(forbidden), has_boundaries
 
 
-def extract_section(lines: List[str], title: str) -> List[str]:
+def extract_section(lines: list[str], title: str) -> list[str]:
     """Return section body lines for a given heading (without the heading line)."""
     in_section = False
-    collected: List[str] = []
+    collected: list[str] = []
     for line in lines:
         match = SECTION_HEADER_RE.match(line)
         if match:
@@ -156,7 +155,7 @@ def extract_section(lines: List[str], title: str) -> List[str]:
     return collected
 
 
-def parse_test_execution(lines: List[str]) -> Dict[str, object]:
+def parse_test_execution(lines: list[str]) -> dict[str, object]:
     profile = (extract_scalar_field(lines, "profile") or "").strip()
     tasks_raw = extract_scalar_field(lines, "tasks") or ""
     filters_raw = extract_scalar_field(lines, "filters") or ""
@@ -164,12 +163,12 @@ def parse_test_execution(lines: List[str]) -> Dict[str, object]:
     reason = (extract_scalar_field(lines, "reason") or "").strip()
     tasks_list = extract_list_field(lines, "tasks")
     filters_list = extract_list_field(lines, "filters")
-    tasks: List[str] = []
+    tasks: list[str] = []
     if tasks_list:
         tasks = tasks_list
     elif tasks_raw:
         tasks = [item.strip() for item in re.split(r"\s*;\s*", tasks_raw) if item.strip()]
-    filters: List[str] = []
+    filters: list[str] = []
     if filters_list:
         filters = filters_list
     elif filters_raw:

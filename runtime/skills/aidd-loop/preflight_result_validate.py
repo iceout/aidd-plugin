@@ -6,8 +6,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable, List
+from typing import Any
 
 from aidd_runtime import aidd_schemas
 
@@ -20,7 +21,7 @@ class ValidationError(ValueError):
     pass
 
 
-def _require_fields(obj: dict[str, Any], fields: Iterable[str], errors: List[str], *, prefix: str = "") -> None:
+def _require_fields(obj: dict[str, Any], fields: Iterable[str], errors: list[str], *, prefix: str = "") -> None:
     for field in fields:
         if field not in obj:
             errors.append(f"{prefix}missing field: {field}")
@@ -30,8 +31,8 @@ def _is_str(value: Any) -> bool:
     return isinstance(value, str)
 
 
-def validate_preflight_result_data(payload: dict[str, Any]) -> List[str]:
-    errors: List[str] = []
+def validate_preflight_result_data(payload: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
     if not isinstance(payload, dict):
         return ["payload must be a JSON object"]
 

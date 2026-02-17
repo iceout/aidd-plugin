@@ -4,17 +4,17 @@
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import json
 import os
 import subprocess
-import time
 import sys
-import datetime as dt
+import time
 from pathlib import Path
-from typing import Dict, List
 
 from aidd_runtime import runtime
 from aidd_runtime.feature_ids import write_active_state
+from aidd_runtime.io_utils import dump_yaml, utc_timestamp
 from aidd_runtime.loop_pack import (
     is_open_item,
     parse_iteration_items,
@@ -22,7 +22,6 @@ from aidd_runtime.loop_pack import (
     parse_sections,
     select_first_open,
 )
-from aidd_runtime.io_utils import dump_yaml, utc_timestamp
 
 DONE_CODE = 0
 CONTINUE_CODE = 10
@@ -141,14 +140,14 @@ def run_loop_step(
     if stream_mode:
         cmd.extend(["--stream", stream_mode])
     env = os.environ.copy()
-    env["KIMI_AIDD_ROOT"] = str(plugin_root)
+    env["AIDD_ROOT"] = str(plugin_root)
     env["PYTHONPATH"] = str(plugin_root) if not env.get("PYTHONPATH") else f"{plugin_root}:{env['PYTHONPATH']}"
     if stream_mode:
         return subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=None, cwd=workspace_root, env=env)
     return subprocess.run(cmd, text=True, capture_output=True, cwd=workspace_root, env=env)
 
 
-def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run loop-step until SHIP.")
     parser.add_argument("--ticket", help="Ticket identifier (defaults to docs/.active.json).")
     parser.add_argument("--max-iterations", type=int, default=10, help="Maximum number of loop iterations.")
@@ -193,7 +192,7 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def emit(fmt: str | None, payload: Dict[str, object]) -> None:
+def emit(fmt: str | None, payload: dict[str, object]) -> None:
     if fmt == "json":
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return
@@ -206,7 +205,7 @@ def emit(fmt: str | None, payload: Dict[str, object]) -> None:
     print(summary)
 
 
-def main(argv: List[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     workspace_root, target = runtime.require_workflow_root()
     context = runtime.resolve_feature_context(target, ticket=args.ticket, slug_hint=None)
@@ -218,7 +217,7 @@ def main(argv: List[str] | None = None) -> int:
     log_path = target / "reports" / "loops" / ticket / "loop.run.log"
     max_iterations = max(1, int(args.max_iterations))
     sleep_seconds = max(0.0, float(args.sleep_seconds))
-    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d-%H%M%S")
+    stamp = dt.datetime.now(dt.UTC).strftime("%Y%m%d-%H%M%S")
     cli_log_path = target / "reports" / "loops" / ticket / f"cli.loop-run.{stamp}.log"
     runner_label = resolve_runner_label(args.runner_label)
     stream_mode = resolve_stream_mode(getattr(args, "stream", None))
@@ -238,7 +237,7 @@ def main(argv: List[str] | None = None) -> int:
         f"{utc_timestamp()} event=start ticket={ticket} max_iterations={max_iterations} runner={runner_label}",
     )
 
-    last_payload: Dict[str, object] = {}
+    last_payload: dict[str, object] = {}
     for iteration in range(1, max_iterations + 1):
         result = run_loop_step(
             plugin_root,

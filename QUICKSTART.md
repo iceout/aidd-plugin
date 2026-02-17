@@ -1,15 +1,15 @@
-# AIDD for Kimi Code - 快速开始
+# AIDD for Kimi/Codex/Cursor - 快速开始
 
 ## 安装（已完成）
 
 ```bash
 # 环境已配置好
-export KIMI_AIDD_ROOT=<your-path-to-plugin>
+export AIDD_ROOT=<your-path-to-plugin>
 ```
 
 ## 3 分钟上手
 
-### 1. 启动 Kimi
+### 1. 启动 Kimi/Codex/Cursor
 ```bash
 cd your-project
 kimi
@@ -49,12 +49,12 @@ kimi
 
 ### 命令不存在？
 1. 确认已安装：`ls ~/.config/agents/skills/ | grep aidd`
-2. 重启 Kimi CLI
+2. 重启 Kimi/Codex/Cursor
 
 ### 环境变量错误？
 ```bash
-export KIMI_AIDD_ROOT=<your-path-to-plugin>
-export PYTHONPATH=$KIMI_AIDD_ROOT/runtime:$PYTHONPATH
+export AIDD_ROOT=<your-path-to-plugin>
+export PYTHONPATH=$AIDD_ROOT/runtime:$PYTHONPATH
 ```
 
 ## 下一步

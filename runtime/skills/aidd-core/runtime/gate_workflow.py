@@ -8,16 +8,14 @@ import re
 import sys
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
-from typing import Optional
-
 
 HOOK_PREFIX = "[gate-workflow]"
 
 
 def _bootstrap() -> None:
-    raw = os.environ.get("KIMI_AIDD_ROOT")
+    raw = os.environ.get("AIDD_ROOT")
     if not raw:
-        print(f"{HOOK_PREFIX} KIMI_AIDD_ROOT is required to run hooks.", file=sys.stderr)
+        print(f"{HOOK_PREFIX} AIDD_ROOT is required to run hooks.", file=sys.stderr)
         raise SystemExit(2)
     plugin_root = Path(raw).expanduser().resolve()
     if str(plugin_root) not in sys.path:
@@ -120,7 +118,7 @@ def _loop_preflight_guard(root: Path, ticket: str, stage: str, hooks_mode: str) 
 
     if stage not in {"implement", "review", "qa"}:
         return True, ""
-    plugin_root_raw = os.environ.get("KIMI_AIDD_ROOT", "")
+    plugin_root_raw = os.environ.get("AIDD_ROOT", "")
     if not plugin_root_raw:
         return True, ""
     plugin_root = Path(plugin_root_raw).expanduser().resolve()
@@ -344,10 +342,8 @@ def _reviewer_notice(root: Path, ticket: str, slug_hint: str) -> str:
     if not marker_path.exists():
         if reviewer_cfg.get("warn_on_missing", True):
             message = (
-                "WARN: reviewer маркер не найден ({}). Используйте "
-                "`python3 ${{KIMI_AIDD_ROOT}}/skills/review/runtime/reviewer_tests.py --status required` при необходимости.".format(
-                    marker_path
-                )
+                f"WARN: reviewer marker not found ({marker_path}). Use "
+                "`python3 ${AIDD_ROOT}/skills/review/runtime/reviewer_tests.py --status required` if needed."
             )
             if runtime_fallback:
                 return f"{runtime_fallback} {message}"
@@ -358,18 +354,16 @@ def _reviewer_notice(root: Path, ticket: str, slug_hint: str) -> str:
         data = json.loads(marker_path.read_text(encoding="utf-8"))
     except Exception:
         return (
-            "WARN: повреждён маркер reviewer ({}). Пересоздайте его командой "
-            "`python3 ${{KIMI_AIDD_ROOT}}/skills/review/runtime/reviewer_tests.py --status required`.".format(
-                marker_path
-            )
+            f"WARN: reviewer marker is corrupted ({marker_path}). Recreate it with "
+            "`python3 ${AIDD_ROOT}/skills/review/runtime/reviewer_tests.py --status required`."
         )
 
     value = str(data.get(field, "")).strip().lower()
     if allowed_values and value not in allowed_values:
         label = value or "empty"
-        return f"WARN: некорректный статус reviewer marker ({label}). Используйте required|optional|skipped."
+        return f"WARN: invalid reviewer marker status ({label}). Use required|optional|skipped."
     if value in required_values:
-        return f"BLOCK: reviewer запросил тесты ({marker_path}). Запустите format-and-test или обновите маркер после прогонов."
+        return f"BLOCK: reviewer requested tests ({marker_path}). Run format-and-test or update the marker after test runs."
     return ""
 
 
@@ -393,7 +387,7 @@ def _handoff_block(root: Path, ticket: str, slug_hint: str, branch: str, tasklis
             return f"aidd/{rel_str}"
         return rel_str
 
-    def resolve_report(path: Path) -> Optional[Path]:
+    def resolve_report(path: Path) -> Path | None:
         if path.exists():
             return path
         if path.suffix == ".json":
@@ -489,9 +483,7 @@ def _handoff_block(root: Path, ticket: str, slug_hint: str, branch: str, tasklis
         if isinstance(review_payload, dict):
             kind = str(review_payload.get("kind") or "").strip().lower()
             stage = str(review_payload.get("stage") or "").strip().lower()
-            if kind == "review" or stage == "review":
-                has_review_report = True
-            elif "findings" in review_payload:
+            if kind == "review" or stage == "review" or "findings" in review_payload:
                 has_review_report = True
         else:
             has_review_report = True
@@ -535,18 +527,21 @@ def _handoff_block(root: Path, ticket: str, slug_hint: str, branch: str, tasklis
     if missing:
         items = ", ".join(f"{name}: {marker}" for name, marker in missing)
         return (
-            f"BLOCK: handoff-задачи не добавлены в tasklist ({items}). "
-            f"Запустите `python3 ${{KIMI_AIDD_ROOT}}/skills/aidd-flow-state/runtime/tasks_derive.py --source <qa|research|review> --append --ticket {ticket}`."
+            f"BLOCK: handoff tasks were not added to tasklist ({items}). "
+            f"Run `python3 ${{AIDD_ROOT}}/skills/aidd-flow-state/runtime/tasks_derive.py --source <qa|research|review> --append --ticket {ticket}`."
         )
     return ""
 
 
 def main() -> int:
     _bootstrap()
-    from hooks import hooklib
-    from aidd_runtime.analyst_guard import AnalystValidationError, load_settings as load_analyst_settings, validate_prd
+    from aidd_runtime.analyst_guard import AnalystValidationError, validate_prd
+    from aidd_runtime.analyst_guard import load_settings as load_analyst_settings
     from aidd_runtime.progress import ProgressConfig, check_progress
-    from aidd_runtime.research_guard import ResearchValidationError, load_settings as load_research_settings, validate_research
+    from aidd_runtime.research_guard import ResearchValidationError, validate_research
+    from aidd_runtime.research_guard import load_settings as load_research_settings
+
+    from hooks import hooklib
 
     ctx = hooklib.read_hook_context()
     root, used_workspace = hooklib.resolve_project_root(ctx)
@@ -556,7 +551,7 @@ def main() -> int:
     if not (root / "docs").is_dir():
         _log_stderr(
             "BLOCK: aidd/docs not found at {}. Run '/feature-dev-aidd:aidd-init' or "
-            "'python3 ${{KIMI_AIDD_ROOT}}/skills/aidd-init/runtime/init.py' from the workspace root to bootstrap ./aidd.".format(
+            "'python3 ${{AIDD_ROOT}}/skills/aidd-init/runtime/init.py' from the workspace root to bootstrap ./aidd.".format(
                 root / "docs"
             )
         )
@@ -592,12 +587,12 @@ def main() -> int:
         return 0
 
     active_stage = hooklib.resolve_stage(root / "docs" / ".active.json") or ""
-    if os.environ.get("KIMI_SKIP_STAGE_CHECKS") != "1":
+    if os.environ.get("AIDD_SKIP_STAGE_CHECKS") != "1":
         if active_stage and active_stage not in {"implement", "review", "qa"}:
             if has_src_changes:
                 _log_stderr(
-                    f"BLOCK: активная стадия '{active_stage}' не разрешает правки кода. "
-                    "Переключитесь на /feature-dev-aidd:implement (или установите стадию вручную)."
+                    f"BLOCK: active stage '{active_stage}' does not allow code changes. "
+                    "Switch to /feature-dev-aidd:implement (or set stage manually)."
                 )
                 return 2
             return 0
@@ -642,16 +637,16 @@ def main() -> int:
         plan_path = root / "docs" / "plan" / f"{ticket}.md"
         if not plan_path.exists():
             hooklib.ensure_template(root, "docs/plan/template.md", plan_path)
-            _log_stderr(f"BLOCK: нет плана → запустите /feature-dev-aidd:plan-new {ticket}")
+            _log_stderr(f"BLOCK: missing plan -> run /feature-dev-aidd:plan-new {ticket}")
             return 2
 
         if not tasklist_path.exists():
             hooklib.ensure_template(root, "docs/tasklist/template.md", tasklist_path)
-            _log_stderr(f"BLOCK: нет задач → запустите /feature-dev-aidd:tasks-new {ticket} (docs/tasklist/{ticket}.md)")
+            _log_stderr(f"BLOCK: missing tasks -> run /feature-dev-aidd:tasks-new {ticket} (docs/tasklist/{ticket}.md)")
             return 2
 
         if not (root / "docs" / "prd" / f"{ticket}.prd.md").exists():
-            _log_stderr(f"BLOCK: нет PRD → запустите /feature-dev-aidd:idea-new {ticket}")
+            _log_stderr(f"BLOCK: missing PRD -> run /feature-dev-aidd:idea-new {ticket}")
             return 2
 
         analyst_settings = load_analyst_settings(root)
@@ -665,7 +660,7 @@ def main() -> int:
         if status != 0:
             if fast_mode and active_stage == "implement":
                 fast_mode_warn = True
-                message = output or f"WARN: Plan Review не готов → выполните /feature-dev-aidd:review-spec {ticket}"
+                message = output or f"WARN: Plan Review is not ready -> run /feature-dev-aidd:review-spec {ticket}"
                 if message.startswith("BLOCK:"):
                     message = message.replace("BLOCK:", "WARN:", 1)
                 _log_stdout(f"{message} (reason_code=fast_mode_warn)")
@@ -673,14 +668,14 @@ def main() -> int:
                 if output:
                     _log_stderr(output)
                 else:
-                    _log_stderr(f"BLOCK: Plan Review не готов → выполните /feature-dev-aidd:review-spec {ticket}")
+                    _log_stderr(f"BLOCK: Plan Review is not ready -> run /feature-dev-aidd:review-spec {ticket}")
                 return 2
 
         status, output = _run_prd_review_gate(root, ticket, slug_hint, file_path, current_branch)
         if status != 0:
             if fast_mode and active_stage == "implement":
                 fast_mode_warn = True
-                message = output or f"WARN: PRD Review не готов → выполните /feature-dev-aidd:review-spec {ticket}"
+                message = output or f"WARN: PRD Review is not ready -> run /feature-dev-aidd:review-spec {ticket}"
                 if message.startswith("BLOCK:"):
                     message = message.replace("BLOCK:", "WARN:", 1)
                 _log_stdout(f"{message} (reason_code=fast_mode_warn)")
@@ -688,7 +683,7 @@ def main() -> int:
                 if output:
                     _log_stderr(output)
                 else:
-                    _log_stderr(f"BLOCK: PRD Review не готов → выполните /feature-dev-aidd:review-spec {ticket}")
+                    _log_stderr(f"BLOCK: PRD Review is not ready -> run /feature-dev-aidd:review-spec {ticket}")
                 return 2
 
         research_settings = load_research_settings(root)
@@ -703,7 +698,7 @@ def main() -> int:
             return 0
 
         if not _next3_has_real_items(tasklist_path):
-            _log_stderr(f"BLOCK: нет задач → запустите /feature-dev-aidd:tasks-new {ticket} (docs/tasklist/{ticket}.md)")
+            _log_stderr(f"BLOCK: missing tasks -> run /feature-dev-aidd:tasks-new {ticket} (docs/tasklist/{ticket}.md)")
             return 2
 
         reviewer_notice = _reviewer_notice(root, ticket, slug_hint)
@@ -735,10 +730,10 @@ def main() -> int:
             if progress_result.message:
                 _log_stderr(progress_result.message)
             else:
-                _log_stderr("BLOCK: tasklist не обновлён — отметьте завершённые чекбоксы перед продолжением.")
+                _log_stderr("BLOCK: tasklist was not updated - mark completed checkboxes before continuing.")
             return 2
         if progress_result.status == "skip:no-git" and active_stage in {"review", "qa"}:
-            message = progress_result.message or "BLOCK: прогресс не может быть проверен без Git."
+            message = progress_result.message or "BLOCK: progress cannot be validated without Git."
             if not message.startswith("BLOCK:"):
                 message = f"BLOCK: {message}"
             _log_stderr(message)

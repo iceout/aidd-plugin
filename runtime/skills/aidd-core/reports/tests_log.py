@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any
 
 from aidd_runtime import runtime
 from aidd_runtime.io_utils import append_jsonl, read_jsonl, utc_timestamp
+
 
 def tests_log_dir(root: Path, ticket: str) -> Path:
     return root / "reports" / "tests" / ticket
@@ -23,23 +25,23 @@ def append_log(
     root: Path,
     *,
     ticket: str,
-    slug_hint: Optional[str],
-    ticket_guess: Optional[str] = None,
+    slug_hint: str | None,
+    ticket_guess: str | None = None,
     stage: str,
     scope_key: str,
-    work_item_key: Optional[str] = None,
-    profile: Optional[str] = None,
-    tasks: Optional[Iterable[str]] = None,
-    filters: Optional[Iterable[str]] = None,
-    exit_code: Optional[int] = None,
-    log_path: Optional[str] = None,
-    status: Optional[str] = None,
-    reason_code: Optional[str] = None,
-    reason: Optional[str] = None,
-    details: Optional[Dict[str, Any]] = None,
-    source: Optional[str] = None,
-    cwd: Optional[str] = None,
-    worktree: Optional[str] = None,
+    work_item_key: str | None = None,
+    profile: str | None = None,
+    tasks: Iterable[str] | None = None,
+    filters: Iterable[str] | None = None,
+    exit_code: int | None = None,
+    log_path: str | None = None,
+    status: str | None = None,
+    reason_code: str | None = None,
+    reason: str | None = None,
+    details: dict[str, Any] | None = None,
+    source: str | None = None,
+    cwd: str | None = None,
+    worktree: str | None = None,
 ) -> None:
     if not ticket:
         return
@@ -60,7 +62,7 @@ def append_log(
         if not reason:
             reason = "tests skipped"
 
-    payload: Dict[str, Any] = {
+    payload: dict[str, Any] = {
         "schema": "aidd.tests_log.v1",
         "updated_at": utc_timestamp(),
         "ticket": ticket,
@@ -100,13 +102,13 @@ def append_log(
     append_jsonl(path, payload)
 
 
-def _load_events(path: Path) -> List[Dict[str, Any]]:
+def _load_events(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
     return read_jsonl(path) or []
 
 
-def _entry_timestamp(entry: Dict[str, Any]) -> str:
+def _entry_timestamp(entry: dict[str, Any]) -> str:
     return str(entry.get("updated_at") or entry.get("ts") or "")
 
 
@@ -114,14 +116,14 @@ def read_log(
     root: Path,
     ticket: str,
     *,
-    scope_key: Optional[str] = None,
-    stage: Optional[str] = None,
+    scope_key: str | None = None,
+    stage: str | None = None,
     limit: int = 5,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     if limit <= 0:
         return []
     stage_value = str(stage or "").strip().lower()
-    events: List[Dict[str, Any]] = []
+    events: list[dict[str, Any]] = []
 
     if scope_key:
         events = _load_events(tests_log_path(root, ticket, scope_key))
@@ -144,9 +146,9 @@ def latest_entry(
     ticket: str,
     scope_key: str,
     *,
-    stages: Optional[Iterable[str]] = None,
-    statuses: Optional[Iterable[str]] = None,
-) -> Tuple[Optional[Dict[str, Any]], Optional[Path]]:
+    stages: Iterable[str] | None = None,
+    statuses: Iterable[str] | None = None,
+) -> tuple[dict[str, Any] | None, Path | None]:
     path = tests_log_path(root, ticket, scope_key)
     events = _load_events(path)
     if not events:
@@ -171,8 +173,8 @@ def summarize_tests(
     ticket: str,
     scope_key: str,
     *,
-    stages: Optional[Iterable[str]] = None,
-) -> Tuple[str, str, Optional[Path], Optional[Dict[str, Any]]]:
+    stages: Iterable[str] | None = None,
+) -> tuple[str, str, Path | None, dict[str, Any] | None]:
     entry, path = latest_entry(root, ticket, scope_key, stages=stages, statuses=None)
     if not entry:
         return "skipped", "tests_log_missing", path if path and path.exists() else None, None

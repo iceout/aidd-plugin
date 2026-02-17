@@ -1,0 +1,9 @@
+# Allowed dependencies (one per line, versions omitted).
+# Format depends on the package manager:
+# - Gradle/Maven: group:artifact
+# - npm/pnpm/yarn: package or @scope/package
+# - Python: package (pip/poetry/pipenv)
+# - Go: module/path
+# - Rust: crate-name
+# - .NET: PackageId
+# Note: if deps_allowlist=true and the list is empty, the checks are skipped.

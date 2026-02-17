@@ -7,15 +7,12 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Dict, List
 
-from aidd_runtime import actions_validate
-from aidd_runtime import docops
-from aidd_runtime import runtime
+from aidd_runtime import actions_validate, docops, runtime
 from aidd_runtime.io_utils import utc_timestamp
 
 
-def _apply_action(root: Path, ticket: str, action: Dict[str, object]) -> tuple[str, bool, bool]:
+def _apply_action(root: Path, ticket: str, action: dict[str, object]) -> tuple[str, bool, bool]:
     action_type = str(action.get("type", ""))
     params = action.get("params") or {}
     if not isinstance(params, dict):
@@ -48,13 +45,13 @@ def _apply_action(root: Path, ticket: str, action: Dict[str, object]) -> tuple[s
     return f"unsupported action type: {action_type}", False, True
 
 
-def _apply_actions(root: Path, payload: Dict[str, object], apply_log: Path) -> List[Dict[str, object]]:
+def _apply_actions(root: Path, payload: dict[str, object], apply_log: Path) -> list[dict[str, object]]:
     ticket = str(payload.get("ticket") or "")
     actions = payload.get("actions") or []
     if not isinstance(actions, list):
         raise ValueError("actions must be a list")
 
-    results: List[Dict[str, object]] = []
+    results: list[dict[str, object]] = []
     for idx, action in enumerate(actions):
         if not isinstance(action, dict):
             results.append(

@@ -6,8 +6,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable, List
+from typing import Any
 
 from aidd_runtime import aidd_schemas, stage_lexicon
 
@@ -25,13 +26,13 @@ def _is_str(value: Any) -> bool:
     return isinstance(value, str)
 
 
-def _require_fields(obj: dict[str, Any], fields: Iterable[str], errors: List[str], *, prefix: str = "") -> None:
+def _require_fields(obj: dict[str, Any], fields: Iterable[str], errors: list[str], *, prefix: str = "") -> None:
     for field in fields:
         if field not in obj:
             errors.append(f"{prefix}missing field: {field}")
 
 
-def _validate_str_list(value: Any, errors: List[str], *, field: str) -> None:
+def _validate_str_list(value: Any, errors: list[str], *, field: str) -> None:
     if not isinstance(value, list):
         errors.append(f"field {field} must be list[str]")
         return
@@ -40,7 +41,7 @@ def _validate_str_list(value: Any, errors: List[str], *, field: str) -> None:
             errors.append(f"{field}[{idx}] must be string")
 
 
-def _validate_readmap(payload: dict[str, Any], errors: List[str]) -> None:
+def _validate_readmap(payload: dict[str, Any], errors: list[str]) -> None:
     _require_fields(
         payload,
         (
@@ -75,7 +76,7 @@ def _validate_readmap(payload: dict[str, Any], errors: List[str]) -> None:
                 errors.append(f"{prefix}.required must be boolean")
 
 
-def _validate_writemap(payload: dict[str, Any], errors: List[str]) -> None:
+def _validate_writemap(payload: dict[str, Any], errors: list[str]) -> None:
     _require_fields(
         payload,
         (
@@ -101,8 +102,8 @@ def _validate_writemap(payload: dict[str, Any], errors: List[str]) -> None:
         errors.append("field write_blocks must be list when provided")
 
 
-def validate_context_map_data(payload: dict[str, Any]) -> List[str]:
-    errors: List[str] = []
+def validate_context_map_data(payload: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
     if not isinstance(payload, dict):
         return ["payload must be a JSON object"]
 

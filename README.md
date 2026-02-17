@@ -1,6 +1,6 @@
-# AIDD for Kimi Code
+# AIDD for Kimi/Codex/Cursor
 
-AIDD (AI-Driven Development) 插件移植到 Kimi Code CLI。
+AIDD (AI-Driven Development) 插件移植到 Kimi/Codex/Cursor。
 
 ## 快速开始
 
@@ -16,29 +16,50 @@ source scripts/activate.sh
 ```bash
 ./scripts/install.sh
 ```
+Cursor/Codex 都不支持 `.config/agents/skills`,
+Codex 需要 `ln -s ~/.config/agents/skills ~/.codex/skills/custom_skills`
+Cursor 需要 `rsync -avL --delete ~/.config/agents/skills/ ~/.cursor/skills/`
 
 ### 3. 设置环境变量
 
 添加到 `~/.bashrc` 或 `~/.zshrc`：
 
 ```bash
-export KIMI_AIDD_ROOT=<your-path-to-plugin>
+export AIDD_ROOT=<your-path-to-plugin>
 ```
 
 ### 4. 验证安装
 
 ```bash
-export PYTHONPATH=$KIMI_AIDD_ROOT/runtime:$PYTHONPATH
-python3 $KIMI_AIDD_ROOT/runtime/skills/aidd-observability/runtime/doctor.py
+export PYTHONPATH=$AIDD_ROOT/runtime:$PYTHONPATH
+python3 $AIDD_ROOT/runtime/skills/aidd-observability/runtime/doctor.py
 ```
 
-### 5. 在 Kimi 中使用
+### 5. 在 Kimi/Codex/Cursor 中使用
 
 ```
 /skill:aidd-core
 /flow:aidd-init-flow
 /flow:aidd-idea-flow FUNC-001 "实现用户登录功能"
 ```
+
+## 开发环境要求
+
+- Python 3.13.x（推荐通过 `uv` 提供的虚拟环境管理）。
+- `pyproject.toml` 中所有依赖均已锁定，使用 `uv pip sync pyproject.toml` 可还原。
+- 当前固定依赖：
+
+| 分组 | 包 | 版本 |
+| --- | --- | --- |
+| runtime | pydantic | 2.8.2 |
+| runtime | pyyaml | 6.0.1 |
+| dev | pytest | 8.3.2 |
+| dev | pytest-cov | 5.0.0 |
+| dev | black | 24.8.0 |
+| dev | ruff | 0.5.5 |
+| dev | mypy | 1.11.2 |
+
+> 通过固定版本，我们可以在多个 IDE/CLI（Kimi、Cursor、Codex）之间获得可重复的 lint/test 结果。
 
 ## 开发状态
 
@@ -49,7 +70,7 @@ python3 $KIMI_AIDD_ROOT/runtime/skills/aidd-observability/runtime/doctor.py
 
 ### ✅ Phase 1: 核心运行时迁移
 - [x] 复制 AIDD Runtime 代码
-- [x] 替换环境变量 (CLAUDE_ → KIMI_)
+- [x] 替换环境变量 (CLAUDE_ → AIDD_)
 - [x] 基础测试通过
 
 ### ✅ Phase 2: Skills 创建 (核心)
@@ -70,7 +91,7 @@ python3 $KIMI_AIDD_ROOT/runtime/skills/aidd-observability/runtime/doctor.py
 ## 项目结构
 
 ```
-kimi-aidd-plugin/
+aidd-plugin/
 ├── runtime/
 │   ├── aidd_runtime/          # 核心运行时包
 │   └── skills/                # 各阶段运行时
@@ -85,7 +106,7 @@ kimi-aidd-plugin/
 │       ├── implement/
 │       ├── review/
 │       └── qa/
-├── skills/                    # Kimi Skills
+├── skills/                    # Skills
 │   ├── aidd-core/SKILL.md
 │   ├── aidd-init-flow/SKILL.md
 │   ├── aidd-idea-flow/SKILL.md

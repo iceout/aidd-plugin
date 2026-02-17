@@ -9,18 +9,17 @@ import json
 import sys
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
-from typing import Dict, List, Tuple
 
+from aidd_runtime import loop_step as core
 from aidd_runtime import runtime
 from aidd_runtime.io_utils import parse_front_matter
-from aidd_runtime import loop_step as core
 
 
 def stage_result_path(root: Path, ticket: str, scope_key: str, stage: str) -> Path:
     return root / "reports" / "loops" / ticket / scope_key / f"stage.{stage}.result.json"
 
 
-def _parse_stage_result(path: Path, stage: str) -> Tuple[Dict[str, object] | None, str]:
+def _parse_stage_result(path: Path, stage: str) -> tuple[dict[str, object] | None, str]:
     if not path.exists():
         return None, "missing"
     try:
@@ -40,7 +39,7 @@ def _parse_stage_result(path: Path, stage: str) -> Tuple[Dict[str, object] | Non
     return payload, ""
 
 
-def _collect_stage_result_candidates(root: Path, ticket: str, stage: str) -> List[Path]:
+def _collect_stage_result_candidates(root: Path, ticket: str, stage: str) -> list[Path]:
     base = root / "reports" / "loops" / ticket
     if not base.exists():
         return []
@@ -60,14 +59,14 @@ def _in_window(path: Path, *, started_at: float | None, finished_at: float | Non
     return (started_at - tolerance_seconds) <= mtime <= (finished_at + tolerance_seconds)
 
 
-def _stage_result_diagnostics(candidates: List[Tuple[Path, str]]) -> str:
+def _stage_result_diagnostics(candidates: list[tuple[Path, str]]) -> str:
     if not candidates:
         return "candidates=none"
-    parts: List[str] = []
+    parts: list[str] = []
     for path, status in candidates[:5]:
         timestamp = "n/a"
         if path.exists():
-            timestamp = dt.datetime.fromtimestamp(path.stat().st_mtime, tz=dt.timezone.utc).isoformat()
+            timestamp = dt.datetime.fromtimestamp(path.stat().st_mtime, tz=dt.UTC).isoformat()
         parts.append(f"{path.as_posix()}:{status}@{timestamp}")
     return "candidates=" + ", ".join(parts)
 
@@ -80,14 +79,14 @@ def load_stage_result(
     *,
     started_at: float | None = None,
     finished_at: float | None = None,
-) -> Tuple[Dict[str, object] | None, Path, str, str, str, str]:
+) -> tuple[dict[str, object] | None, Path, str, str, str, str]:
     preferred_path = stage_result_path(root, ticket, scope_key, stage)
     preferred_payload, preferred_error = _parse_stage_result(preferred_path, stage)
     if preferred_payload is not None:
         return preferred_payload, preferred_path, "", "", "", ""
 
-    validated: List[Tuple[Path, Dict[str, object]]] = []
-    diagnostics: List[Tuple[Path, str]] = [(preferred_path, preferred_error)]
+    validated: list[tuple[Path, dict[str, object]]] = []
+    diagnostics: list[tuple[Path, str]] = [(preferred_path, preferred_error)]
     for candidate in _collect_stage_result_candidates(root, ticket, stage):
         if candidate == preferred_path:
             continue
@@ -171,7 +170,7 @@ def _maybe_regen_review_pack(
     ticket: str,
     slug_hint: str,
     scope_key: str,
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     report_path = resolve_review_report_path(root, ticket, slug_hint, scope_key)
     if not report_path.exists():
         return False, "review report missing"
@@ -200,7 +199,7 @@ def validate_review_pack(
     ticket: str,
     slug_hint: str,
     scope_key: str,
-) -> Tuple[bool, str, str]:
+) -> tuple[bool, str, str]:
     pack_path = root / "reports" / "loops" / ticket / scope_key / "review.latest.pack.md"
     if not pack_path.exists():
         ok, regen_message = _maybe_regen_review_pack(

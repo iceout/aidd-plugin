@@ -17,18 +17,18 @@ class TestBasicRuntime:
     """测试基础运行时功能"""
     
     def test_require_plugin_root_with_env(self, monkeypatch):
-        """测试 KIMI_AIDD_ROOT 环境变量"""
-        monkeypatch.setenv("KIMI_AIDD_ROOT", "/tmp/test-aidd")
+        """测试 AIDD_ROOT 环境变量"""
+        monkeypatch.setenv("AIDD_ROOT", "/tmp/test-aidd")
         root = runtime.require_plugin_root()
         # macOS 可能会解析 /tmp 为 /private/tmp
         assert "/tmp/test-aidd" in str(root)
     
     def test_require_plugin_root_missing(self, monkeypatch):
         """测试缺少环境变量时抛出异常"""
-        monkeypatch.delenv("KIMI_AIDD_ROOT", raising=False)
+        monkeypatch.delenv("AIDD_ROOT", raising=False)
         monkeypatch.delenv("AIDD_PLUGIN_DIR", raising=False)
         
-        with pytest.raises(RuntimeError, match="KIMI_AIDD_ROOT"):
+        with pytest.raises(RuntimeError, match="AIDD_ROOT"):
             runtime.require_plugin_root()
     
     def test_feature_identifiers(self):

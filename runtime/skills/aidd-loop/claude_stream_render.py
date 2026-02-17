@@ -5,9 +5,9 @@ import argparse
 import json
 import os
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Iterable, Optional, TextIO
-
+from typing import Any, TextIO
 
 MAX_ARG_CHARS = 200
 
@@ -79,7 +79,7 @@ def _extract_text(event: Any) -> Iterable[str]:
     return []
 
 
-def _extract_tool_start(event: Any) -> Optional[tuple[str, str]]:
+def _extract_tool_start(event: Any) -> tuple[str, str] | None:
     if not isinstance(event, dict):
         return None
     event_type = str(event.get("type") or "")
@@ -96,7 +96,7 @@ def _extract_tool_start(event: Any) -> Optional[tuple[str, str]]:
     return None
 
 
-def _extract_tool_stop(event: Any) -> Optional[tuple[str, str, str]]:
+def _extract_tool_stop(event: Any) -> tuple[str, str, str] | None:
     if not isinstance(event, dict):
         return None
     event_type = str(event.get("type") or "")
@@ -140,8 +140,8 @@ def render_line(
     writer: TextIO,
     mode: str,
     strict: bool,
-    warn_stream: Optional[TextIO] = None,
-    state: Optional[RenderState] = None,
+    warn_stream: TextIO | None = None,
+    state: RenderState | None = None,
 ) -> bool:
     raw = line.strip("\n")
     if not raw.strip():

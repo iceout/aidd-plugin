@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List
+from collections.abc import Iterable
+from typing import Any
 
 
 def _escape_token(token: str) -> str:
@@ -20,7 +21,7 @@ def _join_path(parent: str, token: str) -> str:
     return f"{parent}/{escaped}"
 
 
-def _parse_pointer(pointer: str) -> List[str]:
+def _parse_pointer(pointer: str) -> list[str]:
     if pointer == "":
         return []
     if not pointer.startswith("/"):
@@ -37,7 +38,7 @@ def _parse_index(token: str, *, allow_end: bool) -> int:
         raise ValueError(f"invalid list index: {token}") from exc
 
 
-def _resolve_parent(doc: Any, parts: List[str]) -> tuple[Any, str]:
+def _resolve_parent(doc: Any, parts: list[str]) -> tuple[Any, str]:
     if not parts:
         raise ValueError("cannot resolve parent for root pointer")
     current = doc
@@ -52,11 +53,11 @@ def _resolve_parent(doc: Any, parts: List[str]) -> tuple[Any, str]:
     return current, parts[-1]
 
 
-def diff(before: Any, after: Any, path: str = "") -> List[Dict[str, Any]]:
+def diff(before: Any, after: Any, path: str = "") -> list[dict[str, Any]]:
     if type(before) is not type(after):
         return [{"op": "replace", "path": path, "value": after}]
     if isinstance(before, dict):
-        ops: List[Dict[str, Any]] = []
+        ops: list[dict[str, Any]] = []
         before_keys = set(before)
         after_keys = set(after)
         for key in sorted(before_keys - after_keys):
@@ -75,14 +76,14 @@ def diff(before: Any, after: Any, path: str = "") -> List[Dict[str, Any]]:
     return []
 
 
-def apply(doc: Any, patch_ops: Iterable[Dict[str, Any]]) -> Any:
+def apply(doc: Any, patch_ops: Iterable[dict[str, Any]]) -> Any:
     result = doc
     for op in patch_ops:
         result = _apply_op(result, op)
     return result
 
 
-def _apply_op(doc: Any, op: Dict[str, Any]) -> Any:
+def _apply_op(doc: Any, op: dict[str, Any]) -> Any:
     op_type = op.get("op")
     path = op.get("path", "")
     value = op.get("value")
@@ -111,9 +112,7 @@ def _apply_op(doc: Any, op: Dict[str, Any]) -> Any:
         return doc
 
     if isinstance(parent, dict):
-        if op_type == "add":
-            parent[token] = value
-        elif op_type == "replace":
+        if op_type == "add" or op_type == "replace":
             parent[token] = value
         elif op_type == "remove":
             parent.pop(token, None)

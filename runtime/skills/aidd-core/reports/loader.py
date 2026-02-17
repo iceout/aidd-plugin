@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Tuple
 
 
 @dataclass(frozen=True)
@@ -40,7 +39,7 @@ def get_report_paths(root: Path, report_type: str, ticket: str, kind: str | None
     return ReportPaths(json_path=json_path, pack_path=pack_path)
 
 
-def load_report(json_path: Path, pack_path: Path, *, prefer_pack: bool = True) -> Tuple[Dict, str, Path]:
+def load_report(json_path: Path, pack_path: Path, *, prefer_pack: bool = True) -> tuple[dict, str, Path]:
     if prefer_pack and pack_path.exists():
         payload = json.loads(pack_path.read_text(encoding="utf-8"))
         return payload, "pack", pack_path
@@ -48,7 +47,7 @@ def load_report(json_path: Path, pack_path: Path, *, prefer_pack: bool = True) -
     return payload, "json", json_path
 
 
-def load_report_for_path(path: Path, *, prefer_pack: bool = True) -> Tuple[Dict, str, ReportPaths]:
+def load_report_for_path(path: Path, *, prefer_pack: bool = True) -> tuple[dict, str, ReportPaths]:
     if path.name.endswith(".pack.json"):
         pack_path = path
         json_path = _json_path_for(pack_path)

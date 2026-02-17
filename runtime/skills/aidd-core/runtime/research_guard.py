@@ -5,12 +5,11 @@ import datetime as dt
 import json
 import os
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Optional
 
-from aidd_runtime import gates
-from aidd_runtime import runtime
+from aidd_runtime import gates, runtime
 from aidd_runtime.feature_ids import resolve_aidd_root
 from aidd_runtime.rlm_config import detect_lang
 
@@ -27,7 +26,7 @@ class ResearchSettings:
     allow_missing: bool = False
     minimum_paths: int = 0
     allow_pending_baseline: bool = True
-    baseline_phrase: str = "контекст пуст"
+    baseline_phrase: str = "context is empty"
     branches: list[str] | None = None
     skip_branches: list[str] | None = None
     rlm_enabled: bool = True
@@ -39,18 +38,18 @@ class ResearchSettings:
 
 @dataclass
 class ResearchCheckSummary:
-    status: Optional[str]
-    path_count: Optional[int] = None
-    age_days: Optional[int] = None
-    skipped_reason: Optional[str] = None
+    status: str | None
+    path_count: int | None = None
+    age_days: int | None = None
+    skipped_reason: str | None = None
 
 
 def _research_cmd_hint(ticket: str) -> str:
-    return f"python3 ${{KIMI_AIDD_ROOT}}/skills/researcher/runtime/research.py --ticket {ticket} --auto"
+    return f"python3 ${{AIDD_ROOT}}/skills/researcher/runtime/research.py --ticket {ticket} --auto"
 
 
 def _rlm_links_cmd_hint(ticket: str) -> str:
-    return f"python3 ${{KIMI_AIDD_ROOT}}/skills/aidd-rlm/runtime/rlm_links_build.py --ticket {ticket}"
+    return f"python3 ${{AIDD_ROOT}}/skills/aidd-rlm/runtime/rlm_links_build.py --ticket {ticket}"
 
 
 def _normalize_langs(raw: Iterable[str] | None) -> list[str] | None:
@@ -88,14 +87,14 @@ def load_settings(root: Path) -> ResearchSettings:
             try:
                 settings.freshness_days = int(raw["freshness_days"])
             except (ValueError, TypeError):
-                raise ResearchValidationError("config/gates.json: поле researcher.freshness_days должно быть числом")
+                raise ResearchValidationError("config/gates.json: researcher.freshness_days must be a number")
         if "allow_missing" in raw:
             settings.allow_missing = bool(raw["allow_missing"])
         if "minimum_paths" in raw:
             try:
                 settings.minimum_paths = max(int(raw["minimum_paths"]), 0)
             except (ValueError, TypeError):
-                raise ResearchValidationError("config/gates.json: поле researcher.minimum_paths должно быть числом")
+                raise ResearchValidationError("config/gates.json: researcher.minimum_paths must be a number")
         if "allow_pending_baseline" in raw:
             settings.allow_pending_baseline = bool(raw["allow_pending_baseline"])
         if "baseline_phrase" in raw and isinstance(raw["baseline_phrase"], str):
@@ -118,7 +117,7 @@ def load_settings(root: Path) -> ResearchSettings:
     return settings
 
 
-def _extract_status(doc_text: str) -> Optional[str]:
+def _extract_status(doc_text: str) -> str | None:
     for line in doc_text.splitlines():
         stripped = line.strip()
         if stripped.lower().startswith("status:"):
@@ -126,7 +125,7 @@ def _extract_status(doc_text: str) -> Optional[str]:
     return None
 
 
-def _resolve_report_path(root: Path, raw: Optional[str]) -> Optional[Path]:
+def _resolve_report_path(root: Path, raw: str | None) -> Path | None:
     if not raw:
         return None
     path = Path(raw)
@@ -151,7 +150,7 @@ def _find_pack_variant(root: Path, name: str) -> Path | None:
     return candidate if candidate.exists() else None
 
 
-def _load_pack_payload(path: Path) -> Optional[dict]:
+def _load_pack_payload(path: Path) -> dict | None:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
@@ -220,7 +219,7 @@ def _detect_langs_from_paths(root: Path, paths: Iterable[str], required_langs: I
     return found
 
 
-def _parse_iso_datetime(value: object) -> Optional[dt.datetime]:
+def _parse_iso_datetime(value: object) -> dt.datetime | None:
     if not isinstance(value, str) or not value.strip():
         return None
     text = value.strip()
@@ -271,7 +270,7 @@ def _count_jsonl_rows(path: Path) -> int:
     return count
 
 
-def _load_rlm_links_stats(path: Path) -> Optional[dict]:
+def _load_rlm_links_stats(path: Path) -> dict | None:
     if not path.exists():
         return None
     try:
@@ -311,7 +310,7 @@ def _validate_rlm_evidence(
     ticket: str,
     *,
     settings: ResearchSettings,
-    doc_status: Optional[str] = None,
+    doc_status: str | None = None,
 ) -> None:
     rlm_targets_path = root / "reports" / "research" / f"{ticket}-rlm-targets.json"
     rlm_manifest_path = root / "reports" / "research" / f"{ticket}-rlm-manifest.json"
@@ -325,21 +324,21 @@ def _validate_rlm_evidence(
 
     if not rlm_targets_path.exists():
         raise ResearchValidationError(
-            "BLOCK: отсутствует базовый RLM артефакт rlm-targets.json "
+            "BLOCK: missing base RLM artifact rlm-targets.json "
             "(reason_code=rlm_targets_missing). "
-            f"Пересоберите research: `{_research_cmd_hint(ticket)}`."
+            f"Rebuild research: `{_research_cmd_hint(ticket)}`."
         )
     if not rlm_manifest_path.exists():
         raise ResearchValidationError(
-            "BLOCK: отсутствует базовый RLM артефакт rlm-manifest.json "
+            "BLOCK: missing base RLM artifact rlm-manifest.json "
             "(reason_code=rlm_manifest_missing). "
-            f"Пересоберите research: `{_research_cmd_hint(ticket)}`."
+            f"Rebuild research: `{_research_cmd_hint(ticket)}`."
         )
     if not rlm_worklist_path.exists():
         raise ResearchValidationError(
-            "BLOCK: отсутствует базовый RLM артефакт rlm.worklist.pack "
+            "BLOCK: missing base RLM artifact rlm.worklist.pack "
             "(reason_code=rlm_worklist_missing). "
-            f"Пересоберите research: `{_research_cmd_hint(ticket)}`."
+            f"Rebuild research: `{_research_cmd_hint(ticket)}`."
         )
 
     try:
@@ -368,7 +367,7 @@ def _validate_rlm_evidence(
 
     links_exists = rlm_links_path.exists()
     links_rows = _count_jsonl_rows(rlm_links_path) if links_exists else 0
-    links_total: Optional[int] = None
+    links_total: int | None = None
     links_stats = _load_rlm_links_stats(rlm_links_stats_path)
     if isinstance(links_stats, dict):
         try:
@@ -403,22 +402,22 @@ def _validate_rlm_evidence(
     if ready_required:
         if settings.rlm_require_nodes and (not nodes_exists or nodes_total == 0):
             raise ResearchValidationError(
-                "BLOCK: для текущей стадии нужны RLM nodes (rlm.nodes.jsonl), но они отсутствуют или пусты. "
-                f"Hint: выполните `${{KIMI_AIDD_ROOT}}/skills/aidd-rlm/runtime/rlm_nodes_build.py --bootstrap --ticket {ticket}` "
+                "BLOCK: current stage requires RLM nodes (rlm.nodes.jsonl), but they are missing or empty. "
+                f"Hint: run `${{AIDD_ROOT}}/skills/aidd-rlm/runtime/rlm_nodes_build.py --bootstrap --ticket {ticket}` "
                 "(reason_code=rlm_nodes_missing)."
             )
         if links_warn:
             message = "rlm links empty (reason_code=rlm_links_empty_warn)"
-            raise ResearchValidationError(f"BLOCK: {message}. Hint: выполните `{_rlm_links_cmd_hint(ticket)}`.")
+            raise ResearchValidationError(f"BLOCK: {message}. Hint: run `{_rlm_links_cmd_hint(ticket)}`.")
         if settings.rlm_require_pack and not pack_exists:
             raise ResearchValidationError(
-                "BLOCK: для текущей стадии нужен RLM pack, но он отсутствует. "
-                f"Hint: выполните `${{KIMI_AIDD_ROOT}}/skills/aidd-rlm/runtime/rlm_finalize.py --ticket {ticket}` "
+                "BLOCK: current stage requires an RLM pack, but it is missing. "
+                f"Hint: run `${{AIDD_ROOT}}/skills/aidd-rlm/runtime/rlm_finalize.py --ticket {ticket}` "
                 "(reason_code=rlm_pack_missing)."
             )
         if rlm_status != "ready":
             raise ResearchValidationError(
-                "BLOCK: rlm_status=pending — требуется rlm_status=ready с nodes/links/pack для текущей стадии "
+                "BLOCK: rlm_status=pending - current stage requires rlm_status=ready with nodes/links/pack "
                 "(reason_code=rlm_status_pending)."
             )
         return
@@ -426,7 +425,7 @@ def _validate_rlm_evidence(
     if rlm_status == "warn":
         print(
             "[aidd] WARN: rlm links empty (reason_code=rlm_links_empty_warn). "
-            f"Hint: выполните `{_rlm_links_cmd_hint(ticket)}`.",
+            f"Hint: run `{_rlm_links_cmd_hint(ticket)}`.",
             file=sys.stderr,
         )
         return
@@ -434,7 +433,7 @@ def _validate_rlm_evidence(
     if stage in {"research", "implement"}:
         if not nodes_exists or links_empty or not pack_exists:
             print(
-                f"[aidd] WARN: rlm_status={rlm_status} for stage={stage}; nodes/links/pack ещё не полностью собраны.",
+                f"[aidd] WARN: rlm_status={rlm_status} for stage={stage}; nodes/links/pack are not fully built yet.",
                 file=sys.stderr,
             )
         if worklist_entries:
@@ -452,7 +451,7 @@ def validate_research(
     ticket: str,
     *,
     settings: ResearchSettings,
-    branch: Optional[str] = None,
+    branch: str | None = None,
 ) -> ResearchCheckSummary:
     if not settings.enabled:
         return ResearchCheckSummary(status=None, skipped_reason="disabled")
@@ -466,15 +465,15 @@ def validate_research(
         if settings.allow_missing:
             return ResearchCheckSummary(status=None, skipped_reason="missing-allowed")
         raise ResearchValidationError(
-            f"BLOCK: нет отчёта Researcher для {ticket} → запустите "
+            f"BLOCK: missing Researcher report for {ticket} -> run "
             f"`{_research_cmd_hint(ticket)}` "
-            f"и оформите docs/research/{ticket}.md"
+            f"and complete docs/research/{ticket}.md"
         )
 
     try:
         doc_text = doc_path.read_text(encoding="utf-8")
     except Exception:
-        raise ResearchValidationError(f"BLOCK: не удалось прочитать docs/research/{ticket}.md.")
+        raise ResearchValidationError(f"BLOCK: failed to read docs/research/{ticket}.md.")
     doc_text_lower = doc_text.lower()
 
     status = _extract_status(doc_text)
@@ -482,20 +481,20 @@ def validate_research(
     required_statuses = [item for item in required_statuses if item]
     if required_statuses:
         if not status:
-            raise ResearchValidationError(f"BLOCK: docs/research/{ticket}.md не содержит строки `Status:` или она пуста.")
+            raise ResearchValidationError(f"BLOCK: docs/research/{ticket}.md has no `Status:` line or it is empty.")
         if status not in required_statuses:
             if status == "pending" and settings.allow_pending_baseline:
                 baseline_phrase = settings.baseline_phrase.strip().lower()
                 if baseline_phrase and baseline_phrase in doc_text_lower:
                     return ResearchCheckSummary(status=status, skipped_reason="pending-baseline")
                 raise ResearchValidationError(
-                    "BLOCK: статус Researcher `pending` допустим только для baseline (нужна отметка baseline в отчёте)."
+                    "BLOCK: Researcher status `pending` is only allowed for baseline (baseline marker required in report)."
                 )
             raise ResearchValidationError(
-                f"BLOCK: статус Researcher `{status}` не входит в {required_statuses} → актуализируйте отчёт."
+                f"BLOCK: Researcher status `{status}` is not in {required_statuses} -> update the report."
             )
 
-    path_count: Optional[int] = None
+    path_count: int | None = None
     min_paths = settings.minimum_paths or 0
     targets_payload: dict = {}
     if min_paths > 0 or settings.freshness_days:
@@ -503,15 +502,15 @@ def validate_research(
             payload = json.loads(rlm_targets_path.read_text(encoding="utf-8"))
         except FileNotFoundError:
             raise ResearchValidationError(
-                "BLOCK: отсутствует rlm-targets.json "
+                "BLOCK: missing rlm-targets.json "
                 "(reason_code=rlm_targets_missing); "
-                f"пересоберите research командой {_research_cmd_hint(ticket)}."
+                f"rebuild research via {_research_cmd_hint(ticket)}."
             )
         except json.JSONDecodeError:
             raise ResearchValidationError(
-                "BLOCK: повреждён rlm-targets.json "
+                "BLOCK: corrupted rlm-targets.json "
                 "(reason_code=rlm_targets_invalid); "
-                f"пересоберите его командой {_research_cmd_hint(ticket)}."
+                f"rebuild it via {_research_cmd_hint(ticket)}."
             )
         targets_payload = payload if isinstance(payload, dict) else {}
 
@@ -520,22 +519,22 @@ def validate_research(
         path_count = len(paths)
         if path_count < min_paths:
             raise ResearchValidationError(
-                f"BLOCK: RLM targets содержат только {path_count} директорий (минимум {min_paths})."
+                f"BLOCK: RLM targets include only {path_count} directories (minimum {min_paths})."
             )
 
-    age_days: Optional[int] = None
+    age_days: int | None = None
     freshness_days = settings.freshness_days
     if freshness_days:
         generated_dt = _parse_iso_datetime(targets_payload.get("generated_at"))
         if generated_dt is None:
             raise ResearchValidationError(
-                f"BLOCK: RLM targets ({rlm_targets_path}) не содержат корректное поле generated_at."
+                f"BLOCK: RLM targets ({rlm_targets_path}) do not contain a valid generated_at field."
             )
-        now = dt.datetime.now(dt.timezone.utc)
-        age_days = (now - generated_dt.astimezone(dt.timezone.utc)).days
+        now = dt.datetime.now(dt.UTC)
+        age_days = (now - generated_dt.astimezone(dt.UTC)).days
         if age_days > int(freshness_days):
             raise ResearchValidationError(
-                f"BLOCK: RLM targets превысили лимит свежести ({age_days} дней) → обновите {_research_cmd_hint(ticket)}."
+                f"BLOCK: RLM targets exceeded freshness limit ({age_days} days) -> refresh via {_research_cmd_hint(ticket)}."
             )
 
     _validate_rlm_evidence(
@@ -560,7 +559,7 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
     root = resolve_aidd_root(Path.cwd())
@@ -568,7 +567,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         parser.exit(
             1,
             f"BLOCK: expected aidd/docs at {root / 'docs'}. "
-            f"Run '/feature-dev-aidd:aidd-init' or 'python3 ${{KIMI_AIDD_ROOT}}/skills/aidd-init/runtime/init.py' from the workspace root.",
+            f"Run '/feature-dev-aidd:aidd-init' or 'python3 ${{AIDD_ROOT}}/skills/aidd-init/runtime/init.py' from the workspace root.",
         )
     settings = load_settings(root)
     try:
@@ -584,7 +583,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         if summary.skipped_reason:
             print(f"research gate skipped ({summary.skipped_reason}).")
         else:
-            print("research gate disabled — ничего проверять.")
+            print("research gate disabled - nothing to validate.")
     else:
         details = []
         details.append(f"status: {summary.status}")

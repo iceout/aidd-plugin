@@ -8,18 +8,13 @@ import datetime as dt
 import json
 import os
 import re
-import shutil
-import shlex
-import subprocess
 import sys
-import threading
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional, TextIO
+from typing import TextIO
 
-from aidd_runtime import claude_stream_render
 from aidd_runtime import runtime
 from aidd_runtime.feature_ids import write_active_state
-from aidd_runtime.io_utils import dump_yaml, parse_front_matter, utc_timestamp
+from aidd_runtime.io_utils import dump_yaml, utc_timestamp
 
 DONE_CODE = 0
 CONTINUE_CODE = 10
@@ -78,7 +73,7 @@ def write_active_ticket(root: Path, ticket: str) -> None:
     write_active_state(root, ticket=ticket)
 
 
-def resolve_stage_scope(root: Path, ticket: str, stage: str) -> Tuple[str, str]:
+def resolve_stage_scope(root: Path, ticket: str, stage: str) -> tuple[str, str]:
     if stage in {"implement", "review"}:
         work_item_key = runtime.read_active_work_item(root)
         if not work_item_key:
@@ -95,13 +90,13 @@ def stage_result_path(root: Path, ticket: str, scope_key: str, stage: str) -> Pa
     return _stage_result.stage_result_path(root, ticket, scope_key, stage)
 
 
-def _parse_stage_result(path: Path, stage: str) -> Tuple[Dict[str, object] | None, str]:
+def _parse_stage_result(path: Path, stage: str) -> tuple[dict[str, object] | None, str]:
     from aidd_runtime import loop_step_stage_result as _stage_result
 
     return _stage_result._parse_stage_result(path, stage)
 
 
-def _collect_stage_result_candidates(root: Path, ticket: str, stage: str) -> List[Path]:
+def _collect_stage_result_candidates(root: Path, ticket: str, stage: str) -> list[Path]:
     from aidd_runtime import loop_step_stage_result as _stage_result
 
     return _stage_result._collect_stage_result_candidates(root, ticket, stage)
@@ -118,7 +113,7 @@ def _in_window(path: Path, *, started_at: float | None, finished_at: float | Non
     )
 
 
-def _stage_result_diagnostics(candidates: List[Tuple[Path, str]]) -> str:
+def _stage_result_diagnostics(candidates: list[tuple[Path, str]]) -> str:
     from aidd_runtime import loop_step_stage_result as _stage_result
 
     return _stage_result._stage_result_diagnostics(candidates)
@@ -132,7 +127,7 @@ def load_stage_result(
     *,
     started_at: float | None = None,
     finished_at: float | None = None,
-) -> Tuple[Dict[str, object] | None, Path, str, str, str, str]:
+) -> tuple[dict[str, object] | None, Path, str, str, str, str]:
     from aidd_runtime import loop_step_stage_result as _stage_result
 
     return _stage_result.load_stage_result(
@@ -157,25 +152,25 @@ def runner_supports_flag(command: str, flag: str) -> bool:
     return _wrappers.runner_supports_flag(command, flag)
 
 
-def _strip_flag_with_value(tokens: List[str], flag: str) -> Tuple[List[str], bool]:
+def _strip_flag_with_value(tokens: list[str], flag: str) -> tuple[list[str], bool]:
     from aidd_runtime import loop_step_wrappers as _wrappers
 
     return _wrappers._strip_flag_with_value(tokens, flag)
 
 
-def inject_plugin_flags(tokens: List[str], plugin_root: Path) -> Tuple[List[str], List[str]]:
+def inject_plugin_flags(tokens: list[str], plugin_root: Path) -> tuple[list[str], list[str]]:
     from aidd_runtime import loop_step_wrappers as _wrappers
 
     return _wrappers.inject_plugin_flags(tokens, plugin_root)
 
 
-def validate_command_available(plugin_root: Path, stage: str) -> Tuple[bool, str, str]:
+def validate_command_available(plugin_root: Path, stage: str) -> tuple[bool, str, str]:
     from aidd_runtime import loop_step_wrappers as _wrappers
 
     return _wrappers.validate_command_available(plugin_root, stage)
 
 
-def resolve_stream_mode(raw: Optional[str]) -> str:
+def resolve_stream_mode(raw: str | None) -> str:
     from aidd_runtime import loop_step_policy as _policy
 
     return _policy.resolve_stream_mode(raw)
@@ -205,19 +200,19 @@ def _is_valid_work_item_key(value: str) -> bool:
     return _policy._is_valid_work_item_key(value)
 
 
-def _extract_work_item_key(lines: List[str]) -> str:
+def _extract_work_item_key(lines: list[str]) -> str:
     from aidd_runtime import loop_step_policy as _policy
 
     return _policy._extract_work_item_key(lines)
 
 
-def _extract_blocking_flag(lines: List[str]) -> bool | None:
+def _extract_blocking_flag(lines: list[str]) -> bool | None:
     from aidd_runtime import loop_step_policy as _policy
 
     return _policy._extract_blocking_flag(lines)
 
 
-def _extract_item_id(lines: List[str]) -> str:
+def _extract_item_id(lines: list[str]) -> str:
     from aidd_runtime import loop_step_policy as _policy
 
     return _policy._extract_item_id(lines)
@@ -229,7 +224,7 @@ def _extract_checkbox_state(line: str) -> str:
     return _policy._extract_checkbox_state(line)
 
 
-def _parse_qa_handoff_candidates(lines: List[str]) -> List[Tuple[str, str]]:
+def _parse_qa_handoff_candidates(lines: list[str]) -> list[tuple[str, str]]:
     from aidd_runtime import loop_step_policy as _policy
 
     return _policy._parse_qa_handoff_candidates(lines)
@@ -241,7 +236,7 @@ def _auto_repair_enabled(root: Path) -> bool:
     return _policy._auto_repair_enabled(root)
 
 
-def _resolve_qa_repair_mode(requested: str | None, root: Path) -> Tuple[str, bool]:
+def _resolve_qa_repair_mode(requested: str | None, root: Path) -> tuple[str, bool]:
     from aidd_runtime import loop_step_policy as _policy
 
     return _policy._resolve_qa_repair_mode(requested, root)
@@ -249,11 +244,11 @@ def _resolve_qa_repair_mode(requested: str | None, root: Path) -> Tuple[str, boo
 
 def _select_qa_repair_work_item(
     *,
-    tasklist_lines: List[str],
+    tasklist_lines: list[str],
     explicit: str,
     select_handoff: bool,
     mode: str,
-) -> Tuple[str, str, str, List[str]]:
+) -> tuple[str, str, str, list[str]]:
     from aidd_runtime import loop_step_policy as _policy
 
     return _policy._select_qa_repair_work_item(
@@ -301,7 +296,7 @@ def _maybe_regen_review_pack(
     ticket: str,
     slug_hint: str,
     scope_key: str,
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     from aidd_runtime import loop_step_stage_result as _stage_result
 
     return _stage_result._maybe_regen_review_pack(
@@ -318,7 +313,7 @@ def validate_review_pack(
     ticket: str,
     slug_hint: str,
     scope_key: str,
-) -> Tuple[bool, str, str]:
+) -> tuple[bool, str, str]:
     from aidd_runtime import loop_step_stage_result as _stage_result
 
     return _stage_result.validate_review_pack(
@@ -329,7 +324,7 @@ def validate_review_pack(
     )
 
 
-def resolve_runner(args_runner: str | None, plugin_root: Path) -> Tuple[List[str], str, str]:
+def resolve_runner(args_runner: str | None, plugin_root: Path) -> tuple[list[str], str, str]:
     from aidd_runtime import loop_step_wrappers as _wrappers
 
     return _wrappers.resolve_runner(args_runner, plugin_root)
@@ -359,25 +354,25 @@ def resolve_hooks_mode() -> str:
     return _policy.resolve_hooks_mode()
 
 
-def evaluate_wrapper_skip_policy(stage: str, plugin_root: Path) -> Tuple[str, str, str]:
+def evaluate_wrapper_skip_policy(stage: str, plugin_root: Path) -> tuple[str, str, str]:
     from aidd_runtime import loop_step_policy as _policy
 
     return _policy.evaluate_wrapper_skip_policy(stage, plugin_root)
 
 
-def evaluate_output_contract_policy(status: str) -> Tuple[str, str]:
+def evaluate_output_contract_policy(status: str) -> tuple[str, str]:
     from aidd_runtime import loop_step_policy as _policy
 
     return _policy.evaluate_output_contract_policy(status)
 
 
-def _parse_wrapper_output(stdout: str) -> Dict[str, str]:
+def _parse_wrapper_output(stdout: str) -> dict[str, str]:
     from aidd_runtime import loop_step_wrappers as _wrappers
 
     return _wrappers._parse_wrapper_output(stdout)
 
 
-def _runtime_env(plugin_root: Path) -> Dict[str, str]:
+def _runtime_env(plugin_root: Path) -> dict[str, str]:
     from aidd_runtime import loop_step_wrappers as _wrappers
 
     return _wrappers._runtime_env(plugin_root)
@@ -389,7 +384,7 @@ def _stage_wrapper_log_path(target: Path, stage: str, ticket: str, scope_key: st
     return _wrappers._stage_wrapper_log_path(target, stage, ticket, scope_key, kind)
 
 
-def _append_stage_wrapper_log(log_path: Path, command: List[str], stdout: str, stderr: str) -> None:
+def _append_stage_wrapper_log(log_path: Path, command: list[str], stdout: str, stderr: str) -> None:
     from aidd_runtime import loop_step_wrappers as _wrappers
 
     _wrappers._append_stage_wrapper_log(log_path, command, stdout, stderr)
@@ -397,11 +392,11 @@ def _append_stage_wrapper_log(log_path: Path, command: List[str], stdout: str, s
 
 def _run_runtime_command(
     *,
-    command: List[str],
+    command: list[str],
     cwd: Path,
-    env: Dict[str, str],
+    env: dict[str, str],
     log_path: Path,
-) -> Tuple[int, str, str]:
+) -> tuple[int, str, str]:
     from aidd_runtime import loop_step_wrappers as _wrappers
 
     return _wrappers._run_runtime_command(
@@ -412,13 +407,13 @@ def _run_runtime_command(
     )
 
 
-def _resolve_stage_paths(target: Path, ticket: str, scope_key: str, stage: str) -> Dict[str, Path]:
+def _resolve_stage_paths(target: Path, ticket: str, scope_key: str, stage: str) -> dict[str, Path]:
     from aidd_runtime import loop_step_wrappers as _wrappers
 
     return _wrappers._resolve_stage_paths(target, ticket, scope_key, stage)
 
 
-def _copy_optional_preflight_fallback(paths: Dict[str, Path]) -> None:
+def _copy_optional_preflight_fallback(paths: dict[str, Path]) -> None:
     from aidd_runtime import loop_step_wrappers as _wrappers
 
     _wrappers._copy_optional_preflight_fallback(paths)
@@ -436,7 +431,7 @@ def run_stage_wrapper(
     actions_path: str = "",
     result: str = "",
     verdict: str = "",
-) -> Tuple[bool, Dict[str, str], str]:
+) -> tuple[bool, dict[str, str], str]:
     from aidd_runtime import loop_step_wrappers as _wrappers
 
     return _wrappers.run_stage_wrapper(
@@ -487,7 +482,7 @@ def _validate_stage_wrapper_contract(
     scope_key: str,
     stage: str,
     actions_log_rel: str,
-) -> Tuple[bool, str, str]:
+) -> tuple[bool, str, str]:
     from aidd_runtime import loop_step_wrappers as _wrappers
 
     return _wrappers.validate_stage_wrapper_contract(
@@ -499,13 +494,13 @@ def _validate_stage_wrapper_contract(
     )
 
 
-def build_command(stage: str, ticket: str) -> List[str]:
+def build_command(stage: str, ticket: str) -> list[str]:
     from aidd_runtime import loop_step_wrappers as _wrappers
 
     return _wrappers.build_command(stage, ticket)
 
 
-def run_command(command: List[str], cwd: Path, log_path: Path) -> int:
+def run_command(command: list[str], cwd: Path, log_path: Path) -> int:
     from aidd_runtime import loop_step_wrappers as _wrappers
 
     return _wrappers.run_command(command, cwd, log_path)
@@ -513,14 +508,14 @@ def run_command(command: List[str], cwd: Path, log_path: Path) -> int:
 
 def run_stream_command(
     *,
-    command: List[str],
+    command: list[str],
     cwd: Path,
     log_path: Path,
     stream_mode: str,
     stream_jsonl_path: Path,
     stream_log_path: Path,
     output_stream: TextIO,
-    header_lines: Optional[List[str]] = None,
+    header_lines: list[str] | None = None,
 ) -> int:
     from aidd_runtime import loop_step_wrappers as _wrappers
 
@@ -536,7 +531,7 @@ def run_stream_command(
     )
 
 
-def append_cli_log(log_path: Path, payload: Dict[str, object]) -> None:
+def append_cli_log(log_path: Path, payload: dict[str, object]) -> None:
     log_path.parent.mkdir(parents=True, exist_ok=True)
     with log_path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
@@ -597,7 +592,7 @@ def main(argv: list[str] | None = None) -> int:
     plugin_root = runtime.require_plugin_root()
     wrapper_plugin_root = resolve_wrapper_plugin_root(plugin_root)
 
-    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d-%H%M%S")
+    stamp = dt.datetime.now(dt.UTC).strftime("%Y%m%d-%H%M%S")
     cli_log_path = target / "reports" / "loops" / ticket / f"cli.loop-step.{stamp}.log"
 
     stage = read_active_stage(target)
@@ -853,7 +848,7 @@ def main(argv: list[str] | None = None) -> int:
                 if from_qa_mode:
                     tasklist_path = target / "docs" / "tasklist" / f"{ticket}.md"
                     if args.work_item_key:
-                        tasklist_lines: List[str] = []
+                        tasklist_lines: list[str] = []
                     else:
                         if not tasklist_path.exists():
                             reason = "tasklist missing; cannot select qa handoff"
@@ -978,7 +973,7 @@ def main(argv: list[str] | None = None) -> int:
         )
     runner_tokens, runner_raw, runner_notice = resolve_runner(args.runner, plugin_root)
     wrapper_enabled = should_run_wrappers(next_stage, runner_raw, wrapper_plugin_root)
-    wrapper_logs: List[str] = []
+    wrapper_logs: list[str] = []
     actions_log_rel = ""
     wrapper_scope_key = runtime.resolve_scope_key(runtime.read_active_work_item(target), ticket)
     wrapper_work_item_key = runtime.read_active_work_item(target)
@@ -1041,12 +1036,12 @@ def main(argv: list[str] | None = None) -> int:
         command.extend(["--output-format", "stream-json", "--include-partial-messages", "--verbose"])
     command.extend(build_command(next_stage, ticket))
     runner_effective = " ".join(command)
-    run_stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d-%H%M%S")
+    run_stamp = dt.datetime.now(dt.UTC).strftime("%Y%m%d-%H%M%S")
     log_path = target / "reports" / "loops" / ticket / f"cli.{next_stage}.{run_stamp}.log"
 
     stream_log_rel = ""
     stream_jsonl_rel = ""
-    run_started_at = dt.datetime.now(dt.timezone.utc).timestamp()
+    run_started_at = dt.datetime.now(dt.UTC).timestamp()
     if stream_mode:
         stream_log_path = target / "reports" / "loops" / ticket / f"cli.loop-step.{stamp}.stream.log"
         stream_jsonl_path = target / "reports" / "loops" / ticket / f"cli.loop-step.{stamp}.stream.jsonl"
@@ -1070,7 +1065,7 @@ def main(argv: list[str] | None = None) -> int:
         )
     else:
         returncode = run_command(command, workspace_root, log_path)
-    run_finished_at = dt.datetime.now(dt.timezone.utc).timestamp()
+    run_finished_at = dt.datetime.now(dt.UTC).timestamp()
     if returncode != 0:
         status = "error"
         code = ERROR_CODE
@@ -1230,7 +1225,7 @@ def main(argv: list[str] | None = None) -> int:
         if post_payload.get("apply_log"):
             wrapper_logs.append(post_payload["apply_log"])
         actions_log_rel = post_payload.get("actions_path", actions_log_rel)
-        run_finished_at = dt.datetime.now(dt.timezone.utc).timestamp()
+        run_finished_at = dt.datetime.now(dt.UTC).timestamp()
         payload, result_path, error, mismatch_from, mismatch_to, diag = load_stage_result(
             target,
             ticket,
@@ -1514,7 +1509,7 @@ def emit_result(
     stage_result_diag: str = "",
     actions_log_path: str = "",
     tests_log_path: str = "",
-    wrapper_logs: List[str] | None = None,
+    wrapper_logs: list[str] | None = None,
 ) -> int:
     status_value = status if status in {"blocked", "continue", "done"} else "blocked"
     scope_value = str(scope_key or "").strip()

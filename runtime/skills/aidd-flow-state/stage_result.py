@@ -6,18 +6,17 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, List, Optional, Tuple
 
-from aidd_runtime import gates
-from aidd_runtime import runtime
+from aidd_runtime import gates, runtime
 from aidd_runtime.io_utils import dump_yaml, parse_front_matter, utc_timestamp
 
 DEFAULT_REVIEWER_MARKER = "aidd/reports/reviewer/{ticket}/{scope_key}.tests.json"
 
 
-def _split_items(values: Iterable[str] | None) -> List[str]:
-    items: List[str] = []
+def _split_items(values: Iterable[str] | None) -> list[str]:
+    items: list[str] = []
     if not values:
         return items
     for raw in values:
@@ -30,9 +29,9 @@ def _split_items(values: Iterable[str] | None) -> List[str]:
     return items
 
 
-def _dedupe(items: Iterable[str]) -> List[str]:
+def _dedupe(items: Iterable[str]) -> list[str]:
     seen = set()
-    deduped: List[str] = []
+    deduped: list[str] = []
     for item in items:
         key = item.strip()
         if not key or key in seen:
@@ -55,7 +54,7 @@ def _append_misc_link(links: dict, value: str) -> None:
 
 def _parse_evidence_links(values: Iterable[str] | None) -> dict:
     links: dict[str, object] = {}
-    extras: List[str] = []
+    extras: list[str] = []
     for item in _split_items(values):
         if "=" in item:
             key, value = item.split("=", 1)
@@ -70,7 +69,7 @@ def _parse_evidence_links(values: Iterable[str] | None) -> dict:
     return links
 
 
-def _latest_stream_log(root: Path, ticket: str) -> Optional[Path]:
+def _latest_stream_log(root: Path, ticket: str) -> Path | None:
     log_dir = root / "reports" / "loops" / ticket
     if not log_dir.exists():
         return None
@@ -80,7 +79,7 @@ def _latest_stream_log(root: Path, ticket: str) -> Optional[Path]:
     return candidates[-1]
 
 
-def _stream_jsonl_for(stream_log: Path) -> Optional[Path]:
+def _stream_jsonl_for(stream_log: Path) -> Path | None:
     name = stream_log.name
     if not name.endswith(".stream.log"):
         return None
@@ -117,9 +116,9 @@ def _reviewer_requirements(
     target: Path,
     *,
     ticket: str,
-    slug_hint: Optional[str],
+    slug_hint: str | None,
     scope_key: str,
-) -> Tuple[bool, bool, bool, str]:
+) -> tuple[bool, bool, bool, str]:
     config = runtime.load_gates_config(target)
     reviewer_cfg = config.get("reviewer") if isinstance(config, dict) else None
     if not isinstance(reviewer_cfg, dict):
@@ -168,10 +167,10 @@ def _tests_policy(
     target: Path,
     *,
     ticket: str,
-    slug_hint: Optional[str],
+    slug_hint: str | None,
     scope_key: str,
     stage: str,
-) -> Tuple[bool, bool, str]:
+) -> tuple[bool, bool, str]:
     config = runtime.load_gates_config(target)
     mode = str(config.get("tests_required", "disabled") if isinstance(config, dict) else "disabled").strip().lower()
     require = mode in {"soft", "hard"}
@@ -206,7 +205,7 @@ def _resolve_tests_evidence(
     ticket: str,
     scope_key: str,
     stage: str,
-) -> Tuple[Optional[str], bool, Optional[dict]]:
+) -> tuple[str | None, bool, dict | None]:
     from aidd_runtime.reports import tests_log as _tests_log
 
     stages = [stage]
@@ -468,9 +467,7 @@ def main(argv: list[str] | None = None) -> int:
         elif "review context pack placeholder found" not in reason:
             reason = f"{reason}; review context pack placeholder found"
         reason_code = placeholder_reason
-        if result == "done":
-            result = "continue"
-        elif reason_code == placeholder_reason and result == "blocked":
+        if result == "done" or reason_code == placeholder_reason and result == "blocked":
             result = "continue"
 
     if stage == "review":

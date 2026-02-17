@@ -4,8 +4,8 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Dict, Iterable, List, Tuple
 
 from aidd_runtime import rlm_targets, runtime
 from aidd_runtime.rlm_config import (
@@ -16,7 +16,6 @@ from aidd_runtime.rlm_config import (
     normalize_path,
     paths_base_for,
 )
-
 
 SCHEMA = "aidd.report.pack.v1"
 PACK_VERSION = "v1"
@@ -31,14 +30,14 @@ def _pack_extension() -> str:
     return ".pack.json"
 
 
-def _load_manifest(path: Path) -> Dict:
+def _load_manifest(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _iter_nodes(path: Path) -> Iterable[Dict[str, object]]:
+def _iter_nodes(path: Path) -> Iterable[dict[str, object]]:
     if not path.exists():
         return []
-    nodes: List[Dict[str, object]] = []
+    nodes: list[dict[str, object]] = []
     try:
         with path.open("r", encoding="utf-8") as handle:
             for line in handle:
@@ -56,7 +55,7 @@ def _iter_nodes(path: Path) -> Iterable[Dict[str, object]]:
     return nodes
 
 
-def _write_nodes(path: Path, nodes: Iterable[Dict[str, object]]) -> None:
+def _write_nodes(path: Path, nodes: Iterable[dict[str, object]]) -> None:
     tmp_path = path.with_suffix(path.suffix + ".tmp")
     with tmp_path.open("w", encoding="utf-8") as handle:
         for node in nodes:
@@ -64,14 +63,14 @@ def _write_nodes(path: Path, nodes: Iterable[Dict[str, object]]) -> None:
     tmp_path.replace(path)
 
 
-def _split_values(raw: object | Iterable[str] | None) -> List[str]:
+def _split_values(raw: object | Iterable[str] | None) -> list[str]:
     if raw is None:
         return []
     if isinstance(raw, (list, tuple, set)):
         items = list(raw)
     else:
         items = [raw]
-    values: List[str] = []
+    values: list[str] = []
     for item in items:
         if item is None:
             continue
@@ -83,9 +82,9 @@ def _split_values(raw: object | Iterable[str] | None) -> List[str]:
     return list(dict.fromkeys(values))
 
 
-def _normalize_worklist_paths(values: object | Iterable[str] | None, *, base_root: Path) -> List[str]:
+def _normalize_worklist_paths(values: object | Iterable[str] | None, *, base_root: Path) -> list[str]:
     prefixes = rlm_targets.normalize_prefixes(_split_values(values))
-    normalized: List[str] = []
+    normalized: list[str] = []
     base_resolved = base_root.resolve()
     for prefix in prefixes:
         path = Path(prefix)
@@ -102,12 +101,12 @@ def _normalize_worklist_paths(values: object | Iterable[str] | None, *, base_roo
     return list(dict.fromkeys(normalized))
 
 
-def _normalize_worklist_keywords(values: object | Iterable[str] | None) -> List[str]:
+def _normalize_worklist_keywords(values: object | Iterable[str] | None) -> list[str]:
     keywords = [item for item in _split_values(values) if str(item).strip()]
     return list(dict.fromkeys(keywords))
 
 
-def _resolve_base_root(target: Path, manifest: Dict) -> Path:
+def _resolve_base_root(target: Path, manifest: dict) -> Path:
     raw_targets = manifest.get("targets_path")
     if raw_targets:
         try:
@@ -125,14 +124,14 @@ def _resolve_base_root(target: Path, manifest: Dict) -> Path:
     return paths_base_for(target)
 
 
-def _matches_prefix(path: str, prefixes: List[str]) -> bool:
+def _matches_prefix(path: str, prefixes: list[str]) -> bool:
     for prefix in prefixes:
         if path == prefix or path.startswith(f"{prefix}/"):
             return True
     return False
 
 
-def _resolve_keyword_roots(base_root: Path, prefixes: List[str]) -> List[Path]:
+def _resolve_keyword_roots(base_root: Path, prefixes: list[str]) -> list[Path]:
     if prefixes:
         roots = [base_root / Path(prefix) for prefix in prefixes]
     else:
@@ -142,12 +141,12 @@ def _resolve_keyword_roots(base_root: Path, prefixes: List[str]) -> List[Path]:
 
 def _filter_manifest_entries(
     target: Path,
-    manifest: Dict,
+    manifest: dict,
     *,
-    settings: Dict,
+    settings: dict,
     worklist_paths: object | Iterable[str] | None,
     worklist_keywords: object | Iterable[str] | None,
-) -> Tuple[List[Dict[str, object]], Dict[str, object] | None]:
+) -> tuple[list[dict[str, object]], dict[str, object] | None]:
     entries = manifest.get("files") or []
     if not isinstance(entries, list):
         entries = []
@@ -207,14 +206,14 @@ def _filter_manifest_entries(
     return path_filtered, scope
 
 
-def _compact_nodes(nodes: List[Dict[str, object]]) -> List[Dict[str, object]]:
-    dedup: Dict[str, Dict[str, object]] = {}
+def _compact_nodes(nodes: list[dict[str, object]]) -> list[dict[str, object]]:
+    dedup: dict[str, dict[str, object]] = {}
     for node in nodes:
         node_id = str(node.get("id") or node.get("file_id") or node.get("dir_id") or "").strip()
         if not node_id:
             continue
         dedup[node_id] = node
-    def sort_key(item: Dict[str, object]) -> tuple:
+    def sort_key(item: dict[str, object]) -> tuple:
         node_kind = str(item.get("node_kind") or "")
         path = str(item.get("path") or "")
         node_id = str(item.get("id") or item.get("file_id") or item.get("dir_id") or "")
@@ -222,11 +221,11 @@ def _compact_nodes(nodes: List[Dict[str, object]]) -> List[Dict[str, object]]:
     return sorted(dedup.values(), key=sort_key)
 
 
-def _build_bootstrap_nodes(manifest: Dict[str, object]) -> List[Dict[str, object]]:
+def _build_bootstrap_nodes(manifest: dict[str, object]) -> list[dict[str, object]]:
     entries = manifest.get("files") or []
     if not isinstance(entries, list):
         return []
-    nodes: List[Dict[str, object]] = []
+    nodes: list[dict[str, object]] = []
     for entry in entries:
         if not isinstance(entry, dict):
             continue
@@ -268,9 +267,9 @@ def _truncate_text(text: str, limit: int) -> str:
     return text[:limit].rstrip()
 
 
-def _entrypoints(child_nodes: Iterable[Dict[str, object]]) -> List[str]:
+def _entrypoints(child_nodes: Iterable[dict[str, object]]) -> list[str]:
     entry_roles = {"web", "controller", "job", "config", "infra"}
-    entrypaths: List[str] = []
+    entrypaths: list[str] = []
     for node in child_nodes:
         roles = node.get("framework_roles") or []
         if any(role in entry_roles for role in roles):
@@ -281,7 +280,7 @@ def _entrypoints(child_nodes: Iterable[Dict[str, object]]) -> List[str]:
 
 
 def _summarize_dir_nodes(
-    child_nodes: List[Dict[str, object]],
+    child_nodes: list[dict[str, object]],
     *,
     max_children: int,
     max_chars: int,
@@ -298,7 +297,7 @@ def _summarize_dir_nodes(
     summaries = [str(node.get("summary") or "").strip() for node in sorted_children if str(node.get("summary") or "").strip()]
     summaries = summaries[:3]
 
-    symbols: List[str] = []
+    symbols: list[str] = []
     for node in sorted_children:
         for symbol in node.get("public_symbols") or []:
             sym = str(symbol).strip()
@@ -323,13 +322,13 @@ def _summarize_dir_nodes(
 
 
 def build_dir_nodes(
-    nodes: List[Dict[str, object]],
+    nodes: list[dict[str, object]],
     *,
     max_children: int = DEFAULT_DIR_CHILDREN_LIMIT,
     max_chars: int = DEFAULT_DIR_SUMMARY_CHARS,
-) -> List[Dict[str, object]]:
+) -> list[dict[str, object]]:
     file_nodes = [node for node in nodes if node.get("node_kind") == "file" and node.get("path")]
-    by_dir: Dict[str, List[Dict[str, object]]] = {}
+    by_dir: dict[str, list[dict[str, object]]] = {}
     for node in file_nodes:
         path = Path(str(node.get("path")))
         for parent in path.parents:
@@ -338,7 +337,7 @@ def build_dir_nodes(
             key = parent.as_posix()
             by_dir.setdefault(key, []).append(node)
 
-    dir_nodes: List[Dict[str, object]] = []
+    dir_nodes: list[dict[str, object]] = []
     for dir_path, children in sorted(by_dir.items(), key=lambda item: item[0]):
         dir_id = file_id_for_path(Path(dir_path))
         children_ids, summary = _summarize_dir_nodes(
@@ -362,8 +361,8 @@ def build_dir_nodes(
     return dir_nodes
 
 
-def _build_worklist(entries: List[Dict[str, object]], nodes_path: Path) -> Tuple[List[Dict[str, object]], Dict[str, int]]:
-    existing: Dict[str, List[Dict[str, object]]] = {}
+def _build_worklist(entries: list[dict[str, object]], nodes_path: Path) -> tuple[list[dict[str, object]], dict[str, int]]:
+    existing: dict[str, list[dict[str, object]]] = {}
     for node in _iter_nodes(nodes_path):
         if node.get("node_kind") != "file":
             continue
@@ -372,7 +371,7 @@ def _build_worklist(entries: List[Dict[str, object]], nodes_path: Path) -> Tuple
             continue
         existing.setdefault(file_id, []).append(node)
 
-    worklist: List[Dict[str, object]] = []
+    worklist: list[dict[str, object]] = []
     stats = {"missing": 0, "outdated": 0, "failed": 0}
     for item in entries:
         if not isinstance(item, dict):
@@ -426,9 +425,9 @@ def build_worklist_pack(
     *,
     manifest_path: Path,
     nodes_path: Path,
-    worklist_paths: List[str] | None = None,
-    worklist_keywords: List[str] | None = None,
-) -> Dict[str, object]:
+    worklist_paths: list[str] | None = None,
+    worklist_keywords: list[str] | None = None,
+) -> dict[str, object]:
     manifest = _load_manifest(manifest_path)
     settings = load_rlm_settings(target)
     raw_paths = worklist_paths if worklist_paths is not None else settings.get("worklist_paths")
@@ -457,7 +456,7 @@ def build_worklist_pack(
         "kind": "pack",
         "ticket": ticket,
         "slug_hint": manifest.get("slug_hint"),
-        "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "generated_at": dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "status": status,
         "links": {
             "manifest": runtime.rel_path(manifest_path, target),
@@ -477,7 +476,7 @@ def build_worklist_pack(
     return pack
 
 
-def _load_existing_worklist_scope(path: Path) -> Tuple[List[str], List[str]] | None:
+def _load_existing_worklist_scope(path: Path) -> tuple[list[str], list[str]] | None:
     if not path.exists():
         return None
     try:
@@ -496,7 +495,7 @@ def _load_existing_worklist_scope(path: Path) -> Tuple[List[str], List[str]] | N
     return paths, keywords
 
 
-def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate RLM worklist pack for agent nodes.")
     parser.add_argument("--ticket", help="Ticket identifier (defaults to docs/.active.json).")
     parser.add_argument("--manifest", help="Override manifest path.")
@@ -541,7 +540,7 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: List[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     _, target = runtime.require_workflow_root()
     ticket, _ = runtime.require_ticket(target, ticket=args.ticket, slug_hint=None)

@@ -1,36 +1,35 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Sequence
-
 
 RESEARCH_HINTS_HEADING = "AIDD:RESEARCH_HINTS"
 _EMPTY_VALUES = {"", "-", "none", "n/a", "na", "tbd"}
 _ALIASES = {
-    "paths": {"paths", "path", "пути", "путь"},
-    "keywords": {"keywords", "keyword", "ключевые слова", "ключевые", "ключи"},
-    "notes": {"notes", "note", "заметки", "заметка", "notes/details"},
+    "paths": {"paths", "path"},
+    "keywords": {"keywords", "keyword"},
+    "notes": {"notes", "note", "notes/details"},
 }
-_EXAMPLE_SUFFIX_RE = re.compile(r"\(\s*(?:e\.?g\.?|for example|например)\b.*\)$", re.IGNORECASE)
+_EXAMPLE_SUFFIX_RE = re.compile(r"\(\s*(?:e\.?g\.?|for example)\b.*\)$", re.IGNORECASE)
 _PLACEHOLDER_RE = re.compile(r"^<[^>]+>$")
 _TOKEN_SPLIT_RE = re.compile(r"[\s,:]+")
 
 
 @dataclass(frozen=True)
 class ResearchHints:
-    paths: List[str]
-    keywords: List[str]
-    notes: List[str]
+    paths: list[str]
+    keywords: list[str]
+    notes: list[str]
 
     def has_scope(self) -> bool:
         return bool(self.paths or self.keywords)
 
 
-def _unique(values: Iterable[str]) -> List[str]:
+def _unique(values: Iterable[str]) -> list[str]:
     seen: set[str] = set()
-    out: List[str] = []
+    out: list[str] = []
     for raw in values:
         value = str(raw or "").strip()
         if not value or value in seen:
@@ -78,11 +77,11 @@ def _normalize_scalar(raw: str) -> str:
     return value
 
 
-def _split_tokens(raw: str, *, lowercase: bool = False, is_path: bool = False) -> List[str]:
+def _split_tokens(raw: str, *, lowercase: bool = False, is_path: bool = False) -> list[str]:
     value = _normalize_scalar(raw)
     if not value:
         return []
-    tokens: List[str] = []
+    tokens: list[str] = []
     for token in _TOKEN_SPLIT_RE.split(value):
         cleaned = token.strip().strip("`").strip()
         if not cleaned:
@@ -101,7 +100,7 @@ def _split_tokens(raw: str, *, lowercase: bool = False, is_path: bool = False) -
     return _unique(tokens)
 
 
-def _split_notes(raw: str) -> List[str]:
+def _split_notes(raw: str) -> list[str]:
     value = _normalize_scalar(raw)
     if not value:
         return []
@@ -115,9 +114,9 @@ def parse_research_hints(text: str) -> ResearchHints:
     if not section:
         return ResearchHints(paths=[], keywords=[], notes=[])
 
-    paths: List[str] = []
-    keywords: List[str] = []
-    notes: List[str] = []
+    paths: list[str] = []
+    keywords: list[str] = []
+    notes: list[str] = []
     for line in section.splitlines():
         stripped = line.strip()
         if not stripped:
@@ -154,8 +153,8 @@ def load_research_hints(root: Path, ticket: str) -> ResearchHints:
     return parse_research_hints(text)
 
 
-def merge_unique(*groups: Sequence[str]) -> List[str]:
-    merged: List[str] = []
+def merge_unique(*groups: Sequence[str]) -> list[str]:
+    merged: list[str] = []
     for group in groups:
         for raw in group:
             value = str(raw or "").strip()

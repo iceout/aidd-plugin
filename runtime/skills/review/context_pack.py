@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
-from typing import Optional
 
 from aidd_runtime import runtime
 from aidd_runtime.io_utils import utc_timestamp
@@ -112,9 +111,9 @@ def build_context_pack(
     agent: str,
     *,
     stage: str = "",
-    template_path: Optional[Path] = None,
-    read_next: Optional[list[str]] = None,
-    artefact_links: Optional[list[str]] = None,
+    template_path: Path | None = None,
+    read_next: list[str] | None = None,
+    artefact_links: list[str] | None = None,
     what_to_do: str = "",
     user_note: str = "",
 ) -> str:
@@ -142,10 +141,10 @@ def write_context_pack(
     ticket: str,
     agent: str,
     stage: str = "",
-    template_path: Optional[Path] = None,
-    output: Optional[Path] = None,
-    read_next: Optional[list[str]] = None,
-    artefact_links: Optional[list[str]] = None,
+    template_path: Path | None = None,
+    output: Path | None = None,
+    read_next: list[str] | None = None,
+    artefact_links: list[str] | None = None,
     what_to_do: str = "",
     user_note: str = "",
 ) -> Path:

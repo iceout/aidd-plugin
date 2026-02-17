@@ -27,10 +27,10 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         plugin_root = require_plugin_root()
-        rows.append(("KIMI_AIDD_ROOT", True, str(plugin_root)))
+        rows.append(("AIDD_ROOT", True, str(plugin_root)))
     except RuntimeError as exc:
-        rows.append(("KIMI_AIDD_ROOT", False, str(exc)))
-        errors.append("Set KIMI_AIDD_ROOT to the plugin install path.")
+        rows.append(("AIDD_ROOT", False, str(exc)))
+        errors.append("Set AIDD_ROOT to the plugin install path.")
         plugin_root = None
 
     py_ok = sys.version_info >= (3, 10)
@@ -70,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
     if not docs_ok:
         errors.append(
             "Run /feature-dev-aidd:aidd-init or "
-            f"'python3 ${{KIMI_AIDD_ROOT}}/skills/aidd-init/runtime/init.py' from the workspace root to bootstrap."
+            "'python3 ${AIDD_ROOT}/skills/aidd-init/runtime/init.py' from the workspace root to bootstrap."
         )
     else:
         critical = [

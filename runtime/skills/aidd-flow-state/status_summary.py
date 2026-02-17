@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Dict, Optional
 
 from aidd_runtime import runtime
 
@@ -22,7 +21,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def _load_stage_result(path: Path) -> Optional[Dict[str, object]]:
+def _load_stage_result(path: Path) -> dict[str, object] | None:
     if not path.exists():
         return None
     try:
@@ -34,7 +33,7 @@ def _load_stage_result(path: Path) -> Optional[Dict[str, object]]:
     return payload
 
 
-def _status_from_result(stage: str, payload: Dict[str, object]) -> str:
+def _status_from_result(stage: str, payload: dict[str, object]) -> str:
     result = str(payload.get("result") or "").strip().lower()
     verdict = str(payload.get("verdict") or "").strip().upper()
     if stage == "review" and verdict in {"SHIP", "REVISE", "BLOCKED"}:

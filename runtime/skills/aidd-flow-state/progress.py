@@ -7,14 +7,13 @@ import json
 import os
 import re
 import subprocess
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Iterable, List, Optional, Sequence, Tuple
 
-from aidd_runtime import gates
-from aidd_runtime import runtime
+from aidd_runtime import gates, runtime
 from aidd_runtime.feature_ids import resolve_identifiers
 
-DEFAULT_CODE_PREFIXES: Tuple[str, ...] = (
+DEFAULT_CODE_PREFIXES: tuple[str, ...] = (
     "src/",
     "tests/",
     "test/",
@@ -73,8 +72,8 @@ DEFAULT_CODE_SUFFIXES = {
     ".ini",
     ".cfg",
 }
-DEFAULT_OVERRIDE_ENV = "KIMI_SKIP_TASKLIST_PROGRESS"
-DEFAULT_SOURCES: Tuple[str, ...] = ()
+DEFAULT_OVERRIDE_ENV = "AIDD_SKIP_TASKLIST_PROGRESS"
+DEFAULT_SOURCES: tuple[str, ...] = ()
 TASKLIST_DIR = Path("docs") / "tasklist"
 PROGRESS_LOG_MAX_LINES = 20
 PROGRESS_LOG_MAX_LEN = 240
@@ -111,15 +110,15 @@ def _is_truthy(value: str) -> bool:
 @dataclasses.dataclass(frozen=True)
 class ProgressConfig:
     enabled: bool
-    code_prefixes: Tuple[str, ...]
-    code_globs: Tuple[str, ...]
-    skip_branches: Tuple[str, ...]
+    code_prefixes: tuple[str, ...]
+    code_globs: tuple[str, ...]
+    skip_branches: tuple[str, ...]
     allow_missing_tasklist: bool
-    override_env: Optional[str]
-    sources: Tuple[str, ...]
+    override_env: str | None
+    sources: tuple[str, ...]
 
     @classmethod
-    def load(cls, root: Path) -> "ProgressConfig":
+    def load(cls, root: Path) -> ProgressConfig:
         try:
             data = gates.load_gates_config(root)
         except ValueError:
@@ -138,7 +137,7 @@ class ProgressConfig:
             )
 
         prefixes_raw = section.get("code_prefixes", DEFAULT_CODE_PREFIXES)
-        prefixes: List[str] = []
+        prefixes: list[str] = []
         for value in prefixes_raw:
             try:
                 normalized = _normalize_prefix(str(value))
@@ -150,7 +149,7 @@ class ProgressConfig:
             prefixes = list(DEFAULT_CODE_PREFIXES)
 
         globs_raw = section.get("code_globs", ())
-        globs: List[str] = []
+        globs: list[str] = []
         for value in globs_raw:
             try:
                 normalized = _normalize_pattern(str(value))
@@ -182,11 +181,11 @@ class ProgressConfig:
 @dataclasses.dataclass
 class ProgressCheckResult:
     status: str
-    ticket: Optional[str]
-    slug_hint: Optional[str]
-    tasklist_path: Optional[Path]
-    code_files: List[str]
-    new_items: List[str]
+    ticket: str | None
+    slug_hint: str | None
+    tasklist_path: Path | None
+    code_files: list[str]
+    new_items: list[str]
     message: str
 
     def exit_code(self) -> int:
@@ -221,7 +220,7 @@ def _is_git_repository(root: Path) -> bool:
     return proc.stdout.strip().lower() == "true"
 
 
-def _run_git(root: Path, args: Sequence[str]) -> List[str]:
+def _run_git(root: Path, args: Sequence[str]) -> list[str]:
     try:
         proc = subprocess.run(
             ["git", *args],
@@ -238,17 +237,17 @@ def _run_git(root: Path, args: Sequence[str]) -> List[str]:
     return [line.strip() for line in proc.stdout.splitlines() if line.strip()]
 
 
-def _git_toplevel(root: Path) -> Optional[Path]:
+def _git_toplevel(root: Path) -> Path | None:
     lines = _run_git(root, ["rev-parse", "--show-toplevel"])
     if not lines:
         return None
     return Path(lines[0]).expanduser().resolve()
 
 
-def _collect_changed_files(root: Path) -> Tuple[List[str], bool]:
+def _collect_changed_files(root: Path) -> tuple[list[str], bool]:
     if not _is_git_repository(root):
         return ([], False)
-    candidates: List[str] = []
+    candidates: list[str] = []
     for args in (
         ["diff", "--name-only"],
         ["diff", "--name-only", "--cached"],
@@ -256,7 +255,7 @@ def _collect_changed_files(root: Path) -> Tuple[List[str], bool]:
     ):
         candidates.extend(_run_git(root, args))
 
-    ordered: List[str] = []
+    ordered: list[str] = []
     seen: set[str] = set()
     for value in candidates:
         normalized = value.replace("\\", "/")
@@ -324,7 +323,7 @@ def _summarise_paths(paths: Sequence[str], limit: int = 3) -> str:
 def _format_list(items: Sequence[str], prefix: str = "- ", limit: int = 5) -> str:
     if not items:
         return ""
-    lines: List[str] = []
+    lines: list[str] = []
     for index, item in enumerate(items):
         if index == limit:
             lines.append(f"{prefix}… (+{len(items) - limit})")
@@ -333,9 +332,9 @@ def _format_list(items: Sequence[str], prefix: str = "- ", limit: int = 5) -> st
     return "\n".join(lines)
 
 
-def parse_progress_log_lines(lines: Sequence[str]) -> tuple[List[dict], List[str]]:
-    entries: List[dict] = []
-    invalid: List[str] = []
+def parse_progress_log_lines(lines: Sequence[str]) -> tuple[list[dict], list[str]]:
+    entries: list[dict] = []
+    invalid: list[str] = []
     for raw in lines:
         if not raw.strip().startswith("-"):
             continue
@@ -354,9 +353,9 @@ def parse_progress_log_lines(lines: Sequence[str]) -> tuple[List[dict], List[str
     return entries, invalid
 
 
-def dedupe_progress_log(entries: Sequence[dict]) -> List[dict]:
+def dedupe_progress_log(entries: Sequence[dict]) -> list[dict]:
     seen = set()
-    deduped: List[dict] = []
+    deduped: list[dict] = []
     for entry in entries:
         key = (entry.get("date"), entry.get("source"), entry.get("item_id"), entry.get("hash"))
         if key in seen:
@@ -390,16 +389,16 @@ def normalize_progress_log(
     lines: Sequence[str],
     *,
     max_lines: int = PROGRESS_LOG_MAX_LINES,
-) -> tuple[List[str], List[str], List[str]]:
+) -> tuple[list[str], list[str], list[str]]:
     entries, invalid = parse_progress_log_lines(lines)
     deduped = dedupe_progress_log(entries)
-    overflow: List[dict] = []
+    overflow: list[dict] = []
     if len(deduped) > max_lines:
         overflow = deduped[:-max_lines]
         deduped = deduped[-max_lines:]
     normalized = [format_progress_log_entry(entry) for entry in deduped]
     archived = [format_progress_log_entry(entry) for entry in overflow]
-    summary: List[str] = []
+    summary: list[str] = []
     if invalid:
         summary.append(f"invalid={len(invalid)}")
     if overflow:
@@ -412,9 +411,9 @@ def _normalize_checkbox_line(line: str) -> str:
     return normalized.lower().replace("[x]", "[x]")
 
 
-def _ordered_task_lines(content: str, *, checked: bool) -> List[Tuple[str, str]]:
+def _ordered_task_lines(content: str, *, checked: bool) -> list[tuple[str, str]]:
     marker = "- [x]" if checked else "- [ ]"
-    result: List[Tuple[str, str]] = []
+    result: list[tuple[str, str]] = []
     seen: set[str] = set()
     for raw in content.splitlines():
         stripped = raw.strip()
@@ -430,26 +429,26 @@ def _ordered_task_lines(content: str, *, checked: bool) -> List[Tuple[str, str]]
     return result
 
 
-def _ordered_checked_lines(content: str) -> List[Tuple[str, str]]:
+def _ordered_checked_lines(content: str) -> list[tuple[str, str]]:
     return _ordered_task_lines(content, checked=True)
 
 
-def _ordered_open_lines(content: str) -> List[Tuple[str, str]]:
+def _ordered_open_lines(content: str) -> list[tuple[str, str]]:
     return _ordered_task_lines(content, checked=False)
 
 
-def _diff_checked(old_text: str, new_text: str) -> List[str]:
+def _diff_checked(old_text: str, new_text: str) -> list[str]:
     old_map = dict(_ordered_checked_lines(old_text))
-    additions: List[str] = []
+    additions: list[str] = []
     for key, original in _ordered_checked_lines(new_text):
         if key not in old_map:
             additions.append(original)
     return additions
 
 
-def _diff_open_tasks(old_text: str, new_text: str, *, require_reference: bool = False) -> List[str]:
+def _diff_open_tasks(old_text: str, new_text: str, *, require_reference: bool = False) -> list[str]:
     old_map = dict(_ordered_open_lines(old_text))
-    additions: List[str] = []
+    additions: list[str] = []
     for key, original in _ordered_open_lines(new_text):
         if key in old_map:
             continue
@@ -461,12 +460,12 @@ def _diff_open_tasks(old_text: str, new_text: str, *, require_reference: bool = 
 
 def check_progress(
     root: Path,
-    ticket: Optional[str],
+    ticket: str | None,
     *,
-    slug_hint: Optional[str] = None,
+    slug_hint: str | None = None,
     source: str = "manual",
-    branch: Optional[str] = None,
-    config: Optional[ProgressConfig] = None,
+    branch: str | None = None,
+    config: ProgressConfig | None = None,
 ) -> ProgressCheckResult:
     root = root.resolve()
     config = config or ProgressConfig.load(root)
@@ -483,7 +482,7 @@ def check_progress(
             tasklist_path=None,
             code_files=[],
             new_items=[],
-            message="Проверка прогресса отключена (tasklist_progress.enabled=false).",
+            message="Progress check is disabled (tasklist_progress.enabled=false).",
         )
 
     if config.override_env:
@@ -496,7 +495,7 @@ def check_progress(
                 tasklist_path=None,
                 code_files=[],
                 new_items=[],
-                message=f"Проверка прогресса пропущена: {config.override_env}={override_raw.strip()}",
+                message=f"Progress check skipped: {config.override_env}={override_raw.strip()}",
             )
 
     if config.sources and context not in config.sources:
@@ -507,7 +506,7 @@ def check_progress(
             tasklist_path=None,
             code_files=[],
             new_items=[],
-            message=f"Контекст `{context}` не входит в tasklist_progress.sources.",
+            message=f"Context `{context}` is not included in tasklist_progress.sources.",
         )
 
     detected_branch = branch or runtime.detect_branch(root)
@@ -519,7 +518,7 @@ def check_progress(
             tasklist_path=None,
             code_files=[],
             new_items=[],
-            message=f"Ветка `{detected_branch}` исключена из проверки (skip_branches).",
+            message=f"Branch `{detected_branch}` is excluded by skip_branches.",
         )
 
     changed_files, git_available = _collect_changed_files(root)
@@ -531,7 +530,7 @@ def check_progress(
             tasklist_path=None,
             code_files=[],
             new_items=[],
-            message="Репозиторий Git не обнаружен — проверка прогресса пропущена.",
+            message="Git repository not detected - progress check skipped.",
         )
 
     code_files = [path for path in changed_files if _is_code_file(path, config)]
@@ -543,7 +542,7 @@ def check_progress(
             tasklist_path=None,
             code_files=[],
             new_items=[],
-            message="Кодовых изменений не найдено — новые чекбоксы не требуются.",
+            message="No code changes detected - no new checkboxes required.",
         )
 
     if not ticket:
@@ -554,7 +553,7 @@ def check_progress(
             tasklist_path=None,
             code_files=code_files,
             new_items=[],
-            message="Не удалось определить ticket фичи. Убедитесь, что docs/.active.json заполнен или передайте --ticket.",
+            message="Failed to determine feature ticket. Ensure docs/.active.json is populated or pass --ticket.",
         )
 
     tasklist_rel = TASKLIST_DIR / f"{ticket}.md"
@@ -568,7 +567,7 @@ def check_progress(
                 tasklist_path=tasklist_path,
                 code_files=code_files,
                 new_items=[],
-                message=f"{tasklist_rel} отсутствует, но allow_missing_tasklist=true — проверка пропущена.",
+                message=f"{tasklist_rel} is missing, but allow_missing_tasklist=true - check skipped.",
             )
         return ProgressCheckResult(
             status="error:no-tasklist",
@@ -577,7 +576,7 @@ def check_progress(
             tasklist_path=tasklist_path,
             code_files=code_files,
             new_items=[],
-            message=f"BLOCK: не найден {tasklist_rel}. Создайте его через `/feature-dev-aidd:tasks-new {ticket}` и отметьте прогресс.",
+            message=f"BLOCK: {tasklist_rel} not found. Create it with `/feature-dev-aidd:tasks-new {ticket}` and record progress.",
         )
 
     try:
@@ -590,7 +589,7 @@ def check_progress(
             tasklist_path=tasklist_path,
             code_files=code_files,
             new_items=[],
-            message=f"Не удалось прочитать {tasklist_rel}: {exc}.",
+            message=f"Failed to read {tasklist_rel}: {exc}.",
         )
 
     old_text = _read_git_file(root, tasklist_rel)
@@ -622,17 +621,17 @@ def check_progress(
     summary = _summarise_paths(code_files)
     if context == "handoff":
         guidance = (
-            f"BLOCK: в фиче `{ticket}` есть изменения в коде ({summary}), "
-            f"но handoff-задачи не добавлены. Добавьте новые `- [ ] ... (source: aidd/reports/qa|research/...)` "
-            f"в {tasklist_rel} и повторите `python3 ${{KIMI_AIDD_ROOT}}/skills/aidd-flow-state/runtime/progress_cli.py "
+            f"BLOCK: feature `{ticket}` has code changes ({summary}), "
+            f"but handoff tasks were not added. Add new `- [ ] ... (source: aidd/reports/qa|research/...)` "
+            f"to {tasklist_rel} and rerun `python3 ${{AIDD_ROOT}}/skills/aidd-flow-state/runtime/progress_cli.py "
             f"--source handoff --ticket {ticket}`."
         )
     else:
         guidance = (
-            f"BLOCK: в фиче `{ticket}` есть изменения в коде ({summary}), "
-            f"но файл {tasklist_rel} не получил новых `- [x]`.\n"
-            "Переведите соответствующие пункты `- [ ] → - [x]`, добавьте отметку даты/итерации, "
-            "обновите строку `Checkbox updated: …` и повторите `python3 ${KIMI_AIDD_ROOT}/skills/aidd-flow-state/runtime/progress_cli.py "
+            f"BLOCK: feature `{ticket}` has code changes ({summary}), "
+            f"but file {tasklist_rel} has no new `- [x]` entries.\n"
+            "Move relevant items from `- [ ]` to `- [x]`, add date/iteration notes, "
+            "update `Checkbox updated: ...`, and rerun `python3 ${AIDD_ROOT}/skills/aidd-flow-state/runtime/progress_cli.py "
             f"--source {context or 'manual'} --ticket {ticket}`."
         )
     return ProgressCheckResult(
@@ -648,9 +647,9 @@ def check_progress(
 
 def _build_success_message(result: ProgressCheckResult) -> str:
     if result.status == "ok":
-        lines = ["Прогресс tasklist подтверждён."]
+        lines = ["Tasklist progress confirmed."]
         if result.new_items:
-            lines.append("Новые чекбоксы:")
+            lines.append("New checkboxes:")
             lines.append(_format_list(result.new_items, prefix="  - "))
         return "\n".join(lines)
     if result.status.startswith("skip:"):
@@ -658,55 +657,55 @@ def _build_success_message(result: ProgressCheckResult) -> str:
     return ""
 
 
-def _parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
+def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Проверка, что tasklist обновлён новыми `- [x]` после изменений в коде."
+        description="Validate that tasklist has new `- [x]` items after code changes."
     )
     parser.add_argument(
         "--root",
         default=".",
-        help="Каталог проекта (по умолчанию текущий).",
+        help="Project directory (default: current directory).",
     )
     parser.add_argument(
         "--ticket",
         "--slug",
         dest="ticket",
-        help="Идентификатор фичи (ticket). По умолчанию берётся из docs/.active.json.",
+        help="Feature ticket identifier. Defaults to docs/.active.json.",
     )
     parser.add_argument(
         "--slug-hint",
         dest="slug_hint",
-        help="Необязательный slug-хинт (по умолчанию считывается из docs/.active.json, если присутствует).",
+        help="Optional slug hint (defaults to docs/.active.json when present).",
     )
     parser.add_argument(
         "--branch",
-        help="Имя ветки для применения skip_branches (по умолчанию autodetect).",
+        help="Branch name for skip_branches evaluation (default: autodetect).",
     )
     parser.add_argument(
         "--source",
         choices=("manual", "implement", "qa", "review", "gate", "handoff"),
         default="manual",
-        help="Контекст вызова — влияет на сообщения и skip правила.",
+        help="Call context affecting messages and skip rules.",
     )
     parser.add_argument(
         "--json",
         action="store_true",
-        help="Вернуть результат в формате JSON.",
+        help="Return result in JSON format.",
     )
     parser.add_argument(
         "--verbose",
         action="store_true",
-        help="Печатать детальные сведения даже при успехе.",
+        help="Print detailed information even on success.",
     )
     parser.add_argument(
         "--quiet-ok",
         action="store_true",
-        help="Не выводить ничего при статусе OK/skip (кроме JSON).",
+        help="Suppress output for OK/skip status (except JSON).",
     )
     return parser.parse_args(argv)
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     args = _parse_args(argv)
     root = Path(args.root).resolve()
     identifiers = resolve_identifiers(root, ticket=args.ticket, slug_hint=args.slug_hint)
@@ -740,14 +739,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             if success_msg:
                 print(success_msg)
         elif result.exit_code() != 0:
-            print("BLOCK: Проверка прогресса не пройдена.")
+            print("BLOCK: progress check failed.")
 
         if args.verbose:
             if result.code_files:
-                print("Изменённые файлы:")
+                print("Changed files:")
                 print(_format_list(result.code_files))
             if result.new_items and result.status == "ok":
-                print("Новые чекбоксы:")
+                print("New checkboxes:")
                 print(_format_list(result.new_items))
 
     return result.exit_code()

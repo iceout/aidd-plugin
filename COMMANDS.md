@@ -1,4 +1,4 @@
-# AIDD for Kimi Code - 命令速查表
+# AIDD for Kimi/Codex/Cursor - 命令速查表
 
 ## 正确的命令格式
 

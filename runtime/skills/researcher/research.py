@@ -6,11 +6,11 @@ import json
 import os
 import re
 import sys
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, Optional
 
 _PLUGIN_ROOT = Path(__file__).resolve().parents[3]
-os.environ.setdefault("KIMI_AIDD_ROOT", str(_PLUGIN_ROOT))
+os.environ.setdefault("AIDD_ROOT", str(_PLUGIN_ROOT))
 if str(_PLUGIN_ROOT) not in sys.path:
     sys.path.insert(0, str(_PLUGIN_ROOT))
 
@@ -22,10 +22,10 @@ from aidd_runtime.rlm_config import load_rlm_settings
 def _ensure_research_doc(
     target: Path,
     ticket: str,
-    slug_hint: Optional[str],
+    slug_hint: str | None,
     *,
-    template_overrides: Optional[dict[str, str]] = None,
-) -> tuple[Optional[Path], bool]:
+    template_overrides: dict[str, str] | None = None,
+) -> tuple[Path | None, bool]:
     template = target / "docs" / "research" / "template.md"
     destination = target / "docs" / "research" / f"{ticket}.md"
     if not template.exists():
@@ -110,7 +110,7 @@ def _sync_prd_overrides(
         research_path.write_text(updated, encoding="utf-8")
 
 
-def _parse_paths(value: Optional[str]) -> list[str]:
+def _parse_paths(value: str | None) -> list[str]:
     if not value:
         return []
     items: list[str] = []
@@ -121,7 +121,7 @@ def _parse_paths(value: Optional[str]) -> list[str]:
     return items
 
 
-def _parse_keywords(value: Optional[str]) -> list[str]:
+def _parse_keywords(value: str | None) -> list[str]:
     if not value:
         return []
     items: list[str] = []
@@ -132,11 +132,11 @@ def _parse_keywords(value: Optional[str]) -> list[str]:
     return items
 
 
-def _parse_notes(values: Optional[Iterable[str]], root: Path) -> list[str]:
+def _parse_notes(values: Iterable[str] | None, root: Path) -> list[str]:
     if not values:
         return []
     notes: list[str] = []
-    stdin_payload: Optional[str] = None
+    stdin_payload: str | None = None
     for raw in values:
         value = (raw or "").strip()
         if not value:
@@ -168,7 +168,7 @@ def _pack_extension() -> str:
 
 
 def _rlm_finalize_handoff_cmd(ticket: str) -> str:
-    return f"python3 ${{KIMI_AIDD_ROOT}}/skills/aidd-rlm/runtime/rlm_finalize.py --ticket {ticket}"
+    return f"python3 ${{AIDD_ROOT}}/skills/aidd-rlm/runtime/rlm_finalize.py --ticket {ticket}"
 
 
 def _validate_json_file(path: Path, label: str) -> None:
@@ -384,7 +384,7 @@ def run(args: argparse.Namespace) -> int:
             "{{rlm_pack_status}}": "found" if pack_exists else "missing",
             "{{rlm_pack_bytes}}": str(rlm_pack_path.stat().st_size) if pack_exists else "0",
             "{{rlm_pack_updated_at}}": (
-                dt.datetime.fromtimestamp(rlm_pack_path.stat().st_mtime, tz=dt.timezone.utc)
+                dt.datetime.fromtimestamp(rlm_pack_path.stat().st_mtime, tz=dt.UTC)
                 .isoformat(timespec="seconds")
                 .replace("+00:00", "Z")
                 if pack_exists

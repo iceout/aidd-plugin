@@ -8,12 +8,13 @@ import subprocess
 import sys
 from importlib import metadata
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from aidd_runtime import active_state as _active_state
 from aidd_runtime import stage_lexicon
 from aidd_runtime.feature_ids import FeatureIdentifiers, read_active_state, resolve_identifiers
-from aidd_runtime.resources import DEFAULT_PROJECT_SUBDIR, resolve_project_root as resolve_workspace_root
+from aidd_runtime.resources import DEFAULT_PROJECT_SUBDIR
+from aidd_runtime.resources import resolve_project_root as resolve_workspace_root
 
 DEFAULT_REVIEW_REPORT = "aidd/reports/reviewer/{ticket}/{scope_key}.json"
 _SCOPE_KEY_RE = re.compile(r"[^A-Za-z0-9_.-]+")
@@ -26,24 +27,24 @@ except metadata.PackageNotFoundError:  # pragma: no cover - editable installs
 
 
 def require_plugin_root() -> Path:
-    raw = os.environ.get("KIMI_AIDD_ROOT") or os.environ.get("AIDD_PLUGIN_DIR")
+    raw = os.environ.get("AIDD_ROOT") or os.environ.get("AIDD_PLUGIN_DIR")
     if not raw:
-        raise RuntimeError("KIMI_AIDD_ROOT (or AIDD_PLUGIN_DIR) is required to run AIDD tools.")
+        raise RuntimeError("AIDD_ROOT (or AIDD_PLUGIN_DIR) is required to run AIDD tools.")
     plugin_root = Path(raw).expanduser().resolve()
-    os.environ.setdefault("KIMI_AIDD_ROOT", str(plugin_root))
+    os.environ.setdefault("AIDD_ROOT", str(plugin_root))
     return plugin_root
 
 
 def _plugin_workspace_guard(workspace_root: Path) -> None:
     if os.environ.get("AIDD_ALLOW_PLUGIN_WORKSPACE", "").strip() == "1":
         return
-    raw = os.environ.get("KIMI_AIDD_ROOT") or os.environ.get("AIDD_PLUGIN_DIR")
+    raw = os.environ.get("AIDD_ROOT") or os.environ.get("AIDD_PLUGIN_DIR")
     if not raw:
         return
     plugin_root = Path(raw).expanduser().resolve()
     if workspace_root != plugin_root:
         return
-    if not (plugin_root / ".claude-plugin").exists():
+    if not (plugin_root / ".aidd-plugin").exists():
         return
     raise RuntimeError(
         "refusing to use plugin repository as workspace root for runtime artifacts; "
@@ -64,7 +65,7 @@ def resolve_roots(raw_target: Path | None = None, *, create: bool = False) -> tu
         raise FileNotFoundError(f"workspace directory {workspace_root} does not exist")
     raise FileNotFoundError(
         f"workflow not found at {project_root}. Run '/feature-dev-aidd:aidd-init' or "
-        f"'python3 ${{KIMI_AIDD_ROOT}}/skills/aidd-init/runtime/init.py' from the workspace root "
+        f"'python3 ${{AIDD_ROOT}}/skills/aidd-init/runtime/init.py' from the workspace root "
         f"(templates install into ./{DEFAULT_PROJECT_SUBDIR})."
     )
 
@@ -76,25 +77,25 @@ def require_workflow_root(raw_target: Path | None = None) -> tuple[Path, Path]:
     raise FileNotFoundError(
         f"workflow files not found at {project_root}/docs; "
         f"bootstrap via '/feature-dev-aidd:aidd-init' or "
-        f"'python3 ${{KIMI_AIDD_ROOT}}/skills/aidd-init/runtime/init.py' from the workspace root "
+        f"'python3 ${{AIDD_ROOT}}/skills/aidd-init/runtime/init.py' from the workspace root "
         f"(templates install into ./{DEFAULT_PROJECT_SUBDIR})."
     )
 
 
-def resolve_claude_dir(target: Path) -> Path:
-    candidate = target / ".claude"
+def resolve_aidd_dir(target: Path) -> Path:
+    candidate = target / ".aidd"
     if candidate.exists():
         return candidate
     if target.name == DEFAULT_PROJECT_SUBDIR:
-        return target.parent / ".claude"
+        return target.parent / ".aidd"
     return candidate
 
 
 def resolve_feature_context(
     target: Path,
     *,
-    ticket: Optional[str] = None,
-    slug_hint: Optional[str] = None,
+    ticket: str | None = None,
+    slug_hint: str | None = None,
 ) -> FeatureIdentifiers:
     return resolve_identifiers(target, ticket=ticket, slug_hint=slug_hint)
 
@@ -102,8 +103,8 @@ def resolve_feature_context(
 def require_ticket(
     target: Path,
     *,
-    ticket: Optional[str] = None,
-    slug_hint: Optional[str] = None,
+    ticket: str | None = None,
+    slug_hint: str | None = None,
 ) -> tuple[str, FeatureIdentifiers]:
     context = resolve_feature_context(target, ticket=ticket, slug_hint=slug_hint)
     resolved = (context.resolved_ticket or "").strip()
@@ -143,7 +144,7 @@ def rel_path(path: Path, root: Path) -> str:
     return rel
 
 
-def detect_branch(target: Path) -> Optional[str]:
+def detect_branch(target: Path) -> str | None:
     try:
         proc = subprocess.run(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
@@ -180,7 +181,7 @@ def is_iteration_work_item_key(value: str | None) -> bool:
     return _active_state.is_iteration_work_item_key(value)
 
 
-def resolve_scope_key(work_item_key: Optional[str], ticket: str, *, fallback: str = "ticket") -> str:
+def resolve_scope_key(work_item_key: str | None, ticket: str, *, fallback: str = "ticket") -> str:
     scope = sanitize_scope_key(work_item_key or "")
     if scope:
         return scope
@@ -216,14 +217,14 @@ def read_active_slug(target: Path) -> str:
     return (state.slug_hint or "").strip()
 
 
-def load_json_file(path: Path) -> Dict:
+def load_json_file(path: Path) -> dict:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise ValueError(f"failed to parse {path}: {exc}") from exc
 
 
-def format_ticket_label(context: FeatureIdentifiers, fallback: str = "активной фичи") -> str:
+def format_ticket_label(context: FeatureIdentifiers, fallback: str = "active feature") -> str:
     ticket = (context.resolved_ticket or "").strip() or fallback
     if context.slug_hint and context.slug_hint.strip() and context.slug_hint.strip() != ticket:
         return f"{ticket} (slug hint: {context.slug_hint.strip()})"
@@ -231,7 +232,7 @@ def format_ticket_label(context: FeatureIdentifiers, fallback: str = "актив
 
 
 def settings_path(target: Path) -> Path:
-    return resolve_claude_dir(target) / "settings.json"
+    return resolve_aidd_dir(target) / "settings.json"
 
 
 def load_settings_json(target: Path) -> dict:
@@ -263,8 +264,8 @@ def normalize_checkpoint_triggers(value: object) -> list[str]:
 
 def maybe_write_test_checkpoint(
     target: Path,
-    ticket: Optional[str],
-    slug_hint: Optional[str],
+    ticket: str | None,
+    slug_hint: str | None,
     source: str,
 ) -> None:
     if not ticket:
@@ -285,15 +286,15 @@ def maybe_write_test_checkpoint(
         "slug_hint": slug_hint or ticket,
         "trigger": "progress",
         "source": source,
-        "ts": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "ts": dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
     }
     checkpoint_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def maybe_sync_index(
     target: Path,
-    ticket: Optional[str],
-    slug_hint: Optional[str],
+    ticket: str | None,
+    slug_hint: str | None,
     *,
     reason: str = "",
     announce: bool = False,
@@ -359,9 +360,9 @@ def reviewer_marker_path(
     target: Path,
     template: str,
     ticket: str,
-    slug_hint: Optional[str],
+    slug_hint: str | None,
     *,
-    scope_key: Optional[str] = None,
+    scope_key: str | None = None,
 ) -> Path:
     rel_text = template.replace("{ticket}", ticket)
     if "{slug}" in template:
@@ -379,7 +380,7 @@ def reviewer_marker_path(
     return marker_path
 
 
-def _looks_like_review_report(payload: Dict[str, Any]) -> bool:
+def _looks_like_review_report(payload: dict[str, Any]) -> bool:
     if not isinstance(payload, dict):
         return False
     kind = str(payload.get("kind") or "").strip().lower()
@@ -414,7 +415,7 @@ def ensure_reviewer_marker_migrated(marker_path: Path) -> bool:
     return True
 
 
-def resolve_tool_result_id(payload: Dict[str, Any], *, index: Optional[int] = None) -> tuple[str, str]:
+def resolve_tool_result_id(payload: dict[str, Any], *, index: int | None = None) -> tuple[str, str]:
     raw_id = str(payload.get("id") or "").strip()
     if raw_id:
         return raw_id, ""

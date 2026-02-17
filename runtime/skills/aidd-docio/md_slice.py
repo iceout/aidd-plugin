@@ -10,7 +10,6 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
 
 from aidd_runtime import runtime
 from aidd_runtime.io_utils import utc_timestamp
@@ -48,7 +47,7 @@ def parse_ref(raw: str) -> SliceRef:
     raise ValueError("unsupported ref format; use path.md#AIDD:SECTION or path.md@handoff:<id>")
 
 
-def _extract_section(lines: List[str], section_name: str) -> List[str]:
+def _extract_section(lines: list[str], section_name: str) -> list[str]:
     start = -1
     heading = f"## {section_name}"
     for idx, line in enumerate(lines):
@@ -66,7 +65,7 @@ def _extract_section(lines: List[str], section_name: str) -> List[str]:
     return lines[start:end]
 
 
-def _extract_handoff(lines: List[str], handoff_id: str) -> List[str]:
+def _extract_handoff(lines: list[str], handoff_id: str) -> list[str]:
     start = -1
     end = -1
     start_marker = f"<!-- handoff:{handoff_id} start"
@@ -88,14 +87,14 @@ def _extract_handoff(lines: List[str], handoff_id: str) -> List[str]:
 
 
 def _slice_output_path(target: Path, ticket: str, source_path: Path, selector: str) -> Path:
-    digest = hashlib.sha1(f"{source_path.as_posix()}::{selector}".encode("utf-8")).hexdigest()[:10]
+    digest = hashlib.sha1(f"{source_path.as_posix()}::{selector}".encode()).hexdigest()[:10]
     source_key = _slugify(source_path.as_posix())
     selector_key = _slugify(selector)
     name = f"{source_key}__{selector_key}__{digest}.slice.md"
     return target / "reports" / "context" / "slices" / ticket / name
 
 
-def _render_slice(source_rel: str, selector: str, body_lines: List[str]) -> str:
+def _render_slice(source_rel: str, selector: str, body_lines: list[str]) -> str:
     header = [
         "---",
         "schema: aidd.md_slice.v1",

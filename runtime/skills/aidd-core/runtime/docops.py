@@ -6,13 +6,12 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Tuple
 
 from aidd_runtime import runtime
 from aidd_runtime.tasklist_check import (
     CHECKBOX_RE,
-    build_open_items,
     build_next3_lines,
+    build_open_items,
     dedupe_progress,
     parse_front_matter,
     parse_handoff_items,
@@ -39,11 +38,11 @@ def _ensure_trailing_newline(text: str) -> str:
     return text
 
 
-def _replace_section_lines(lines: List[str], section_start: int, section_end: int, new_lines: List[str]) -> List[str]:
+def _replace_section_lines(lines: list[str], section_start: int, section_end: int, new_lines: list[str]) -> list[str]:
     return lines[:section_start] + new_lines + lines[section_end:]
 
 
-def _mark_checkbox_done(lines: List[str], item_id: str, *, kind: str) -> Tuple[List[str], str]:
+def _mark_checkbox_done(lines: list[str], item_id: str, *, kind: str) -> tuple[list[str], str]:
     pattern = None
     if kind == "iteration":
         pattern = re.compile(
@@ -130,8 +129,8 @@ def tasklist_append_progress_log(root: Path, ticket: str, entry: dict) -> DocOps
 
     block = section[0]
     body = section_body(block)
-    preamble: List[str] = []
-    content: List[str] = []
+    preamble: list[str] = []
+    content: list[str] = []
     for idx, line in enumerate(body):
         if line.strip().startswith("-"):
             content = body[idx:]
@@ -173,7 +172,7 @@ def tasklist_next3_recompute(root: Path, ticket: str) -> DocOpsResult:
     plan_ids = parse_plan_iteration_ids(root, resolve_plan_path(root, front, ticket))
     open_items, _, _ = build_open_items(iterations, handoffs, plan_ids)
 
-    preamble: List[str] = []
+    preamble: list[str] = []
     next3_section = section_map.get("AIDD:NEXT_3", [])
     if next3_section:
         body = section_body(next3_section[0])
@@ -201,7 +200,7 @@ def tasklist_next3_recompute(root: Path, ticket: str) -> DocOpsResult:
     return DocOpsResult(True, "AIDD:NEXT_3 recomputed")
 
 
-def _replace_list_section(lines: List[str], heading: str, items: List[str]) -> Tuple[List[str], bool]:
+def _replace_list_section(lines: list[str], heading: str, items: list[str]) -> tuple[list[str], bool]:
     for idx, line in enumerate(lines):
         if line.strip() != heading:
             continue
@@ -219,7 +218,7 @@ def _replace_list_section(lines: List[str], heading: str, items: List[str]) -> T
     return lines, False
 
 
-def _replace_inline_list(lines: List[str], heading: str, items: List[str]) -> Tuple[List[str], bool]:
+def _replace_inline_list(lines: list[str], heading: str, items: list[str]) -> tuple[list[str], bool]:
     for idx, line in enumerate(lines):
         if line.strip() != heading:
             continue
@@ -235,7 +234,7 @@ def _replace_inline_list(lines: List[str], heading: str, items: List[str]) -> Tu
     return lines, False
 
 
-def _replace_frontmatter_value(lines: List[str], key: str, value: str) -> Tuple[List[str], bool]:
+def _replace_frontmatter_value(lines: list[str], key: str, value: str) -> tuple[list[str], bool]:
     needle = f"{key}:"
     for idx, line in enumerate(lines):
         if line.strip().startswith(needle):
@@ -247,7 +246,7 @@ def _replace_frontmatter_value(lines: List[str], key: str, value: str) -> Tuple[
     return lines, False
 
 
-def _replace_first_list_item(lines: List[str], heading: str, value: str) -> Tuple[List[str], bool]:
+def _replace_first_list_item(lines: list[str], heading: str, value: str) -> tuple[list[str], bool]:
     for idx, line in enumerate(lines):
         if line.strip() != heading:
             continue

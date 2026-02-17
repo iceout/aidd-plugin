@@ -6,12 +6,11 @@ import datetime as dt
 import hashlib
 import json
 import re
+from collections.abc import Iterable, Sequence
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from aidd_runtime import runtime
 from aidd_runtime.rlm_config import load_rlm_settings
-
 
 SCHEMA = "aidd.report.pack.v1"
 PACK_VERSION = "v1"
@@ -37,7 +36,7 @@ def _compile_query(query: str) -> re.Pattern[str]:
         return re.compile(re.escape(query), re.IGNORECASE)
 
 
-def _iter_jsonl(path: Path) -> Iterable[Dict[str, object]]:
+def _iter_jsonl(path: Path) -> Iterable[dict[str, object]]:
     if not path.exists():
         return
     with path.open("r", encoding="utf-8") as handle:
@@ -53,7 +52,7 @@ def _iter_jsonl(path: Path) -> Iterable[Dict[str, object]]:
                 yield payload
 
 
-def _node_matches(node: Dict[str, object], pattern: re.Pattern[str]) -> bool:
+def _node_matches(node: dict[str, object], pattern: re.Pattern[str]) -> bool:
     for key in ("path", "summary"):
         value = node.get(key)
         if value and pattern.search(str(value)):
@@ -66,21 +65,21 @@ def _node_matches(node: Dict[str, object], pattern: re.Pattern[str]) -> bool:
     return False
 
 
-def _node_matches_paths(node: Dict[str, object], paths: Sequence[str]) -> bool:
+def _node_matches_paths(node: dict[str, object], paths: Sequence[str]) -> bool:
     if not paths:
         return True
     raw_path = str(node.get("path") or "")
     return any(token in raw_path for token in paths if token)
 
 
-def _node_matches_lang(node: Dict[str, object], langs: Sequence[str]) -> bool:
+def _node_matches_lang(node: dict[str, object], langs: Sequence[str]) -> bool:
     if not langs:
         return True
     lang = str(node.get("lang") or "").lower()
     return lang in langs
 
 
-def _link_matches(link: Dict[str, object], pattern: re.Pattern[str], file_paths: Dict[str, str]) -> bool:
+def _link_matches(link: dict[str, object], pattern: re.Pattern[str], file_paths: dict[str, str]) -> bool:
     for key in ("type", "src_file_id", "dst_file_id"):
         value = link.get(key)
         if value and pattern.search(str(value)):
@@ -94,13 +93,13 @@ def _link_matches(link: Dict[str, object], pattern: re.Pattern[str], file_paths:
     return bool(src_path and pattern.search(src_path)) or bool(dst_path and pattern.search(dst_path))
 
 
-def _write_pack(path: Path, payload: Dict[str, object]) -> None:
+def _write_pack(path: Path, payload: dict[str, object]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     path.write_text(text, encoding="utf-8")
 
 
-def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate a compact RLM slice pack.")
     parser.add_argument("--ticket", help="Ticket identifier (defaults to docs/.active.json).")
     parser.add_argument("--query", required=True, help="Regex or token to match in nodes/links.")
@@ -112,7 +111,7 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: List[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     _, target = runtime.require_workflow_root()
     ticket, context = runtime.require_ticket(target, ticket=args.ticket, slug_hint=None)
@@ -133,9 +132,9 @@ def main(argv: List[str] | None = None) -> int:
     paths = [token.strip() for token in str(args.paths or "").split(",") if token.strip()]
     langs = [token.strip().lower() for token in str(args.lang or "").split(",") if token.strip()]
 
-    selected_nodes: List[Dict[str, object]] = []
+    selected_nodes: list[dict[str, object]] = []
     node_ids: set[str] = set()
-    file_paths: Dict[str, str] = {}
+    file_paths: dict[str, str] = {}
     truncated_nodes = False
     for node in _iter_jsonl(nodes_path):
         if not _node_matches_lang(node, langs):
@@ -163,7 +162,7 @@ def main(argv: List[str] | None = None) -> int:
         if node.get("node_kind") == "file" and node.get("path"):
             file_paths[node_id] = str(node.get("path"))
 
-    selected_links: List[Dict[str, object]] = []
+    selected_links: list[dict[str, object]] = []
     truncated_links = False
     for link in _iter_jsonl(links_path):
         if len(selected_links) >= max_links:
@@ -188,14 +187,14 @@ def main(argv: List[str] | None = None) -> int:
     output_path = runtime.resolve_path_for_target(Path(args.out), target) if args.out else default_path
     latest_path = out_dir / f"{ticket}-rlm-slice.latest{ext}"
 
-    payload: Dict[str, object] = {
+    payload: dict[str, object] = {
         "schema": SCHEMA,
         "pack_version": PACK_VERSION,
         "type": "rlm-slice",
         "kind": "pack",
         "ticket": ticket,
         "slug_hint": context.slug_hint,
-        "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "generated_at": dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "query": args.query,
         "links": {
             "nodes": runtime.rel_path(nodes_path, target),

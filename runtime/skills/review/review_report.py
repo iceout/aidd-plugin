@@ -6,7 +6,7 @@ import hashlib
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from aidd_runtime import runtime
 
@@ -36,7 +36,7 @@ def _normalize_status(value: object) -> str:
     return str(normalized).strip().upper()
 
 
-def _strip_updated_at(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _strip_updated_at(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(payload, dict):
         return {}
     cleaned = dict(payload)
@@ -44,18 +44,18 @@ def _strip_updated_at(payload: Dict[str, Any]) -> Dict[str, Any]:
     return cleaned
 
 
-def _inflate_columnar(section: object) -> List[Dict]:
+def _inflate_columnar(section: object) -> list[dict]:
     if not isinstance(section, dict):
         return []
     cols = section.get("cols")
     rows = section.get("rows")
     if not isinstance(cols, list) or not isinstance(rows, list):
         return []
-    items: List[Dict] = []
+    items: list[dict] = []
     for row in rows:
         if not isinstance(row, list):
             continue
-        record: Dict[str, Any] = {}
+        record: dict[str, Any] = {}
         for idx, col in enumerate(cols):
             if idx >= len(row):
                 break
@@ -80,7 +80,7 @@ def _normalize_severity(value: object) -> str:
     return raw or "unknown"
 
 
-def _extract_summary(entry: Dict[str, Any], fallback: Optional[Dict[str, Any]] = None) -> str:
+def _extract_summary(entry: dict[str, Any], fallback: dict[str, Any] | None = None) -> str:
     for key in ("summary", "title", "message", "details", "recommendation"):
         value = entry.get(key)
         if value:
@@ -90,7 +90,7 @@ def _extract_summary(entry: Dict[str, Any], fallback: Optional[Dict[str, Any]] =
     return ""
 
 
-def _extract_links(entry: Dict[str, Any], fallback: Optional[Dict[str, Any]] = None) -> List[str]:
+def _extract_links(entry: dict[str, Any], fallback: dict[str, Any] | None = None) -> list[str]:
     links = entry.get("links")
     if isinstance(links, list):
         return [str(item).strip() for item in links if str(item).strip()]
@@ -102,7 +102,7 @@ def _extract_links(entry: Dict[str, Any], fallback: Optional[Dict[str, Any]] = N
     return []
 
 
-def _normalize_blocking(entry: Dict[str, Any], severity: str) -> bool:
+def _normalize_blocking(entry: dict[str, Any], severity: str) -> bool:
     if entry.get("blocking") is True:
         return True
     if severity in {"blocker", "critical", "blocking"}:
@@ -224,7 +224,7 @@ def main(argv: list[str] | None = None) -> int:
     elif not args.status and not args.summary:
         raise ValueError("provide --findings or --findings-file, or update --status/--summary")
 
-    def _extract_findings(raw: object) -> List[Dict]:
+    def _extract_findings(raw: object) -> list[dict]:
         if raw is None:
             return []
         if isinstance(raw, dict) and "findings" in raw:
@@ -240,7 +240,7 @@ def main(argv: list[str] | None = None) -> int:
             return [entry for entry in raw if isinstance(entry, dict)]
         return []
 
-    def _looks_like_report_payload(payload: Dict[str, Any]) -> bool:
+    def _looks_like_report_payload(payload: dict[str, Any]) -> bool:
         kind = str(payload.get("kind") or "").strip().lower()
         stage = str(payload.get("stage") or "").strip().lower()
         if kind == "review" or stage == "review":
@@ -249,8 +249,8 @@ def main(argv: list[str] | None = None) -> int:
             return True
         return False
 
-    existing_payload: Dict[str, Any] = {}
-    existing_findings: List[Dict] = []
+    existing_payload: dict[str, Any] = {}
+    existing_findings: list[dict] = []
     existing_updated_at = ""
     if report_path.exists():
         try:
@@ -264,19 +264,19 @@ def main(argv: list[str] | None = None) -> int:
     def _normalize_signature_text(value: object) -> str:
         return " ".join(str(value or "").strip().split()).lower()
 
-    def _extract_title(entry: Dict, fallback: Optional[Dict[str, Any]] = None) -> str:
+    def _extract_title(entry: dict, fallback: dict[str, Any] | None = None) -> str:
         title = entry.get("title") or entry.get("summary") or entry.get("message") or entry.get("details")
         if not title and fallback:
             title = fallback.get("title")
         return str(title or "").strip() or "issue"
 
-    def _extract_scope(entry: Dict, fallback: Optional[Dict[str, Any]] = None) -> str:
+    def _extract_scope(entry: dict, fallback: dict[str, Any] | None = None) -> str:
         scope = entry.get("scope")
         if not scope and fallback:
             scope = fallback.get("scope")
         return str(scope or "").strip()
 
-    def _normalize_signature(entry: Dict, fallback: Optional[Dict[str, Any]] = None) -> str:
+    def _normalize_signature(entry: dict, fallback: dict[str, Any] | None = None) -> str:
         parts = [
             _normalize_signature_text(_extract_title(entry, fallback)),
             _normalize_signature_text(_extract_scope(entry, fallback)),
@@ -284,11 +284,11 @@ def main(argv: list[str] | None = None) -> int:
         ]
         return "|".join(parts)
 
-    def _stable_id(entry: Dict, fallback: Optional[Dict[str, Any]] = None) -> str:
+    def _stable_id(entry: dict, fallback: dict[str, Any] | None = None) -> str:
         return _stable_finding_id("review", _extract_title(entry, fallback), _extract_scope(entry, fallback))
 
-    def _merge_findings(existing: List[Dict], incoming: List[Dict]) -> List[Dict]:
-        merged: List[Dict] = []
+    def _merge_findings(existing: list[dict], incoming: list[dict]) -> list[dict]:
+        merged: list[dict] = []
         by_signature = {
             _normalize_signature(item): item
             for item in existing
@@ -305,8 +305,8 @@ def main(argv: list[str] | None = None) -> int:
             merged.append(item)
         return merged
 
-    def _normalize_findings(items: List[Dict]) -> List[Dict]:
-        normalized: List[Dict] = []
+    def _normalize_findings(items: list[dict]) -> list[dict]:
+        normalized: list[dict] = []
         for entry in items:
             if not isinstance(entry, dict):
                 continue
@@ -340,13 +340,13 @@ def main(argv: list[str] | None = None) -> int:
     elif isinstance(input_payload, dict):
         fix_plan_payload = input_payload.get("fix_plan") or input_payload.get("fixPlan")
 
-    new_findings: List[Dict] = []
+    new_findings: list[dict] = []
     if input_payload is not None:
         new_findings = _extract_findings(input_payload)
         new_findings = _merge_findings(existing_findings, new_findings)
 
-    now = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
-    record: Dict[str, Any] = dict(existing_payload) if isinstance(existing_payload, dict) else {}
+    now = dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
+    record: dict[str, Any] = dict(existing_payload) if isinstance(existing_payload, dict) else {}
     record.update(
         {
             "ticket": ticket,
@@ -383,7 +383,7 @@ def main(argv: list[str] | None = None) -> int:
                 record.setdefault("tests_log_path", runtime.rel_path(tests_path, target))
         except Exception:
             pass
-    findings_payload: List[Dict] = []
+    findings_payload: list[dict] = []
     if new_findings:
         findings_payload = _normalize_findings(new_findings)
     elif "findings" in record:

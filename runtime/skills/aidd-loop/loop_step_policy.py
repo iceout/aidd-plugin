@@ -5,10 +5,9 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import List, Tuple
 
-from aidd_runtime import runtime
 from aidd_runtime import loop_step as core
+from aidd_runtime import runtime
 
 
 def resolve_stream_mode(raw: str | None) -> str:
@@ -40,7 +39,7 @@ def _is_valid_work_item_key(value: str) -> bool:
     return runtime.is_valid_work_item_key(value)
 
 
-def _extract_work_item_key(lines: List[str]) -> str:
+def _extract_work_item_key(lines: list[str]) -> str:
     scope = ""
     for line in lines:
         match = core.SCOPE_RE.search(line)
@@ -53,7 +52,7 @@ def _extract_work_item_key(lines: List[str]) -> str:
     return scope if _is_valid_work_item_key(scope) else ""
 
 
-def _extract_blocking_flag(lines: List[str]) -> bool | None:
+def _extract_blocking_flag(lines: list[str]) -> bool | None:
     for line in lines:
         match = core.BLOCKING_PAREN_RE.search(line)
         if match:
@@ -64,7 +63,7 @@ def _extract_blocking_flag(lines: List[str]) -> bool | None:
     return None
 
 
-def _extract_item_id(lines: List[str]) -> str:
+def _extract_item_id(lines: list[str]) -> str:
     for line in lines:
         match = core.ITEM_ID_RE.search(line)
         if match:
@@ -79,12 +78,12 @@ def _extract_checkbox_state(line: str) -> str:
     return match.group("state").strip().lower()
 
 
-def _parse_qa_handoff_candidates(lines: List[str]) -> List[Tuple[str, str]]:
-    candidates: List[Tuple[str, str]] = []
+def _parse_qa_handoff_candidates(lines: list[str]) -> list[tuple[str, str]]:
+    candidates: list[tuple[str, str]] = []
     in_handoff = False
-    current: List[str] = []
+    current: list[str] = []
 
-    def flush(block: List[str]) -> None:
+    def flush(block: list[str]) -> None:
         if not block:
             return
         state = _extract_checkbox_state(block[0])
@@ -136,7 +135,7 @@ def _auto_repair_enabled(root: Path) -> bool:
     return bool(raw)
 
 
-def _resolve_qa_repair_mode(requested: str | None, root: Path) -> Tuple[str, bool]:
+def _resolve_qa_repair_mode(requested: str | None, root: Path) -> tuple[str, bool]:
     if requested:
         return requested, True
     if _auto_repair_enabled(root):
@@ -146,11 +145,11 @@ def _resolve_qa_repair_mode(requested: str | None, root: Path) -> Tuple[str, boo
 
 def _select_qa_repair_work_item(
     *,
-    tasklist_lines: List[str],
+    tasklist_lines: list[str],
     explicit: str,
     select_handoff: bool,
     mode: str,
-) -> Tuple[str, str, str, List[str]]:
+) -> tuple[str, str, str, list[str]]:
     if explicit:
         if not _is_valid_work_item_key(explicit):
             return "", "qa_repair_invalid_work_item", "work_item_key must start with iteration_id= or id=", []
@@ -235,7 +234,7 @@ def resolve_hooks_mode() -> str:
     return "strict" if raw == "strict" else "fast"
 
 
-def evaluate_wrapper_skip_policy(stage: str, plugin_root: Path) -> Tuple[str, str, str]:
+def evaluate_wrapper_skip_policy(stage: str, plugin_root: Path) -> tuple[str, str, str]:
     if stage not in {"implement", "review", "qa"}:
         return "", "", ""
     if os.environ.get("AIDD_SKIP_STAGE_WRAPPERS", "").strip() != "1":
@@ -249,7 +248,7 @@ def evaluate_wrapper_skip_policy(stage: str, plugin_root: Path) -> Tuple[str, st
     return "warn", message, core.WRAPPER_SKIP_WARN_REASON_CODE
 
 
-def evaluate_output_contract_policy(status: str) -> Tuple[str, str]:
+def evaluate_output_contract_policy(status: str) -> tuple[str, str]:
     if str(status).strip().lower() != "warn":
         return "", ""
     hooks_mode = resolve_hooks_mode()

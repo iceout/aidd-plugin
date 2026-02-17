@@ -10,11 +10,10 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Iterable, List, Tuple
 
 from aidd_runtime import runtime
 
-IGNORE_PREFIXES = ("aidd/", ".claude/", ".cursor/")
+IGNORE_PREFIXES = ("aidd/", ".aidd/", ".cursor/")
 IGNORE_FILES = {"AGENTS.md", ".github/copilot-instructions.md"}
 AIDD_ROOT_PREFIXES = ("docs/", "reports/", "config/", ".cache/")
 STATUS_OK = "OK"
@@ -64,10 +63,10 @@ def matches_pattern(path: str, pattern: str) -> bool:
     return normalized == pattern or normalized.startswith(pattern + "/")
 
 
-def parse_front_matter(lines: List[str]) -> List[str]:
+def parse_front_matter(lines: list[str]) -> list[str]:
     if not lines or lines[0].strip() != "---":
         return []
-    collected: List[str] = []
+    collected: list[str] = []
     for line in lines[1:]:
         if line.strip() == "---":
             break
@@ -75,9 +74,9 @@ def parse_front_matter(lines: List[str]) -> List[str]:
     return collected
 
 
-def extract_boundaries(front_matter: List[str]) -> Tuple[List[str], List[str]]:
-    allowed: List[str] = []
-    forbidden: List[str] = []
+def extract_boundaries(front_matter: list[str]) -> tuple[list[str], list[str]]:
+    allowed: list[str] = []
+    forbidden: list[str] = []
     in_boundaries = False
     current: str | None = None
     for raw in front_matter:
@@ -112,10 +111,10 @@ def extract_boundaries(front_matter: List[str]) -> Tuple[List[str], List[str]]:
     return allowed, forbidden
 
 
-def parse_allowed_arg(value: str | None) -> List[str]:
+def parse_allowed_arg(value: str | None) -> list[str]:
     if not value:
         return []
-    items: List[str] = []
+    items: list[str] = []
     for chunk in value.replace(",", " ").split():
         chunk = chunk.strip()
         if chunk:
@@ -145,7 +144,7 @@ def _write_cache(path: Path, *, ticket: str, hash_value: str) -> None:
         return
 
 
-def _hash_inputs(diff_files: List[str], allowed_paths: List[str], forbidden_paths: List[str]) -> str:
+def _hash_inputs(diff_files: list[str], allowed_paths: list[str], forbidden_paths: list[str]) -> str:
     payload = {
         "diff": sorted(diff_files),
         "allowed": sorted(allowed_paths),
@@ -155,7 +154,7 @@ def _hash_inputs(diff_files: List[str], allowed_paths: List[str], forbidden_path
     return hashlib.sha256(encoded).hexdigest()
 
 
-def git_lines(args: List[str]) -> List[str]:
+def git_lines(args: list[str]) -> list[str]:
     proc = subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     if proc.returncode != 0:
         return []
@@ -180,7 +179,7 @@ def resolve_git_root(base: Path) -> Path:
     return Path(root).resolve()
 
 
-def collect_diff_files(base: Path) -> List[str]:
+def collect_diff_files(base: Path) -> list[str]:
     git_root = resolve_git_root(base)
     files = set(git_lines(["git", "-C", str(git_root), "diff", "--name-only"]))
     files.update(git_lines(["git", "-C", str(git_root), "diff", "--cached", "--name-only"]))
@@ -188,7 +187,7 @@ def collect_diff_files(base: Path) -> List[str]:
     return sorted(files)
 
 
-def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Validate diff files against loop-pack boundaries.")
     parser.add_argument("--ticket", help="Ticket identifier to use (defaults to docs/.active.json).")
     parser.add_argument("--loop-pack", help="Path to loop pack (default: resolve via active work_item).")
@@ -196,7 +195,7 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: List[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     workspace_root, target = runtime.require_workflow_root()
 
@@ -235,8 +234,8 @@ def main(argv: List[str] | None = None) -> int:
     if cache_payload.get("ticket") == ticket and cache_payload.get("hash") == current_hash:
         print("[diff-boundary-check] SKIP: cache hit (reason_code=cache_hit)", file=sys.stderr)
         return 0
-    blocked: List[str] = []
-    warnings: List[str] = []
+    blocked: list[str] = []
+    warnings: list[str] = []
     for path in diff_files:
         if any(matches_pattern(path, pattern) for pattern in forbidden_paths):
             blocked.append(f"{STATUS_FORBIDDEN} {path}")

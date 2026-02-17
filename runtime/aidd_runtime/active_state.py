@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from typing import Tuple
 
 from aidd_runtime import stage_lexicon
 
@@ -55,9 +54,8 @@ def normalize_work_item_for_stage(
     stage: str | None,
     requested_work_item: str | None,
     current_work_item: str | None = None,
-) -> Tuple[str, str]:
-    """
-    Normalize work_item for active state updates.
+) -> tuple[str, str]:
+    """Normalize work_item for active state updates.
 
     Returns (normalized_work_item, last_review_report_id).
     """

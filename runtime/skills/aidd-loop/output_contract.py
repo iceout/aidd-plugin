@@ -7,11 +7,9 @@ import argparse
 import json
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 from aidd_runtime import runtime
 from aidd_runtime import status_summary as _status_summary
-
 
 REQUIRED_FIELDS = {
     "status",
@@ -36,8 +34,8 @@ def _normalize_line(line: str) -> str:
     return line.strip()
 
 
-def _parse_fields(text: str) -> Dict[str, str]:
-    fields: Dict[str, str] = {}
+def _parse_fields(text: str) -> dict[str, str]:
+    fields: dict[str, str] = {}
     patterns = {
         "status": re.compile(r"^Status:\s*(.+)$", re.IGNORECASE),
         "work_item_key": re.compile(r"^Work item key:\s*(.+)$", re.IGNORECASE),
@@ -57,13 +55,13 @@ def _parse_fields(text: str) -> Dict[str, str]:
     return fields
 
 
-def _parse_read_log(raw: str) -> List[Dict[str, str]]:
+def _parse_read_log(raw: str) -> list[dict[str, str]]:
     if not raw:
         return []
     parts = [part.strip() for part in raw.split(";") if part.strip()]
     if not parts:
         parts = [raw.strip()]
-    entries: List[Dict[str, str]] = []
+    entries: list[dict[str, str]] = []
     for part in parts:
         cleaned = part.lstrip("-").strip()
         reason = ""
@@ -94,7 +92,7 @@ def _is_report_path(path: str) -> bool:
     return normalized.startswith("aidd/reports/")
 
 
-def _find_index(entries: List[Dict[str, str]], predicate) -> int:
+def _find_index(entries: list[dict[str, str]], predicate) -> int:
     for idx, entry in enumerate(entries):
         if predicate(entry):
             return idx
@@ -108,8 +106,8 @@ def _expected_status(
     stage: str,
     scope_key: str,
     work_item_key: str,
-    stage_result_path: Optional[Path] = None,
-) -> Tuple[str, str]:
+    stage_result_path: Path | None = None,
+) -> tuple[str, str]:
     if stage_result_path is None:
         stage_result_path = target / "reports" / "loops" / ticket / scope_key / f"stage.{stage}.result.json"
     payload = _status_summary._load_stage_result(stage_result_path)
@@ -127,13 +125,13 @@ def check_output_contract(
     scope_key: str,
     work_item_key: str,
     log_path: Path,
-    stage_result_path: Optional[Path] = None,
+    stage_result_path: Path | None = None,
     max_read_items: int = 3,
-) -> Dict[str, object]:
+) -> dict[str, object]:
     text = log_path.read_text(encoding="utf-8", errors="replace") if log_path.exists() else ""
     fields = _parse_fields(text)
     missing = sorted(REQUIRED_FIELDS - set(fields.keys()))
-    warnings: List[str] = []
+    warnings: list[str] = []
 
     read_entries = _parse_read_log(fields.get("read_log", ""))
     if not read_entries:
@@ -218,7 +216,7 @@ def check_output_contract(
     }
 
 
-def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Validate output contract for implement/review/qa.")
     parser.add_argument("--ticket", help="Ticket identifier (defaults to docs/.active.json).")
     parser.add_argument("--slug-hint", help="Optional slug hint override.")
@@ -232,7 +230,7 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: List[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     _, target = runtime.require_workflow_root()
     ticket, context = runtime.require_ticket(

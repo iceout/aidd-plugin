@@ -3,17 +3,18 @@
 
 from __future__ import annotations
 
-import json
 import hashlib
+import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any
 
+from aidd_runtime import reports_pack as core
 from aidd_runtime import runtime
 from aidd_runtime.rlm_config import file_id_for_path, load_rlm_settings
-from aidd_runtime import reports_pack as core
 
 
-def truncate_list(items: Iterable[Any], limit: int) -> List[Any]:
+def truncate_list(items: Iterable[Any], limit: int) -> list[Any]:
     if limit <= 0:
         return []
     return list(items)[:limit]
@@ -28,8 +29,8 @@ def truncate_text(text: str, limit: int) -> str:
 
 
 def extract_evidence_snippet(
-    root: Optional[Path],
-    evidence_ref: Dict[str, Any],
+    root: Path | None,
+    evidence_ref: dict[str, Any],
     *,
     max_chars: int,
 ) -> str:
@@ -72,15 +73,15 @@ def stable_id(*parts: Any) -> str:
     return digest.hexdigest()[:12]
 
 
-def columnar(cols: List[str], rows: List[List[Any]]) -> Dict[str, Any]:
+def columnar(cols: list[str], rows: list[list[Any]]) -> dict[str, Any]:
     return {
         "cols": cols,
         "rows": rows,
     }
 
 
-def pack_paths(entries: Iterable[Any], limit: int, sample_limit: int) -> List[Dict[str, Any]]:
-    packed: List[Dict[str, Any]] = []
+def pack_paths(entries: Iterable[Any], limit: int, sample_limit: int) -> list[dict[str, Any]]:
+    packed: list[dict[str, Any]] = []
     for entry in truncate_list(entries, limit):
         if not isinstance(entry, dict):
             continue
@@ -96,9 +97,9 @@ def pack_paths(entries: Iterable[Any], limit: int, sample_limit: int) -> List[Di
     return packed
 
 
-def pack_matches(entries: Iterable[Any], limit: int, snippet_limit: int) -> Dict[str, Any]:
+def pack_matches(entries: Iterable[Any], limit: int, snippet_limit: int) -> dict[str, Any]:
     cols = ["id", "token", "file", "line", "snippet"]
-    rows: List[List[Any]] = []
+    rows: list[list[Any]] = []
     for entry in truncate_list(entries, limit):
         if not isinstance(entry, dict):
             continue
@@ -112,9 +113,9 @@ def pack_matches(entries: Iterable[Any], limit: int, snippet_limit: int) -> Dict
     return columnar(cols, rows)
 
 
-def pack_reuse(entries: Iterable[Any], limit: int) -> Dict[str, Any]:
+def pack_reuse(entries: Iterable[Any], limit: int) -> dict[str, Any]:
     cols = ["id", "path", "language", "score", "has_tests", "top_symbols", "imports"]
-    rows: List[List[Any]] = []
+    rows: list[list[Any]] = []
     for entry in truncate_list(entries, limit):
         if not isinstance(entry, dict):
             continue
@@ -136,8 +137,8 @@ def pack_reuse(entries: Iterable[Any], limit: int) -> Dict[str, Any]:
     return columnar(cols, rows)
 
 
-def pack_findings(entries: Iterable[Any], limit: int, cols: List[str]) -> Dict[str, Any]:
-    rows: List[List[Any]] = []
+def pack_findings(entries: Iterable[Any], limit: int, cols: list[str]) -> dict[str, Any]:
+    rows: list[list[Any]] = []
     for entry in truncate_list(entries, limit):
         if not isinstance(entry, dict):
             continue
@@ -145,9 +146,9 @@ def pack_findings(entries: Iterable[Any], limit: int, cols: List[str]) -> Dict[s
     return columnar(cols, rows)
 
 
-def pack_tests_executed(entries: Iterable[Any], limit: int) -> Dict[str, Any]:
+def pack_tests_executed(entries: Iterable[Any], limit: int) -> dict[str, Any]:
     cols = ["command", "status", "log", "exit_code"]
-    rows: List[List[Any]] = []
+    rows: list[list[Any]] = []
     for entry in truncate_list(entries, limit):
         if not isinstance(entry, dict):
             continue
@@ -162,7 +163,7 @@ def pack_tests_executed(entries: Iterable[Any], limit: int) -> Dict[str, Any]:
     return columnar(cols, rows)
 
 
-def load_rlm_links_stats(root: Path, ticket: str) -> Optional[Dict[str, Any]]:
+def load_rlm_links_stats(root: Path, ticket: str) -> dict[str, Any] | None:
     path = root / "reports" / "research" / f"{ticket}-rlm.links.stats.json"
     if not path.exists():
         return None
@@ -173,8 +174,8 @@ def load_rlm_links_stats(root: Path, ticket: str) -> Optional[Dict[str, Any]]:
     return payload if isinstance(payload, dict) else None
 
 
-def rlm_link_warnings(stats: Dict[str, Any]) -> List[str]:
-    warnings: List[str] = []
+def rlm_link_warnings(stats: dict[str, Any]) -> list[str]:
+    warnings: list[str] = []
     if "links_total" in stats and int(stats.get("links_total") or 0) == 0:
         warnings.append("rlm_links_empty_warn")
     if stats.get("links_truncated"):
@@ -194,8 +195,8 @@ def rlm_link_warnings(stats: Dict[str, Any]) -> List[str]:
     return warnings
 
 
-def pack_rlm_nodes(nodes: Iterable[Dict[str, Any]], limit: int) -> List[Dict[str, Any]]:
-    packed: List[Dict[str, Any]] = []
+def pack_rlm_nodes(nodes: Iterable[dict[str, Any]], limit: int) -> list[dict[str, Any]]:
+    packed: list[dict[str, Any]] = []
     for node in truncate_list(nodes, limit):
         if not isinstance(node, dict):
             continue
@@ -213,13 +214,13 @@ def pack_rlm_nodes(nodes: Iterable[Dict[str, Any]], limit: int) -> List[Dict[str
 
 
 def pack_rlm_links(
-    links: Iterable[Dict[str, Any]],
+    links: Iterable[dict[str, Any]],
     *,
     limit: int,
-    root: Optional[Path],
+    root: Path | None,
     snippet_chars: int,
-) -> List[Dict[str, Any]]:
-    packed: List[Dict[str, Any]] = []
+) -> list[dict[str, Any]]:
+    packed: list[dict[str, Any]] = []
     for link in truncate_list(links, limit):
         if not isinstance(link, dict):
             continue
@@ -239,11 +240,11 @@ def pack_rlm_links(
 
 
 def load_rlm_worklist_summary(
-    root: Optional[Path],
-    ticket: Optional[str],
+    root: Path | None,
+    ticket: str | None,
     *,
-    context: Optional[Dict[str, Any]] = None,
-) -> tuple[Optional[str], Optional[int], Optional[Path]]:
+    context: dict[str, Any] | None = None,
+) -> tuple[str | None, int | None, Path | None]:
     if not root or not ticket:
         return None, None, None
     worklist_path = None
@@ -270,11 +271,11 @@ def load_rlm_worklist_summary(
 
 
 def build_research_pack(
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
     *,
-    source_path: Optional[str] = None,
-    limits: Optional[Dict[str, int]] = None,
-) -> Dict[str, Any]:
+    source_path: str | None = None,
+    limits: dict[str, int] | None = None,
+) -> dict[str, Any]:
     env_limits = core._env_limits().get("research") or {}
     lim = {**core.RESEARCH_LIMITS, **env_limits, **(limits or {})}
 
@@ -337,20 +338,20 @@ def build_research_pack(
 
 
 def build_research_context_pack(
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
     *,
-    source_path: Optional[str] = None,
-    limits: Optional[Dict[str, int]] = None,
-) -> Dict[str, Any]:
+    source_path: str | None = None,
+    limits: dict[str, int] | None = None,
+) -> dict[str, Any]:
     return build_research_pack(payload, source_path=source_path, limits=limits)
 
 
 def build_qa_pack(
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
     *,
-    source_path: Optional[str] = None,
-    limits: Optional[Dict[str, int]] = None,
-) -> Dict[str, Any]:
+    source_path: str | None = None,
+    limits: dict[str, int] | None = None,
+) -> dict[str, Any]:
     env_limits = core._env_limits().get("qa") or {}
     lim = {**core.QA_LIMITS, **env_limits, **(limits or {})}
     findings = payload.get("findings") or []
@@ -384,11 +385,11 @@ def build_qa_pack(
 
 
 def build_prd_pack(
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
     *,
-    source_path: Optional[str] = None,
-    limits: Optional[Dict[str, int]] = None,
-) -> Dict[str, Any]:
+    source_path: str | None = None,
+    limits: dict[str, int] | None = None,
+) -> dict[str, Any]:
     env_limits = core._env_limits().get("prd") or {}
     lim = {**core.PRD_LIMITS, **env_limits, **(limits or {})}
     findings = payload.get("findings") or []
@@ -416,20 +417,20 @@ def build_prd_pack(
 
 
 def build_rlm_pack(
-    nodes: List[Dict[str, Any]],
-    links: List[Dict[str, Any]],
+    nodes: list[dict[str, Any]],
+    links: list[dict[str, Any]],
     *,
-    ticket: Optional[str],
-    slug_hint: Optional[str] = None,
-    source_path: Optional[str] = None,
-    limits: Optional[Dict[str, int]] = None,
-    root: Optional[Path] = None,
-) -> Dict[str, Any]:
+    ticket: str | None,
+    slug_hint: str | None = None,
+    source_path: str | None = None,
+    limits: dict[str, int] | None = None,
+    root: Path | None = None,
+) -> dict[str, Any]:
     env_limits = core._env_limits().get("rlm") or {}
     lim = {**core.RLM_LIMITS, **env_limits, **(limits or {})}
 
     file_nodes = [node for node in nodes if node.get("node_kind") == "file"]
-    link_counts: Dict[str, int] = {}
+    link_counts: dict[str, int] = {}
     for link in links:
         if link.get("unverified"):
             continue
@@ -454,7 +455,7 @@ def build_rlm_pack(
                     continue
                 keyword_hits.add(file_id_for_path(Path(path_text)))
 
-    def by_link_count(node: Dict[str, Any]) -> tuple:
+    def by_link_count(node: dict[str, Any]) -> tuple:
         file_id = str(node.get("file_id") or node.get("id") or "")
         boost = 1 if file_id and file_id in keyword_hits else 0
         return (-(link_counts.get(file_id, 0) + boost), str(node.get("path") or ""))
@@ -462,7 +463,7 @@ def build_rlm_pack(
     entry_roles = {"web", "controller", "job", "config", "infra"}
     exclude_roles = {"model", "dto"}
 
-    def _roles(node: Dict[str, Any]) -> set[str]:
+    def _roles(node: dict[str, Any]) -> set[str]:
         return {str(role) for role in (node.get("framework_roles") or []) if str(role)}
 
     entrypoints = [
@@ -511,7 +512,7 @@ def build_rlm_pack(
     )
     link_stats = load_rlm_links_stats(root, ticket) if root and ticket else None
     link_warnings = rlm_link_warnings(link_stats) if link_stats else []
-    unverified_warn_ratio: Optional[float] = None
+    unverified_warn_ratio: float | None = None
     if root:
         settings = load_rlm_settings(root)
         raw_unverified_ratio = settings.get("link_unverified_warn_ratio")

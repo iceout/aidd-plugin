@@ -5,20 +5,20 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
-import hashlib
 import json
 import os
 import sys
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any
 
 from aidd_runtime import runtime
-from aidd_runtime.rlm_config import file_id_for_path, load_rlm_settings
+from aidd_runtime.rlm_config import load_rlm_settings
 
 SCHEMA = "aidd.report.pack.v1"
 PACK_VERSION = "v1"
 
-RESEARCH_LIMITS: Dict[str, int] = {
+RESEARCH_LIMITS: dict[str, int] = {
     "tags": 10,
     "keywords": 10,
     "keywords_raw": 10,
@@ -43,17 +43,17 @@ RESEARCH_BUDGET = {
     "max_lines": 120,
 }
 
-QA_LIMITS: Dict[str, int] = {
+QA_LIMITS: dict[str, int] = {
     "findings": 20,
     "tests_executed": 10,
 }
 
-PRD_LIMITS: Dict[str, int] = {
+PRD_LIMITS: dict[str, int] = {
     "findings": 20,
     "action_items": 10,
 }
 
-RLM_LIMITS: Dict[str, int] = {
+RLM_LIMITS: dict[str, int] = {
     "entrypoints": 15,
     "hotspots": 15,
     "integration_points": 15,
@@ -80,16 +80,16 @@ _ESSENTIAL_FIELDS = {
     "generated_at",
     "source_path",
 }
-_ENV_LIMITS_CACHE: Dict[str, Dict[str, int]] | None = None
+_ENV_LIMITS_CACHE: dict[str, dict[str, int]] | None = None
 _BUDGET_HINT = "Reduce top-N, trim snippets, or set AIDD_PACK_LIMITS to lower pack size."
 
 
 def _utc_timestamp() -> str:
-    return dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    return dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
-def check_budget(text: str, *, max_chars: int, max_lines: int, label: str) -> List[str]:
-    errors: List[str] = []
+def check_budget(text: str, *, max_chars: int, max_lines: int, label: str) -> list[str]:
+    errors: list[str] = []
     char_count = len(text)
     line_count = text.count("\n") + (1 if text else 0)
     if char_count > max_chars:
@@ -103,7 +103,7 @@ def check_budget(text: str, *, max_chars: int, max_lines: int, label: str) -> Li
     return errors
 
 
-def _check_count_budget(label: str, *, field: str, actual: int, limit: int) -> List[str]:
+def _check_count_budget(label: str, *, field: str, actual: int, limit: int) -> list[str]:
     if actual <= limit:
         return []
     return [f"{label} pack budget exceeded: {field} {actual} > {limit}. {_BUDGET_HINT}"]
@@ -124,7 +124,7 @@ def _is_empty(value: Any) -> bool:
 def _compact_value(value: Any) -> Any:
     if isinstance(value, dict):
         is_columnar = "cols" in value and "rows" in value
-        compacted: Dict[str, Any] = {}
+        compacted: dict[str, Any] = {}
         for key, val in value.items():
             cleaned = _compact_value(val)
             if is_columnar and key in {"cols", "rows"}:
@@ -145,8 +145,8 @@ def _compact_value(value: Any) -> Any:
     return value
 
 
-def _compact_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
-    compacted: Dict[str, Any] = {}
+def _compact_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    compacted: dict[str, Any] = {}
     for key, value in payload.items():
         cleaned = _compact_value(value)
         if key in _ESSENTIAL_FIELDS:
@@ -158,7 +158,7 @@ def _compact_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     return compacted
 
 
-def _serialize_pack(payload: Dict[str, Any]) -> str:
+def _serialize_pack(payload: dict[str, Any]) -> str:
     payload = _apply_field_filters(payload)
     payload = _compact_payload(payload)
     return json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
@@ -176,7 +176,7 @@ def _enforce_budget() -> bool:
     return os.getenv("AIDD_PACK_ENFORCE_BUDGET", "").strip() == "1"
 
 
-def _trim_columnar_rows(payload: Dict[str, Any], key: str) -> bool:
+def _trim_columnar_rows(payload: dict[str, Any], key: str) -> bool:
     section = payload.get(key)
     if not isinstance(section, dict):
         return False
@@ -187,7 +187,7 @@ def _trim_columnar_rows(payload: Dict[str, Any], key: str) -> bool:
     return True
 
 
-def _trim_list_field(payload: Dict[str, Any], key: str, *, min_len: int = 0) -> bool:
+def _trim_list_field(payload: dict[str, Any], key: str, *, min_len: int = 0) -> bool:
     items = payload.get(key)
     if not isinstance(items, list) or len(items) <= min_len:
         return False
@@ -195,7 +195,7 @@ def _trim_list_field(payload: Dict[str, Any], key: str, *, min_len: int = 0) -> 
     return True
 
 
-def _trim_profile_recommendations(payload: Dict[str, Any]) -> bool:
+def _trim_profile_recommendations(payload: dict[str, Any]) -> bool:
     profile = payload.get("profile")
     if not isinstance(profile, dict):
         return False
@@ -206,7 +206,7 @@ def _trim_profile_recommendations(payload: Dict[str, Any]) -> bool:
     return True
 
 
-def _trim_profile_list(payload: Dict[str, Any], key: str) -> bool:
+def _trim_profile_list(payload: dict[str, Any], key: str) -> bool:
     profile = payload.get("profile")
     if not isinstance(profile, dict):
         return False
@@ -217,7 +217,7 @@ def _trim_profile_list(payload: Dict[str, Any], key: str) -> bool:
     return True
 
 
-def _trim_path_samples(payload: Dict[str, Any], key: str) -> bool:
+def _trim_path_samples(payload: dict[str, Any], key: str) -> bool:
     entries = payload.get(key)
     if not isinstance(entries, list) or not entries:
         return False
@@ -231,7 +231,7 @@ def _trim_path_samples(payload: Dict[str, Any], key: str) -> bool:
     return False
 
 
-def _drop_columnar_if_empty(payload: Dict[str, Any], key: str) -> bool:
+def _drop_columnar_if_empty(payload: dict[str, Any], key: str) -> bool:
     section = payload.get(key)
     if not isinstance(section, dict):
         return False
@@ -242,21 +242,21 @@ def _drop_columnar_if_empty(payload: Dict[str, Any], key: str) -> bool:
     return True
 
 
-def _drop_field(payload: Dict[str, Any], key: str) -> bool:
+def _drop_field(payload: dict[str, Any], key: str) -> bool:
     if key not in payload:
         return False
     payload.pop(key, None)
     return True
 
 
-def _auto_trim_research_pack(payload: Dict[str, Any], max_chars: int, max_lines: int) -> tuple[str, List[str], List[str]]:
+def _auto_trim_research_pack(payload: dict[str, Any], max_chars: int, max_lines: int) -> tuple[str, list[str], list[str]]:
     text = _serialize_pack(payload)
     errors = check_budget(text, max_chars=max_chars, max_lines=max_lines, label="research")
     if not errors:
         return text, [], []
 
-    trimmed_counts: Dict[str, int] = {}
-    trimmed_steps: List[str] = []
+    trimmed_counts: dict[str, int] = {}
+    trimmed_steps: list[str] = []
     steps = [
         ("matches", lambda: _trim_columnar_rows(payload, "matches")),
         ("reuse_candidates", lambda: _trim_columnar_rows(payload, "reuse_candidates")),
@@ -318,7 +318,7 @@ def _auto_trim_research_pack(payload: Dict[str, Any], max_chars: int, max_lines:
     return text, trimmed, errors
 
 
-def _max_snippet_len(payload: Dict[str, Any]) -> Optional[int]:
+def _max_snippet_len(payload: dict[str, Any]) -> int | None:
     links = payload.get("links")
     if not isinstance(links, list) or not links:
         return None
@@ -326,7 +326,7 @@ def _max_snippet_len(payload: Dict[str, Any]) -> Optional[int]:
     return max(lengths, default=0)
 
 
-def _trim_evidence_snippets(payload: Dict[str, Any], max_chars: int) -> bool:
+def _trim_evidence_snippets(payload: dict[str, Any], max_chars: int) -> bool:
     links = payload.get("links")
     if not isinstance(links, list) or not links:
         return False
@@ -345,20 +345,20 @@ def _trim_evidence_snippets(payload: Dict[str, Any], max_chars: int) -> bool:
 
 
 def _auto_trim_rlm_pack(
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
     max_chars: int,
     max_lines: int,
     *,
     enforce: bool = False,
-    trim_priority: Optional[Iterable[str]] = None,
-) -> tuple[str, List[str], List[str], Dict[str, Any]]:
+    trim_priority: Iterable[str] | None = None,
+) -> tuple[str, list[str], list[str], dict[str, Any]]:
     text = _serialize_pack(payload)
     errors = check_budget(text, max_chars=max_chars, max_lines=max_lines, label="rlm")
     if not errors:
         return text, [], errors, {}
 
-    trimmed_counts: Dict[str, int] = {}
-    trimmed_steps: List[str] = []
+    trimmed_counts: dict[str, int] = {}
+    trimmed_steps: list[str] = []
     list_fields = (
         "links",
         "recommended_reads",
@@ -369,7 +369,7 @@ def _auto_trim_rlm_pack(
         "risks",
     )
     if trim_priority:
-        ordered: List[str] = []
+        ordered: list[str] = []
         for raw in trim_priority:
             key = str(raw or "").strip()
             if not key or key not in list_fields or key in ordered:
@@ -379,7 +379,7 @@ def _auto_trim_rlm_pack(
             if key not in ordered:
                 ordered.append(key)
         list_fields = tuple(ordered)
-    snippet_chars: Optional[int] = None
+    snippet_chars: int | None = None
     snippet_floor = 0 if enforce else 40
 
     def _trim_pass(min_len: int, snippet_floor_limit: int) -> None:
@@ -415,7 +415,7 @@ def _auto_trim_rlm_pack(
     if errors and not enforce:
         _trim_pass(0, 0)
 
-    trim_stats: Dict[str, Any] = {}
+    trim_stats: dict[str, Any] = {}
     if trimmed_counts or snippet_chars is not None:
         trim_stats = {"enforce": enforce}
         if trimmed_counts:
@@ -483,7 +483,7 @@ def _auto_trim_rlm_pack(
     return text, trimmed, errors, trim_stats
 
 
-def _truncate_list(items: Iterable[Any], limit: int) -> List[Any]:
+def _truncate_list(items: Iterable[Any], limit: int) -> list[Any]:
     from aidd_runtime import reports_pack_assemble as _assemble
 
     return _assemble.truncate_list(items, limit)
@@ -496,8 +496,8 @@ def _truncate_text(text: str, limit: int) -> str:
 
 
 def _extract_evidence_snippet(
-    root: Optional[Path],
-    evidence_ref: Dict[str, Any],
+    root: Path | None,
+    evidence_ref: dict[str, Any],
     *,
     max_chars: int,
 ) -> str:
@@ -512,31 +512,31 @@ def _stable_id(*parts: Any) -> str:
     return _assemble.stable_id(*parts)
 
 
-def _columnar(cols: List[str], rows: List[List[Any]]) -> Dict[str, Any]:
+def _columnar(cols: list[str], rows: list[list[Any]]) -> dict[str, Any]:
     from aidd_runtime import reports_pack_assemble as _assemble
 
     return _assemble.columnar(cols, rows)
 
 
-def _pack_paths(entries: Iterable[Any], limit: int, sample_limit: int) -> List[Dict[str, Any]]:
+def _pack_paths(entries: Iterable[Any], limit: int, sample_limit: int) -> list[dict[str, Any]]:
     from aidd_runtime import reports_pack_assemble as _assemble
 
     return _assemble.pack_paths(entries, limit, sample_limit)
 
 
-def _pack_matches(entries: Iterable[Any], limit: int, snippet_limit: int) -> Dict[str, Any]:
+def _pack_matches(entries: Iterable[Any], limit: int, snippet_limit: int) -> dict[str, Any]:
     from aidd_runtime import reports_pack_assemble as _assemble
 
     return _assemble.pack_matches(entries, limit, snippet_limit)
 
 
-def _pack_reuse(entries: Iterable[Any], limit: int) -> Dict[str, Any]:
+def _pack_reuse(entries: Iterable[Any], limit: int) -> dict[str, Any]:
     from aidd_runtime import reports_pack_assemble as _assemble
 
     return _assemble.pack_reuse(entries, limit)
 
 
-def _pack_findings(entries: Iterable[Any], limit: int, cols: List[str]) -> Dict[str, Any]:
+def _pack_findings(entries: Iterable[Any], limit: int, cols: list[str]) -> dict[str, Any]:
     from aidd_runtime import reports_pack_assemble as _assemble
 
     return _assemble.pack_findings(entries, limit, cols)
@@ -546,7 +546,7 @@ def _pack_extension() -> str:
     return ".pack.json"
 
 
-def _find_pack_variant(root: Path, name: str) -> Optional[Path]:
+def _find_pack_variant(root: Path, name: str) -> Path | None:
     base = root / "reports" / "research"
     candidate = base / f"{name}.pack.json"
     if candidate.exists():
@@ -554,14 +554,14 @@ def _find_pack_variant(root: Path, name: str) -> Optional[Path]:
     return None
 
 
-def _split_env(name: str) -> List[str]:
+def _split_env(name: str) -> list[str]:
     raw = os.getenv(name, "").strip()
     if not raw:
         return []
     return [item.strip() for item in raw.split(",") if item.strip()]
 
 
-def _apply_field_filters(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _apply_field_filters(payload: dict[str, Any]) -> dict[str, Any]:
     allow_fields = _split_env("AIDD_PACK_ALLOW_FIELDS")
     strip_fields = _split_env("AIDD_PACK_STRIP_FIELDS")
     if not allow_fields and not strip_fields:
@@ -579,7 +579,7 @@ def _apply_field_filters(payload: Dict[str, Any]) -> Dict[str, Any]:
     return filtered
 
 
-def _env_limits() -> Dict[str, Dict[str, int]]:
+def _env_limits() -> dict[str, dict[str, int]]:
     global _ENV_LIMITS_CACHE
     if _ENV_LIMITS_CACHE is not None:
         return _ENV_LIMITS_CACHE
@@ -595,11 +595,11 @@ def _env_limits() -> Dict[str, Dict[str, int]]:
     if not isinstance(payload, dict):
         _ENV_LIMITS_CACHE = {}
         return _ENV_LIMITS_CACHE
-    parsed: Dict[str, Dict[str, int]] = {}
+    parsed: dict[str, dict[str, int]] = {}
     for key, value in payload.items():
         if not isinstance(value, dict):
             continue
-        limits: Dict[str, int] = {}
+        limits: dict[str, int] = {}
         for limit_key, limit_value in value.items():
             try:
                 limits[limit_key] = int(limit_value)
@@ -611,29 +611,29 @@ def _env_limits() -> Dict[str, Dict[str, int]]:
     return _ENV_LIMITS_CACHE
 
 
-def _pack_tests_executed(entries: Iterable[Any], limit: int) -> Dict[str, Any]:
+def _pack_tests_executed(entries: Iterable[Any], limit: int) -> dict[str, Any]:
     from aidd_runtime import reports_pack_assemble as _assemble
 
     return _assemble.pack_tests_executed(entries, limit)
 
 
 def build_research_pack(
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
     *,
-    source_path: Optional[str] = None,
-    limits: Optional[Dict[str, int]] = None,
-) -> Dict[str, Any]:
+    source_path: str | None = None,
+    limits: dict[str, int] | None = None,
+) -> dict[str, Any]:
     from aidd_runtime import reports_pack_assemble as _assemble
 
     return _assemble.build_research_pack(payload, source_path=source_path, limits=limits)
 
 
 def build_research_context_pack(
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
     *,
-    source_path: Optional[str] = None,
-    limits: Optional[Dict[str, int]] = None,
-) -> Dict[str, Any]:
+    source_path: str | None = None,
+    limits: dict[str, int] | None = None,
+) -> dict[str, Any]:
     print(
         "[aidd] WARN: build_research_context_pack is deprecated; use build_research_pack.",
         file=sys.stderr,
@@ -642,52 +642,52 @@ def build_research_context_pack(
 
 
 def build_qa_pack(
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
     *,
-    source_path: Optional[str] = None,
-    limits: Optional[Dict[str, int]] = None,
-) -> Dict[str, Any]:
+    source_path: str | None = None,
+    limits: dict[str, int] | None = None,
+) -> dict[str, Any]:
     from aidd_runtime import reports_pack_assemble as _assemble
 
     return _assemble.build_qa_pack(payload, source_path=source_path, limits=limits)
 
 
 def build_prd_pack(
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
     *,
-    source_path: Optional[str] = None,
-    limits: Optional[Dict[str, int]] = None,
-) -> Dict[str, Any]:
+    source_path: str | None = None,
+    limits: dict[str, int] | None = None,
+) -> dict[str, Any]:
     from aidd_runtime import reports_pack_assemble as _assemble
 
     return _assemble.build_prd_pack(payload, source_path=source_path, limits=limits)
 
 
-def _load_rlm_links_stats(root: Path, ticket: str) -> Optional[Dict[str, Any]]:
+def _load_rlm_links_stats(root: Path, ticket: str) -> dict[str, Any] | None:
     from aidd_runtime import reports_pack_assemble as _assemble
 
     return _assemble.load_rlm_links_stats(root, ticket)
 
 
-def _rlm_link_warnings(stats: Dict[str, Any]) -> List[str]:
+def _rlm_link_warnings(stats: dict[str, Any]) -> list[str]:
     from aidd_runtime import reports_pack_assemble as _assemble
 
     return _assemble.rlm_link_warnings(stats)
 
 
-def _pack_rlm_nodes(nodes: Iterable[Dict[str, Any]], limit: int) -> List[Dict[str, Any]]:
+def _pack_rlm_nodes(nodes: Iterable[dict[str, Any]], limit: int) -> list[dict[str, Any]]:
     from aidd_runtime import reports_pack_assemble as _assemble
 
     return _assemble.pack_rlm_nodes(nodes, limit)
 
 
 def _pack_rlm_links(
-    links: Iterable[Dict[str, Any]],
+    links: Iterable[dict[str, Any]],
     *,
     limit: int,
-    root: Optional[Path],
+    root: Path | None,
     snippet_chars: int,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     from aidd_runtime import reports_pack_assemble as _assemble
 
     return _assemble.pack_rlm_links(
@@ -699,26 +699,26 @@ def _pack_rlm_links(
 
 
 def _load_rlm_worklist_summary(
-    root: Optional[Path],
-    ticket: Optional[str],
+    root: Path | None,
+    ticket: str | None,
     *,
-    context: Optional[Dict[str, Any]] = None,
-) -> tuple[Optional[str], Optional[int], Optional[Path]]:
+    context: dict[str, Any] | None = None,
+) -> tuple[str | None, int | None, Path | None]:
     from aidd_runtime import reports_pack_assemble as _assemble
 
     return _assemble.load_rlm_worklist_summary(root, ticket, context=context)
 
 
 def build_rlm_pack(
-    nodes: List[Dict[str, Any]],
-    links: List[Dict[str, Any]],
+    nodes: list[dict[str, Any]],
+    links: list[dict[str, Any]],
     *,
-    ticket: Optional[str],
-    slug_hint: Optional[str] = None,
-    source_path: Optional[str] = None,
-    limits: Optional[Dict[str, int]] = None,
-    root: Optional[Path] = None,
-) -> Dict[str, Any]:
+    ticket: str | None,
+    slug_hint: str | None = None,
+    source_path: str | None = None,
+    limits: dict[str, int] | None = None,
+    root: Path | None = None,
+) -> dict[str, Any]:
     from aidd_runtime import reports_pack_assemble as _assemble
 
     return _assemble.build_rlm_pack(
@@ -732,10 +732,10 @@ def build_rlm_pack(
     )
 
 
-def _load_jsonl(path: Path) -> List[Dict[str, Any]]:
+def _load_jsonl(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
-    items: List[Dict[str, Any]] = []
+    items: list[dict[str, Any]] = []
     try:
         with path.open("r", encoding="utf-8") as handle:
             for line in handle:
@@ -759,16 +759,16 @@ def write_rlm_pack(
     nodes_path: Path,
     links_path: Path,
     *,
-    output: Optional[Path] = None,
-    ticket: Optional[str] = None,
-    slug_hint: Optional[str] = None,
-    limits: Optional[Dict[str, int]] = None,
-    root: Optional[Path] = None,
+    output: Path | None = None,
+    ticket: str | None = None,
+    slug_hint: str | None = None,
+    limits: dict[str, int] | None = None,
+    root: Path | None = None,
 ) -> Path:
     target = root or nodes_path.parents[2]
     nodes = _load_jsonl(nodes_path)
     links = _load_jsonl(links_path)
-    rlm_limits: Dict[str, int] = {}
+    rlm_limits: dict[str, int] = {}
     rlm_settings = load_rlm_settings(target)
     pack_budget_cfg = rlm_settings.get("pack_budget") if isinstance(rlm_settings.get("pack_budget"), dict) else {}
     enforce_budget = bool(pack_budget_cfg.get("enforce"))
@@ -835,7 +835,7 @@ def _pack_path_for(json_path: Path) -> Path:
     return json_path.with_name(json_path.name + ext)
 
 
-def _write_pack(payload: Dict[str, Any], pack_path: Path) -> Path:
+def _write_pack(payload: dict[str, Any], pack_path: Path) -> Path:
     text = _serialize_pack(payload)
     return _write_pack_text(text, pack_path)
 
@@ -843,9 +843,9 @@ def _write_pack(payload: Dict[str, Any], pack_path: Path) -> Path:
 def write_research_pack(
     json_path: Path,
     *,
-    output: Optional[Path] = None,
-    root: Optional[Path] = None,
-    limits: Optional[Dict[str, int]] = None,
+    output: Path | None = None,
+    root: Path | None = None,
+    limits: dict[str, int] | None = None,
 ) -> Path:
     path = json_path.resolve()
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -881,9 +881,9 @@ def write_research_pack(
 def write_research_context_pack(
     json_path: Path,
     *,
-    output: Optional[Path] = None,
-    root: Optional[Path] = None,
-    limits: Optional[Dict[str, int]] = None,
+    output: Path | None = None,
+    root: Path | None = None,
+    limits: dict[str, int] | None = None,
 ) -> Path:
     print(
         "[aidd] WARN: write_research_context_pack is deprecated; use write_research_pack.",
@@ -900,9 +900,9 @@ def write_research_context_pack(
 def write_qa_pack(
     json_path: Path,
     *,
-    output: Optional[Path] = None,
-    root: Optional[Path] = None,
-    limits: Optional[Dict[str, int]] = None,
+    output: Path | None = None,
+    root: Path | None = None,
+    limits: dict[str, int] | None = None,
 ) -> Path:
     path = json_path.resolve()
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -919,7 +919,7 @@ def write_qa_pack(
     lim = {**QA_LIMITS, **env_limits, **(limits or {})}
     findings = payload.get("findings") or []
     tests_executed = payload.get("tests_executed") or []
-    errors: List[str] = []
+    errors: list[str] = []
     errors.extend(_check_count_budget("qa", field="findings", actual=len(findings), limit=lim["findings"]))
     errors.extend(
         _check_count_budget("qa", field="tests_executed", actual=len(tests_executed), limit=lim["tests_executed"])
@@ -938,9 +938,9 @@ def write_qa_pack(
 def write_prd_pack(
     json_path: Path,
     *,
-    output: Optional[Path] = None,
-    root: Optional[Path] = None,
-    limits: Optional[Dict[str, int]] = None,
+    output: Path | None = None,
+    root: Path | None = None,
+    limits: dict[str, int] | None = None,
 ) -> Path:
     path = json_path.resolve()
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -957,7 +957,7 @@ def write_prd_pack(
     lim = {**PRD_LIMITS, **env_limits, **(limits or {})}
     findings = payload.get("findings") or []
     action_items = payload.get("action_items") or []
-    errors: List[str] = []
+    errors: list[str] = []
     errors.extend(_check_count_budget("prd", field="findings", actual=len(findings), limit=lim["findings"]))
     errors.extend(_check_count_budget("prd", field="action_items", actual=len(action_items), limit=lim["action_items"]))
     if errors:
@@ -971,7 +971,7 @@ def write_prd_pack(
     return _write_pack(pack, pack_path)
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Generate RLM pack from nodes/links JSONL.")
     parser.add_argument(
         "--output",

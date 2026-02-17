@@ -11,10 +11,9 @@ import subprocess
 import sys
 import threading
 from pathlib import Path
-from typing import Dict, List, Optional, TextIO, Tuple
+from typing import TextIO
 
-from aidd_runtime import claude_stream_render
-from aidd_runtime import runtime
+from aidd_runtime import claude_stream_render, runtime
 
 
 def runner_supports_flag(command: str, flag: str) -> bool:
@@ -33,8 +32,8 @@ def runner_supports_flag(command: str, flag: str) -> bool:
     return flag in (proc.stdout or "")
 
 
-def _strip_flag_with_value(tokens: List[str], flag: str) -> Tuple[List[str], bool]:
-    cleaned: List[str] = []
+def _strip_flag_with_value(tokens: list[str], flag: str) -> tuple[list[str], bool]:
+    cleaned: list[str] = []
     stripped = False
     skip_next = False
     for token in tokens:
@@ -53,17 +52,17 @@ def _strip_flag_with_value(tokens: List[str], flag: str) -> Tuple[List[str], boo
     return cleaned, stripped
 
 
-def inject_plugin_flags(tokens: List[str], plugin_root: Path) -> Tuple[List[str], List[str]]:
-    notices: List[str] = []
+def inject_plugin_flags(tokens: list[str], plugin_root: Path) -> tuple[list[str], list[str]]:
+    notices: list[str] = []
     updated, stripped_plugin = _strip_flag_with_value(tokens, "--plugin-dir")
     updated, stripped_add = _strip_flag_with_value(updated, "--add-dir")
     if stripped_plugin or stripped_add:
-        notices.append("runner plugin flags replaced with KIMI_AIDD_ROOT")
+        notices.append("runner plugin flags replaced with AIDD_ROOT")
     updated.extend(["--plugin-dir", str(plugin_root), "--add-dir", str(plugin_root)])
     return updated, notices
 
 
-def validate_command_available(plugin_root: Path, stage: str) -> Tuple[bool, str, str]:
+def validate_command_available(plugin_root: Path, stage: str) -> tuple[bool, str, str]:
     if not plugin_root.exists():
         return False, f"plugin root not found: {plugin_root}", "plugin_root_missing"
     skill_path = plugin_root / "skills" / stage / "SKILL.md"
@@ -75,10 +74,10 @@ def validate_command_available(plugin_root: Path, stage: str) -> Tuple[bool, str
     return False, f"command not found: /feature-dev-aidd:{stage}", "command_unavailable"
 
 
-def resolve_runner(args_runner: str | None, plugin_root: Path) -> Tuple[List[str], str, str]:
+def resolve_runner(args_runner: str | None, plugin_root: Path) -> tuple[list[str], str, str]:
     raw = args_runner or os.environ.get("AIDD_LOOP_RUNNER") or "claude"
     tokens = shlex.split(raw) if raw.strip() else ["claude"]
-    notices: List[str] = []
+    notices: list[str] = []
     if "-p" in tokens:
         tokens = [token for token in tokens if token != "-p"]
         notices.append("runner flag -p dropped; loop-step adds -p with slash command")
@@ -91,8 +90,8 @@ def resolve_runner(args_runner: str | None, plugin_root: Path) -> Tuple[List[str
     return tokens, raw, "; ".join(notices)
 
 
-def _parse_wrapper_output(stdout: str) -> Dict[str, str]:
-    payload: Dict[str, str] = {}
+def _parse_wrapper_output(stdout: str) -> dict[str, str]:
+    payload: dict[str, str] = {}
     for raw in stdout.splitlines():
         line = raw.strip()
         if "=" not in line:
@@ -106,9 +105,9 @@ def _parse_wrapper_output(stdout: str) -> Dict[str, str]:
     return payload
 
 
-def _runtime_env(plugin_root: Path) -> Dict[str, str]:
+def _runtime_env(plugin_root: Path) -> dict[str, str]:
     env = os.environ.copy()
-    env["KIMI_AIDD_ROOT"] = str(plugin_root)
+    env["AIDD_ROOT"] = str(plugin_root)
     current = env.get("PYTHONPATH", "")
     if current:
         parts = current.split(os.pathsep)
@@ -120,13 +119,13 @@ def _runtime_env(plugin_root: Path) -> Dict[str, str]:
 
 
 def _stage_wrapper_log_path(target: Path, stage: str, ticket: str, scope_key: str, kind: str) -> Path:
-    ts = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    ts = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
     log_dir = target / "reports" / "logs" / stage / ticket / scope_key
     log_dir.mkdir(parents=True, exist_ok=True)
     return log_dir / f"wrapper.{kind}.{ts}.log"
 
 
-def _append_stage_wrapper_log(log_path: Path, command: List[str], stdout: str, stderr: str) -> None:
+def _append_stage_wrapper_log(log_path: Path, command: list[str], stdout: str, stderr: str) -> None:
     log_path.parent.mkdir(parents=True, exist_ok=True)
     with log_path.open("a", encoding="utf-8") as handle:
         handle.write("$ " + " ".join(shlex.quote(token) for token in command) + "\n")
@@ -142,11 +141,11 @@ def _append_stage_wrapper_log(log_path: Path, command: List[str], stdout: str, s
 
 def _run_runtime_command(
     *,
-    command: List[str],
+    command: list[str],
     cwd: Path,
-    env: Dict[str, str],
+    env: dict[str, str],
     log_path: Path,
-) -> Tuple[int, str, str]:
+) -> tuple[int, str, str]:
     proc = subprocess.run(
         command,
         cwd=cwd,
@@ -162,7 +161,7 @@ def _run_runtime_command(
     return proc.returncode, stdout, stderr
 
 
-def _resolve_stage_paths(target: Path, ticket: str, scope_key: str, stage: str) -> Dict[str, Path]:
+def _resolve_stage_paths(target: Path, ticket: str, scope_key: str, stage: str) -> dict[str, Path]:
     actions_dir = target / "reports" / "actions" / ticket / scope_key
     context_dir = target / "reports" / "context" / ticket
     loops_dir = target / "reports" / "loops" / ticket / scope_key
@@ -183,7 +182,7 @@ def _resolve_stage_paths(target: Path, ticket: str, scope_key: str, stage: str) 
     }
 
 
-def _copy_optional_preflight_fallback(paths: Dict[str, Path]) -> None:
+def _copy_optional_preflight_fallback(paths: dict[str, Path]) -> None:
     if os.environ.get("AIDD_WRITE_FALLBACK_PREFLIGHT", "").strip() != "1":
         return
     mappings = (
@@ -216,10 +215,10 @@ def run_stage_wrapper(
     actions_path: str = "",
     result: str = "",
     verdict: str = "",
-) -> Tuple[bool, Dict[str, str], str]:
+) -> tuple[bool, dict[str, str], str]:
     _, target = runtime.require_workflow_root(workspace_root)
     env = _runtime_env(plugin_root)
-    parsed: Dict[str, str] = {}
+    parsed: dict[str, str] = {}
     paths = _resolve_stage_paths(target, ticket, scope_key, stage)
     wrapper_log_path = _stage_wrapper_log_path(target, stage, ticket, scope_key, kind)
 
@@ -231,7 +230,7 @@ def run_stage_wrapper(
     )
 
     if kind == "preflight":
-        commands: List[List[str]] = [
+        commands: list[list[str]] = [
             [
                 sys.executable,
                 str(plugin_root / "skills" / "aidd-flow-state" / "runtime" / "set_active_feature.py"),
@@ -451,7 +450,7 @@ def validate_stage_wrapper_contract(
     scope_key: str,
     stage: str,
     actions_log_rel: str,
-) -> Tuple[bool, str, str]:
+) -> tuple[bool, str, str]:
     if stage not in {"implement", "review", "qa"}:
         return True, "", ""
     actions_dir = target / "reports" / "actions" / ticket / scope_key
@@ -468,7 +467,7 @@ def validate_stage_wrapper_contract(
         "writemap_md": context_dir / f"{scope_key}.writemap.md",
         "preflight_result": loops_dir / "stage.preflight.result.json",
     }
-    missing: List[str] = []
+    missing: list[str] = []
     for path in required_paths.values():
         if not path.exists():
             missing.append(runtime.rel_path(path, target))
@@ -492,14 +491,14 @@ def validate_stage_wrapper_contract(
     return False, message, reason_code
 
 
-def build_command(stage: str, ticket: str) -> List[str]:
+def build_command(stage: str, ticket: str) -> list[str]:
     command = f"/feature-dev-aidd:{stage} {ticket}"
     return ["-p", command]
 
 
 class MultiWriter:
-    def __init__(self, *streams: Optional[TextIO]) -> None:
-        self._streams: List[TextIO] = [stream for stream in streams if stream is not None]
+    def __init__(self, *streams: TextIO | None) -> None:
+        self._streams: list[TextIO] = [stream for stream in streams if stream is not None]
 
     def write(self, data: str) -> None:
         for stream in self._streams:
@@ -510,7 +509,7 @@ class MultiWriter:
             stream.flush()
 
 
-def _drain_stream(pipe: Optional[TextIO], writer: MultiWriter, raw_log: TextIO) -> None:
+def _drain_stream(pipe: TextIO | None, writer: MultiWriter, raw_log: TextIO) -> None:
     if pipe is None:
         return
     for line in pipe:
@@ -520,7 +519,7 @@ def _drain_stream(pipe: Optional[TextIO], writer: MultiWriter, raw_log: TextIO) 
         writer.flush()
 
 
-def run_command(command: List[str], cwd: Path, log_path: Path) -> int:
+def run_command(command: list[str], cwd: Path, log_path: Path) -> int:
     log_path.parent.mkdir(parents=True, exist_ok=True)
     with log_path.open("w", encoding="utf-8") as handle:
         result = subprocess.run(
@@ -535,14 +534,14 @@ def run_command(command: List[str], cwd: Path, log_path: Path) -> int:
 
 def run_stream_command(
     *,
-    command: List[str],
+    command: list[str],
     cwd: Path,
     log_path: Path,
     stream_mode: str,
     stream_jsonl_path: Path,
     stream_log_path: Path,
     output_stream: TextIO,
-    header_lines: Optional[List[str]] = None,
+    header_lines: list[str] | None = None,
 ) -> int:
     log_path.parent.mkdir(parents=True, exist_ok=True)
     stream_jsonl_path.parent.mkdir(parents=True, exist_ok=True)

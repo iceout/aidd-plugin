@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import argparse
 import re
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, List, Set
 
 from aidd_runtime import gates
 from aidd_runtime.feature_ids import resolve_aidd_root
@@ -60,12 +60,12 @@ def normalize_path(raw: str, root: Path) -> str:
     return normalized.lstrip("/")
 
 
-def parse_review_section(content: str) -> tuple[bool, str, List[str]]:
+def parse_review_section(content: str) -> tuple[bool, str, list[str]]:
     inside = False
     found = False
     status = ""
-    action_items: List[str] = []
-    fallback_items: List[str] = []
+    action_items: list[str] = []
+    fallback_items: list[str] = []
     inside_action_items = False
     saw_action_items = False
     inside_fence = False
@@ -141,7 +141,7 @@ def run_gate(args: argparse.Namespace) -> int:
     ticket = args.ticket.strip()
     plan_path = root / "docs" / "plan" / f"{ticket}.md"
     if not plan_path.is_file():
-        print(f"BLOCK: нет плана (docs/plan/{ticket}.md) → выполните /feature-dev-aidd:plan-new {ticket}")
+        print(f"BLOCK: missing plan (docs/plan/{ticket}.md) -> run /feature-dev-aidd:plan-new {ticket}")
         return 1
 
     normalized = normalize_path(args.file_path, root)
@@ -155,24 +155,24 @@ def run_gate(args: argparse.Namespace) -> int:
     if not found:
         if allow_missing:
             return 0
-        print(f"BLOCK: нет раздела '## Plan Review' в docs/plan/{ticket}.md → выполните /feature-dev-aidd:review-spec {ticket}")
+        print(f"BLOCK: missing section '## Plan Review' in docs/plan/{ticket}.md -> run /feature-dev-aidd:review-spec {ticket}")
         return 1
 
-    approved: Set[str] = {str(item).lower() for item in gate.get("approved_statuses", DEFAULT_APPROVED)}
-    blocking: Set[str] = {str(item).lower() for item in gate.get("blocking_statuses", DEFAULT_BLOCKING)}
+    approved: set[str] = {str(item).lower() for item in gate.get("approved_statuses", DEFAULT_APPROVED)}
+    blocking: set[str] = {str(item).lower() for item in gate.get("blocking_statuses", DEFAULT_BLOCKING)}
 
     if status in blocking:
-        print(f"BLOCK: Plan Review помечен как '{status.upper()}' → устраните блокеры через /feature-dev-aidd:review-spec {ticket}")
+        print(f"BLOCK: Plan Review is marked '{status.upper()}' -> resolve blockers via /feature-dev-aidd:review-spec {ticket}")
         return 1
 
     if approved and status not in approved:
-        print(f"BLOCK: Plan Review не READY (Status: {status.upper() or 'PENDING'}) → выполните /feature-dev-aidd:review-spec {ticket}")
+        print(f"BLOCK: Plan Review is not READY (Status: {status.upper() or 'PENDING'}) -> run /feature-dev-aidd:review-spec {ticket}")
         return 1
 
     if bool(gate.get("require_action_items_closed", True)):
         for item in action_items:
             if item.startswith("- [ ]"):
-                print(f"BLOCK: В Plan Review остались незакрытые action items → обновите docs/plan/{ticket}.md")
+                print(f"BLOCK: Plan Review still has open action items -> update docs/plan/{ticket}.md")
                 return 1
 
     return 0

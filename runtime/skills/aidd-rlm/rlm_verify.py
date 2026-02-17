@@ -3,14 +3,14 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Dict, Iterable, List
 
 from aidd_runtime import runtime
 from aidd_runtime.rlm_config import load_rlm_settings, resolve_source_path
 
 
-def _symbol_variants(symbol: str) -> List[str]:
+def _symbol_variants(symbol: str) -> list[str]:
     symbol = symbol.strip()
     if not symbol:
         return []
@@ -26,8 +26,8 @@ def _contains_symbol(text: str, symbol: str) -> bool:
     return symbol in text
 
 
-def _validate_symbols(text: str, symbols: Iterable[str]) -> List[str]:
-    missing: List[str] = []
+def _validate_symbols(text: str, symbols: Iterable[str]) -> list[str]:
+    missing: list[str] = []
     for sym in symbols:
         sym = str(sym).strip()
         if not sym:
@@ -41,8 +41,8 @@ def _validate_symbols(text: str, symbols: Iterable[str]) -> List[str]:
     return missing
 
 
-def _iter_nodes(path: Path) -> List[Dict[str, object]]:
-    nodes: List[Dict[str, object]] = []
+def _iter_nodes(path: Path) -> list[dict[str, object]]:
+    nodes: list[dict[str, object]] = []
     if not path.exists():
         return nodes
     with path.open("r", encoding="utf-8") as handle:
@@ -59,7 +59,7 @@ def _iter_nodes(path: Path) -> List[Dict[str, object]]:
     return nodes
 
 
-def _write_nodes(path: Path, nodes: Iterable[Dict[str, object]]) -> None:
+def _write_nodes(path: Path, nodes: Iterable[dict[str, object]]) -> None:
     tmp_path = path.with_suffix(path.suffix + ".tmp")
     with tmp_path.open("w", encoding="utf-8") as handle:
         for node in nodes:
@@ -129,14 +129,14 @@ def verify_nodes(
     return updated
 
 
-def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Verify RLM nodes against source files.")
     parser.add_argument("--ticket", help="Ticket identifier (defaults to docs/.active.json).")
     parser.add_argument("--nodes", help="Override nodes.jsonl path.")
     return parser.parse_args(argv)
 
 
-def main(argv: List[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     workspace_root, project_root = runtime.require_workflow_root()
     ticket, _ = runtime.require_ticket(project_root, ticket=args.ticket, slug_hint=None)

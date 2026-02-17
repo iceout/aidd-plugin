@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from fnmatch import fnmatch
 from pathlib import Path
-from typing import Iterable
 
 DEFAULT_TESTS_POLICY = {
     "implement": "none",
@@ -23,7 +23,7 @@ def load_gates_config(target: Path) -> dict:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except Exception as exc:
-        raise ValueError(f"не удалось прочитать {path}: {exc}")
+        raise ValueError(f"failed to read {path}: {exc}")
 
 
 def load_gate_section(target: Path, section: str) -> dict:

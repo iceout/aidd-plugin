@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 BASE_COMMON_PATTERNS = ("config/",)
 
@@ -161,7 +161,7 @@ _SKIP_DIRS = {
     ".git",
     ".hg",
     ".svn",
-    ".claude",
+    ".aidd",
     ".venv",
     "venv",
     "node_modules",
@@ -244,7 +244,7 @@ def detect_build_tools(root: Path) -> set[str]:
     return detected
 
 
-def test_settings_payload(detected: set[str] | None = None) -> dict[str, list[str]]:
+def build_settings_payload(detected: set[str] | None = None) -> dict[str, list[str]]:
     if detected:
         patterns: list[str] = list(BASE_COMMON_PATTERNS)
         for tool in sorted(detected):

@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from aidd_runtime import runtime
 from aidd_runtime.diff_boundary_check import extract_boundaries, parse_front_matter
@@ -16,7 +16,7 @@ STAGES = ["preflight", "implement", "review", "qa"]
 IGNORE_CONFLICT_PATHS = {"aidd/reports/**", "aidd/reports/actions/**"}
 
 
-def _load_json(path: Path) -> Dict[str, Any]:
+def _load_json(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
     try:
@@ -26,13 +26,13 @@ def _load_json(path: Path) -> Dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
-def _parse_loop_pack(path: Path) -> Dict[str, Any]:
+def _parse_loop_pack(path: Path) -> dict[str, Any]:
     lines = path.read_text(encoding="utf-8").splitlines()
     front = parse_front_matter(lines)
     allowed_paths, _forbidden = extract_boundaries(front)
     # parse_front_matter from diff_boundary_check returns raw front-matter lines only,
     # so we read simple key-values manually below.
-    meta: Dict[str, str] = {}
+    meta: dict[str, str] = {}
     for raw in front:
         if ":" not in raw:
             continue
@@ -45,12 +45,12 @@ def _parse_loop_pack(path: Path) -> Dict[str, Any]:
     }
 
 
-def _scope_paths(loop_dir: Path) -> List[Path]:
+def _scope_paths(loop_dir: Path) -> list[Path]:
     return sorted(path for path in loop_dir.glob("*.loop.pack.md") if path.is_file())
 
 
-def _clean_conflict_paths(paths: List[str]) -> List[str]:
-    cleaned: List[str] = []
+def _clean_conflict_paths(paths: list[str]) -> list[str]:
+    cleaned: list[str] = []
     for item in paths:
         value = str(item or "").strip()
         if not value or value in IGNORE_CONFLICT_PATHS:
@@ -58,7 +58,7 @@ def _clean_conflict_paths(paths: List[str]) -> List[str]:
         if value.startswith("aidd/reports/") or value.startswith("reports/"):
             continue
         cleaned.append(value)
-    deduped: List[str] = []
+    deduped: list[str] = []
     for item in cleaned:
         if item not in deduped:
             deduped.append(item)
@@ -69,8 +69,8 @@ def _resolve_allowed_paths(
     target: Path,
     ticket: str,
     scope_key: str,
-    loop_allowed: List[str],
-) -> Tuple[List[str], str, str]:
+    loop_allowed: list[str],
+) -> tuple[list[str], str, str]:
     readmap_path = target / "reports" / "actions" / ticket / scope_key / "readmap.json"
     writemap_path = target / "reports" / "actions" / ticket / scope_key / "writemap.json"
 
@@ -92,9 +92,9 @@ def _build_nodes(
     target: Path,
     *,
     ticket: str,
-    scopes: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
-    nodes: List[Dict[str, Any]] = []
+    scopes: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    nodes: list[dict[str, Any]] = []
     for scope in sorted(scopes, key=lambda item: str(item.get("scope_key") or "")):
         scope_key = str(scope.get("scope_key") or "")
         work_item_key = str(scope.get("work_item_key") or "")
@@ -117,15 +117,15 @@ def _build_nodes(
     return nodes
 
 
-def _build_edges(nodes: List[Dict[str, Any]]) -> List[Dict[str, str]]:
-    by_scope: Dict[str, Dict[str, str]] = {}
+def _build_edges(nodes: list[dict[str, Any]]) -> list[dict[str, str]]:
+    by_scope: dict[str, dict[str, str]] = {}
     for node in nodes:
         scope_key = str(node.get("scope_key") or "")
         stage = str(node.get("stage") or "")
         node_id = str(node.get("id") or "")
         by_scope.setdefault(scope_key, {})[stage] = node_id
 
-    edges: List[Dict[str, str]] = []
+    edges: list[dict[str, str]] = []
     for scope_key in sorted(by_scope):
         mapping = by_scope[scope_key]
         for idx in range(len(STAGES) - 1):
@@ -137,8 +137,8 @@ def _build_edges(nodes: List[Dict[str, Any]]) -> List[Dict[str, str]]:
     return edges
 
 
-def _build_conflicts(nodes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    by_scope: Dict[str, List[str]] = {}
+def _build_conflicts(nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_scope: dict[str, list[str]] = {}
     for node in nodes:
         stage = str(node.get("stage") or "")
         if stage != "preflight":
@@ -147,7 +147,7 @@ def _build_conflicts(nodes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         paths = _clean_conflict_paths([str(item) for item in node.get("allowed_paths") or []])
         by_scope[scope_key] = paths
 
-    conflicts: List[Dict[str, Any]] = []
+    conflicts: list[dict[str, Any]] = []
     scopes = sorted(by_scope)
     for idx, left in enumerate(scopes):
         for right in scopes[idx + 1 :]:
@@ -165,7 +165,7 @@ def _build_conflicts(nodes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return conflicts
 
 
-def _render_markdown(payload: Dict[str, Any]) -> str:
+def _render_markdown(payload: dict[str, Any]) -> str:
     lines = [
         f"# DAG Export — {payload.get('ticket')}",
         "",

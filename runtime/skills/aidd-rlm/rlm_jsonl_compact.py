@@ -3,20 +3,19 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Dict, Iterable, List
 
 from aidd_runtime import runtime
 from aidd_runtime.io_utils import read_jsonl, write_jsonl
 
 
-def _compact_nodes(nodes: List[Dict[str, object]]) -> List[Dict[str, object]]:
-    dedup: Dict[str, Dict[str, object]] = {}
+def _compact_nodes(nodes: list[dict[str, object]]) -> list[dict[str, object]]:
+    dedup: dict[str, dict[str, object]] = {}
     for node in nodes:
         node_id = str(node.get("id") or node.get("file_id") or node.get("dir_id") or "").strip()
         if not node_id:
             continue
         dedup[node_id] = node
-    def sort_key(item: Dict[str, object]) -> tuple:
+    def sort_key(item: dict[str, object]) -> tuple:
         node_kind = str(item.get("node_kind") or "")
         path = str(item.get("path") or "")
         node_id = str(item.get("id") or item.get("file_id") or item.get("dir_id") or "")
@@ -24,14 +23,14 @@ def _compact_nodes(nodes: List[Dict[str, object]]) -> List[Dict[str, object]]:
     return sorted(dedup.values(), key=sort_key)
 
 
-def _compact_links(links: List[Dict[str, object]]) -> List[Dict[str, object]]:
-    dedup: Dict[str, Dict[str, object]] = {}
+def _compact_links(links: list[dict[str, object]]) -> list[dict[str, object]]:
+    dedup: dict[str, dict[str, object]] = {}
     for link in links:
         link_id = str(link.get("link_id") or "").strip()
         if not link_id:
             continue
         dedup[link_id] = link
-    def sort_key(item: Dict[str, object]) -> tuple:
+    def sort_key(item: dict[str, object]) -> tuple:
         evidence = item.get("evidence_ref") or {}
         match_hash = evidence.get("match_hash") or ""
         return (
@@ -43,7 +42,7 @@ def _compact_links(links: List[Dict[str, object]]) -> List[Dict[str, object]]:
     return sorted(dedup.values(), key=sort_key)
 
 
-def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Compact RLM JSONL files deterministically.")
     parser.add_argument("--ticket", help="Ticket identifier (defaults to docs/.active.json).")
     parser.add_argument("--nodes", help="Override nodes.jsonl path.")
@@ -51,7 +50,7 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: List[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     _, target = runtime.require_workflow_root()
     ticket, _ = runtime.require_ticket(target, ticket=args.ticket, slug_hint=None)

@@ -9,12 +9,11 @@ artifacts. This module now forwards execution to the canonical stage entrypoint:
 from __future__ import annotations
 
 import sys
-from typing import List, Optional
 
 from aidd_runtime import research as research_runtime
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     print(
         "[aidd] WARN: researcher_context.py is deprecated; forwarding to researcher/runtime/research.py (RLM-only).",
         file=sys.stderr,
