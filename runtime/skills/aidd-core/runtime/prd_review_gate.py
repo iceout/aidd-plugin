@@ -40,7 +40,6 @@ DEFAULT_CODE_PREFIXES = (
 )
 REVIEW_HEADER = "## PRD Review"
 DIALOG_HEADER = "## Dialog analyst"
-LEGACY_DIALOG_HEADER = "## \u0414\u0438\u0430\u043b\u043e\u0433 analyst"
 
 
 
@@ -238,7 +237,7 @@ def extract_dialog_status(content: str) -> str | None:
     for raw in content.splitlines():
         stripped = raw.strip()
         lower = stripped.lower()
-        if lower.startswith(DIALOG_HEADER.lower()) or lower.startswith(LEGACY_DIALOG_HEADER.lower()):
+        if lower.startswith(DIALOG_HEADER.lower()):
             inside = True
             continue
         if inside and stripped.startswith("## "):

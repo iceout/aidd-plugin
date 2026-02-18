@@ -25,12 +25,7 @@ INTERNAL_STAGES: tuple[str, ...] = (
 
 CANONICAL_STAGES: frozenset[str] = frozenset(PUBLIC_STAGES + INTERNAL_STAGES)
 
-# Legacy aliases that still appear in historical artifacts.
-STAGE_ALIASES: dict[str, str] = {
-    "task": "tasklist",
-    "tasks": "tasklist",
-    "spec": "spec-interview",
-}
+STAGE_ALIASES: dict[str, str] = {}
 
 LOOP_STAGES: frozenset[str] = frozenset(
     {

@@ -18,8 +18,11 @@ def _bootstrap() -> None:
         print(f"{HOOK_PREFIX} AIDD_ROOT is required to run hooks.", file=sys.stderr)
         raise SystemExit(2)
     plugin_root = Path(raw).expanduser().resolve()
-    if str(plugin_root) not in sys.path:
-        sys.path.insert(0, str(plugin_root))
+    runtime_path = plugin_root / "runtime"
+    for entry in (runtime_path, plugin_root):
+        entry_str = str(entry)
+        if entry_str not in sys.path:
+            sys.path.insert(0, entry_str)
     vendor_dir = plugin_root / "hooks" / "_vendor"
     if vendor_dir.exists():
         sys.path.insert(0, str(vendor_dir))
@@ -101,18 +104,6 @@ def _loop_scope_key(root: Path, ticket: str, stage: str) -> str:
     return _runtime.resolve_scope_key(work_item_key, ticket)
 
 
-def _fallback_scope_key(root: Path, ticket: str) -> str:
-    raw_scope = ticket or ""
-    try:
-        state = json.loads((root / "docs" / ".active.json").read_text(encoding="utf-8"))
-        if isinstance(state, dict):
-            raw_scope = str(state.get("work_item") or raw_scope)
-    except Exception:
-        pass
-    cleaned = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in raw_scope)
-    return cleaned.strip("._-") or "ticket"
-
-
 def _loop_preflight_guard(root: Path, ticket: str, stage: str, hooks_mode: str) -> tuple[bool, str]:
     from aidd_runtime import runtime as _runtime
 
@@ -149,46 +140,15 @@ def _loop_preflight_guard(root: Path, ticket: str, stage: str, hooks_mode: str) 
         "writemap_md": context_dir / f"{scope_key}.writemap.md",
         "preflight_result": loops_dir / "stage.preflight.result.json",
     }
-    fallback_paths = {
-        "readmap_json": actions_dir / "readmap.json",
-        "readmap_md": actions_dir / "readmap.md",
-        "writemap_json": actions_dir / "writemap.json",
-        "writemap_md": actions_dir / "writemap.md",
-        "preflight_result": actions_dir / "stage.preflight.result.json",
-    }
-    allow_fallback_preflight = os.environ.get("AIDD_ALLOW_FALLBACK_PREFLIGHT", "").strip() == "1"
 
     missing: list[str] = []
-    preflight_warnings: list[str] = []
     for key, path in required.items():
         if path.exists():
-            continue
-        fallback = fallback_paths.get(key)
-        if (
-            key == "readmap_md"
-            and allow_fallback_preflight
-            and not (actions_dir / "readmap.md").exists()
-            and (actions_dir / "readmap.json").exists()
-        ):
-            fallback = actions_dir / "readmap.json"
-        if (
-            key == "writemap_md"
-            and allow_fallback_preflight
-            and not (actions_dir / "writemap.md").exists()
-            and (actions_dir / "writemap.json").exists()
-        ):
-            fallback = actions_dir / "writemap.json"
-        if fallback and fallback.exists() and allow_fallback_preflight:
-            preflight_warnings.append(
-                f"WARN: using fallback preflight artifact ({_runtime.rel_path(fallback, root)}) "
-                "(reason_code=preflight_fallback_path)"
-            )
             continue
         missing.append(_runtime.rel_path(path, root))
 
     if missing:
         return False, f"BLOCK: missing preflight artifacts ({', '.join(missing)}) (reason_code=preflight_missing)"
-    warnings.extend(preflight_warnings)
     wrapper_logs = sorted(logs_dir.glob("wrapper.*.log")) if logs_dir.exists() else []
     if not wrapper_logs:
         expected = _runtime.rel_path(logs_dir / "wrapper.*.log", root)
@@ -311,42 +271,24 @@ def _reviewer_notice(root: Path, ticket: str, slug_hint: str) -> str:
         optional_values = []
     allowed_values = set(required_values + optional_values)
 
-    slug_value = slug_hint.strip() or ticket
-    runtime_fallback = ""
-    try:
-        from aidd_runtime import runtime as _runtime
+    from aidd_runtime import runtime as _runtime
 
-        work_item_key = _runtime.read_active_work_item(root)
-        scope_key = _runtime.resolve_scope_key(work_item_key, ticket)
-        marker_path = _runtime.reviewer_marker_path(
-            root,
-            template,
-            ticket,
-            slug_hint or None,
-            scope_key=scope_key,
-        )
-    except Exception as exc:
-        runtime_fallback = f"WARN: reviewer runtime fallback ({exc.__class__.__name__})."
-        cleaned_scope = _fallback_scope_key(root, ticket)
-        raw_path = (
-            template.replace("{ticket}", ticket)
-            .replace("{slug}", slug_value)
-            .replace("{scope_key}", cleaned_scope)
-        )
-        marker_path = Path(raw_path)
-        if not marker_path.is_absolute() and marker_path.parts and marker_path.parts[0] == "aidd" and root.name == "aidd":
-            marker_path = root / Path(*marker_path.parts[1:])
-        elif not marker_path.is_absolute():
-            marker_path = root / marker_path
+    work_item_key = _runtime.read_active_work_item(root)
+    scope_key = _runtime.resolve_scope_key(work_item_key, ticket)
+    marker_path = _runtime.reviewer_marker_path(
+        root,
+        template,
+        ticket,
+        slug_hint or None,
+        scope_key=scope_key,
+    )
 
     if not marker_path.exists():
         if reviewer_cfg.get("warn_on_missing", True):
             message = (
                 f"WARN: reviewer marker not found ({marker_path}). Use "
-                "`python3 ${AIDD_ROOT}/skills/review/runtime/reviewer_tests.py --status required` if needed."
+                "`python3 ${AIDD_ROOT}/runtime/skills/review/reviewer_tests.py --status required` if needed."
             )
-            if runtime_fallback:
-                return f"{runtime_fallback} {message}"
             return message
         return ""
 
@@ -355,7 +297,7 @@ def _reviewer_notice(root: Path, ticket: str, slug_hint: str) -> str:
     except Exception:
         return (
             f"WARN: reviewer marker is corrupted ({marker_path}). Recreate it with "
-            "`python3 ${AIDD_ROOT}/skills/review/runtime/reviewer_tests.py --status required`."
+            "`python3 ${AIDD_ROOT}/runtime/skills/review/reviewer_tests.py --status required`."
         )
 
     value = str(data.get(field, "")).strip().lower()
@@ -434,45 +376,18 @@ def _handoff_block(root: Path, ticket: str, slug_hint: str, branch: str, tasklis
     if research_path and research_requires_handoff(research_path):
         reports.append(("research", research_path, marker_for(research_path)))
 
-    reviewer_cfg = config.get("reviewer") or {}
-    try:
-        from aidd_runtime import runtime as _runtime
+    from aidd_runtime import runtime as _runtime
 
-        review_template = _runtime.review_report_template(root)
-        work_item_key = _runtime.read_active_work_item(root)
-        scope_key = _runtime.resolve_scope_key(work_item_key, ticket)
-        review_path = _runtime.reviewer_marker_path(
-            root,
-            str(review_template),
-            ticket,
-            slug_hint or None,
-            scope_key=scope_key,
-        )
-    except Exception:
-        review_template = (
-            reviewer_cfg.get("review_report")
-            or reviewer_cfg.get("report")
-            or "aidd/reports/reviewer/{ticket}/{scope_key}.json"
-        )
-        raw_scope = ticket or ""
-        try:
-            state = json.loads((root / "docs" / ".active.json").read_text(encoding="utf-8"))
-            if isinstance(state, dict):
-                raw_scope = str(state.get("work_item") or raw_scope)
-        except Exception:
-            pass
-        cleaned_scope = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in raw_scope).strip("._-") or "ticket"
-        raw_path = (
-            str(review_template)
-            .replace("{ticket}", ticket)
-            .replace("{slug}", slug_value)
-            .replace("{scope_key}", cleaned_scope)
-        )
-        review_path = Path(raw_path)
-        if not review_path.is_absolute() and review_path.parts and review_path.parts[0] == "aidd" and root.name == "aidd":
-            review_path = root / Path(*review_path.parts[1:])
-        elif not review_path.is_absolute():
-            review_path = root / review_path
+    review_template = _runtime.review_report_template(root)
+    work_item_key = _runtime.read_active_work_item(root)
+    scope_key = _runtime.resolve_scope_key(work_item_key, ticket)
+    review_path = _runtime.reviewer_marker_path(
+        root,
+        str(review_template),
+        ticket,
+        slug_hint or None,
+        scope_key=scope_key,
+    )
     if review_path.exists():
         has_review_report = False
         try:
@@ -528,7 +443,7 @@ def _handoff_block(root: Path, ticket: str, slug_hint: str, branch: str, tasklis
         items = ", ".join(f"{name}: {marker}" for name, marker in missing)
         return (
             f"BLOCK: handoff tasks were not added to tasklist ({items}). "
-            f"Run `python3 ${{AIDD_ROOT}}/skills/aidd-flow-state/runtime/tasks_derive.py --source <qa|research|review> --append --ticket {ticket}`."
+            f"Run `python3 ${{AIDD_ROOT}}/runtime/skills/aidd-flow-state/tasks_derive.py --source <qa|research|review> --append --ticket {ticket}`."
         )
     return ""
 
@@ -551,7 +466,7 @@ def main() -> int:
     if not (root / "docs").is_dir():
         _log_stderr(
             "BLOCK: aidd/docs not found at {}. Run '/feature-dev-aidd:aidd-init' or "
-            "'python3 ${{AIDD_ROOT}}/skills/aidd-init/runtime/init.py' from the workspace root to bootstrap ./aidd.".format(
+            "'python3 ${{AIDD_ROOT}}/runtime/skills/aidd-init/runtime/init.py' from the workspace root to bootstrap ./aidd.".format(
                 root / "docs"
             )
         )

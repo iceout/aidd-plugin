@@ -222,7 +222,7 @@ def _run_loop_pack(target: Path, *, ticket: str, stage: str, work_item_key: str)
     plugin_root = runtime.require_plugin_root()
     cmd = [
         sys.executable,
-        str(plugin_root / "skills" / "aidd-loop" / "runtime" / "loop_pack.py"),
+        str(plugin_root / "runtime" / "skills" / "aidd-loop" / "loop_pack.py"),
         "--ticket",
         ticket,
         "--stage",
@@ -234,7 +234,12 @@ def _run_loop_pack(target: Path, *, ticket: str, stage: str, work_item_key: str)
     ]
     env = os.environ.copy()
     env["AIDD_ROOT"] = str(plugin_root)
-    env["PYTHONPATH"] = str(plugin_root) if not env.get("PYTHONPATH") else f"{plugin_root}:{env['PYTHONPATH']}"
+    runtime_path = plugin_root / "runtime"
+    env["PYTHONPATH"] = (
+        str(runtime_path)
+        if not env.get("PYTHONPATH")
+        else f"{runtime_path}:{env['PYTHONPATH']}"
+    )
     proc = subprocess.run(cmd, cwd=target, text=True, capture_output=True, env=env)
     raw = (proc.stdout or "").strip()
     payload: dict[str, Any] = {}

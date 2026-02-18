@@ -413,12 +413,6 @@ def _resolve_stage_paths(target: Path, ticket: str, scope_key: str, stage: str) 
     return _wrappers._resolve_stage_paths(target, ticket, scope_key, stage)
 
 
-def _copy_optional_preflight_fallback(paths: dict[str, Path]) -> None:
-    from aidd_runtime import loop_step_wrappers as _wrappers
-
-    _wrappers._copy_optional_preflight_fallback(paths)
-
-
 def run_stage_wrapper(
     *,
     plugin_root: Path,

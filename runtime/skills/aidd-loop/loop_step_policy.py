@@ -207,14 +207,6 @@ def is_skill_first(plugin_root: Path) -> bool:
 
 
 def resolve_wrapper_plugin_root(plugin_root: Path) -> Path:
-    for env_name in ("AIDD_STAGE_WRAPPERS_ROOT", "AIDD_WRAPPER_PLUGIN_ROOT"):
-        raw = os.environ.get(env_name, "").strip()
-        if not raw:
-            continue
-        print(
-            f"[loop-step] WARN: {env_name} is deprecated in python-only mode and will be ignored",
-            file=core.sys.stderr,
-        )
     return plugin_root
 
 

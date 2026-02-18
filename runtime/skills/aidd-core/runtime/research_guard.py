@@ -45,11 +45,11 @@ class ResearchCheckSummary:
 
 
 def _research_cmd_hint(ticket: str) -> str:
-    return f"python3 ${{AIDD_ROOT}}/skills/researcher/runtime/research.py --ticket {ticket} --auto"
+    return f"python3 ${{AIDD_ROOT}}/runtime/skills/researcher/research.py --ticket {ticket} --auto"
 
 
 def _rlm_links_cmd_hint(ticket: str) -> str:
-    return f"python3 ${{AIDD_ROOT}}/skills/aidd-rlm/runtime/rlm_links_build.py --ticket {ticket}"
+    return f"python3 ${{AIDD_ROOT}}/runtime/skills/aidd-rlm/rlm_links_build.py --ticket {ticket}"
 
 
 def _normalize_langs(raw: Iterable[str] | None) -> list[str] | None:
@@ -403,7 +403,7 @@ def _validate_rlm_evidence(
         if settings.rlm_require_nodes and (not nodes_exists or nodes_total == 0):
             raise ResearchValidationError(
                 "BLOCK: current stage requires RLM nodes (rlm.nodes.jsonl), but they are missing or empty. "
-                f"Hint: run `${{AIDD_ROOT}}/skills/aidd-rlm/runtime/rlm_nodes_build.py --bootstrap --ticket {ticket}` "
+                f"Hint: run `${{AIDD_ROOT}}/runtime/skills/aidd-rlm/rlm_nodes_build.py --bootstrap --ticket {ticket}` "
                 "(reason_code=rlm_nodes_missing)."
             )
         if links_warn:
@@ -412,7 +412,7 @@ def _validate_rlm_evidence(
         if settings.rlm_require_pack and not pack_exists:
             raise ResearchValidationError(
                 "BLOCK: current stage requires an RLM pack, but it is missing. "
-                f"Hint: run `${{AIDD_ROOT}}/skills/aidd-rlm/runtime/rlm_finalize.py --ticket {ticket}` "
+                f"Hint: run `${{AIDD_ROOT}}/runtime/skills/aidd-rlm/rlm_finalize.py --ticket {ticket}` "
                 "(reason_code=rlm_pack_missing)."
             )
         if rlm_status != "ready":
@@ -567,7 +567,7 @@ def main(argv: list[str] | None = None) -> int:
         parser.exit(
             1,
             f"BLOCK: expected aidd/docs at {root / 'docs'}. "
-            f"Run '/feature-dev-aidd:aidd-init' or 'python3 ${{AIDD_ROOT}}/skills/aidd-init/runtime/init.py' from the workspace root.",
+            f"Run '/feature-dev-aidd:aidd-init' or 'python3 ${{AIDD_ROOT}}/runtime/skills/aidd-init/runtime/init.py' from the workspace root.",
         )
     settings = load_settings(root)
     try:

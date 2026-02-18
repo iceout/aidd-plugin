@@ -10,19 +10,17 @@ from aidd_runtime.feature_ids import resolve_aidd_root
 
 # Allow Markdown prefixes (headings/bullets/bold) so analyst output doesn't trip the gate.
 QUESTION_RE = re.compile(
-    r"^\s*(?:[#>*-]+\s*)?(?:\*\*)?(?:Question|\u0412\u043e\u043f\u0440\u043e\u0441)\s+(\d+)\b[^:\n]*:(?:\*\*)?",
+    r"^\s*(?:[#>*-]+\s*)?(?:\*\*)?Question\s+(\d+)\b[^:\n]*:(?:\*\*)?",
     re.MULTILINE,
 )
 ANSWER_RE = re.compile(
-    r"^\s*(?:[#>*-]+\s*)?(?:\*\*)?(?:Answer|\u041e\u0442\u0432\u0435\u0442)\s+(\d+)\b(?:\*\*)?\s*:",
+    r"^\s*(?:[#>*-]+\s*)?(?:\*\*)?Answer\s+(\d+)\b(?:\*\*)?\s*:",
     re.MULTILINE,
 )
 STATUS_RE = re.compile(r"^\s*Status:\s*([A-Za-z]+)", re.MULTILINE)
 DIALOG_HEADING = "## Dialog analyst"
-LEGACY_DIALOG_HEADING = "## \u0414\u0438\u0430\u043b\u043e\u0433 analyst"
 ANSWERS_HEADING = "## AIDD:ANSWERS"
 OPEN_QUESTIONS_HEADING = "## 10. Open Questions"
-LEGACY_OPEN_QUESTIONS_HEADING = "## 10. \u041e\u0442\u043a\u0440\u044b\u0442\u044b\u0435 \u0432\u043e\u043f\u0440\u043e\u0441\u044b"
 AIDD_OPEN_QUESTIONS_HEADING = "## AIDD:OPEN_QUESTIONS"
 Q_RE = re.compile(r"\bQ(\d+)\b")
 NONE_VALUES = {"none", "n/a", "na"}
@@ -165,8 +163,6 @@ def validate_prd(
 
     text = prd_path.read_text(encoding="utf-8")
     dialog_section = _extract_section(text, DIALOG_HEADING)
-    if dialog_section is None:
-        dialog_section = _extract_section(text, LEGACY_DIALOG_HEADING)
     questions_source = dialog_section or text
     answers_section = _extract_section(text, ANSWERS_HEADING)
     answers_source = answers_section if answers_section is not None else (dialog_section or text)
@@ -202,8 +198,6 @@ def validate_prd(
     status_match = STATUS_RE.search(text)
     status = status_match.group(1).upper() if status_match else None
     open_section = _extract_section(text, OPEN_QUESTIONS_HEADING)
-    if open_section is None:
-        open_section = _extract_section(text, LEGACY_OPEN_QUESTIONS_HEADING)
     aidd_open_section = _extract_section(text, AIDD_OPEN_QUESTIONS_HEADING)
     if settings.check_open_questions and aidd_open_section:
         q_numbers = _collect_q_numbers(aidd_open_section)

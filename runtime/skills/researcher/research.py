@@ -168,7 +168,7 @@ def _pack_extension() -> str:
 
 
 def _rlm_finalize_handoff_cmd(ticket: str) -> str:
-    return f"python3 ${{AIDD_ROOT}}/skills/aidd-rlm/runtime/rlm_finalize.py --ticket {ticket}"
+    return f"python3 ${{AIDD_ROOT}}/runtime/skills/aidd-rlm/rlm_finalize.py --ticket {ticket}"
 
 
 def _validate_json_file(path: Path, label: str) -> None:
@@ -237,15 +237,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Automation-friendly mode for /feature-dev-aidd:researcher.",
     )
-    # Deprecated options preserved for compatibility with old command invocations.
-    parser.add_argument("--config", help=argparse.SUPPRESS)
-    parser.add_argument("--paths-relative", help=argparse.SUPPRESS)
-    parser.add_argument("--limit", type=int, help=argparse.SUPPRESS)
-    parser.add_argument("--output", help=argparse.SUPPRESS)
-    parser.add_argument("--pack-only", action="store_true", help=argparse.SUPPRESS)
-    parser.add_argument("--deep-code", action="store_true", help=argparse.SUPPRESS)
-    parser.add_argument("--reuse-only", action="store_true", help=argparse.SUPPRESS)
-    parser.add_argument("--langs", help=argparse.SUPPRESS)
     return parser.parse_args(argv)
 
 

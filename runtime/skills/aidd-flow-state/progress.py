@@ -623,7 +623,7 @@ def check_progress(
         guidance = (
             f"BLOCK: feature `{ticket}` has code changes ({summary}), "
             f"but handoff tasks were not added. Add new `- [ ] ... (source: aidd/reports/qa|research/...)` "
-            f"to {tasklist_rel} and rerun `python3 ${{AIDD_ROOT}}/skills/aidd-flow-state/runtime/progress_cli.py "
+            f"to {tasklist_rel} and rerun `python3 ${{AIDD_ROOT}}/runtime/skills/aidd-flow-state/progress_cli.py "
             f"--source handoff --ticket {ticket}`."
         )
     else:
@@ -631,7 +631,7 @@ def check_progress(
             f"BLOCK: feature `{ticket}` has code changes ({summary}), "
             f"but file {tasklist_rel} has no new `- [x]` entries.\n"
             "Move relevant items from `- [ ]` to `- [x]`, add date/iteration notes, "
-            "update `Checkbox updated: ...`, and rerun `python3 ${AIDD_ROOT}/skills/aidd-flow-state/runtime/progress_cli.py "
+            "update `Checkbox updated: ...`, and rerun `python3 ${AIDD_ROOT}/runtime/skills/aidd-flow-state/progress_cli.py "
             f"--source {context or 'manual'} --ticket {ticket}`."
         )
     return ProgressCheckResult(

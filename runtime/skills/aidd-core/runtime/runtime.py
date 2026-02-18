@@ -27,9 +27,9 @@ except metadata.PackageNotFoundError:  # pragma: no cover - editable installs
 
 
 def require_plugin_root() -> Path:
-    raw = os.environ.get("AIDD_ROOT") or os.environ.get("AIDD_PLUGIN_DIR")
+    raw = os.environ.get("AIDD_ROOT")
     if not raw:
-        raise RuntimeError("AIDD_ROOT (or AIDD_PLUGIN_DIR) is required to run AIDD tools.")
+        raise RuntimeError("AIDD_ROOT is required to run AIDD tools.")
     plugin_root = Path(raw).expanduser().resolve()
     os.environ.setdefault("AIDD_ROOT", str(plugin_root))
     return plugin_root
@@ -38,7 +38,7 @@ def require_plugin_root() -> Path:
 def _plugin_workspace_guard(workspace_root: Path) -> None:
     if os.environ.get("AIDD_ALLOW_PLUGIN_WORKSPACE", "").strip() == "1":
         return
-    raw = os.environ.get("AIDD_ROOT") or os.environ.get("AIDD_PLUGIN_DIR")
+    raw = os.environ.get("AIDD_ROOT")
     if not raw:
         return
     plugin_root = Path(raw).expanduser().resolve()
@@ -65,7 +65,7 @@ def resolve_roots(raw_target: Path | None = None, *, create: bool = False) -> tu
         raise FileNotFoundError(f"workspace directory {workspace_root} does not exist")
     raise FileNotFoundError(
         f"workflow not found at {project_root}. Run '/feature-dev-aidd:aidd-init' or "
-        f"'python3 ${{AIDD_ROOT}}/skills/aidd-init/runtime/init.py' from the workspace root "
+        f"'python3 ${{AIDD_ROOT}}/runtime/skills/aidd-init/runtime/init.py' from the workspace root "
         f"(templates install into ./{DEFAULT_PROJECT_SUBDIR})."
     )
 
@@ -77,7 +77,7 @@ def require_workflow_root(raw_target: Path | None = None) -> tuple[Path, Path]:
     raise FileNotFoundError(
         f"workflow files not found at {project_root}/docs; "
         f"bootstrap via '/feature-dev-aidd:aidd-init' or "
-        f"'python3 ${{AIDD_ROOT}}/skills/aidd-init/runtime/init.py' from the workspace root "
+        f"'python3 ${{AIDD_ROOT}}/runtime/skills/aidd-init/runtime/init.py' from the workspace root "
         f"(templates install into ./{DEFAULT_PROJECT_SUBDIR})."
     )
 

@@ -33,7 +33,7 @@ CANONICAL_PREFLIGHT_FILES = (
     "aidd/reports/context/{ticket}/{scope_key}.writemap.md",
     "aidd/reports/loops/{ticket}/{scope_key}/stage.preflight.result.json",
 )
-LEGACY_PREFLIGHT_FILES = (
+DISALLOWED_PREFLIGHT_FILES = (
     "aidd/reports/actions/{ticket}/{scope_key}/readmap.json",
     "aidd/reports/actions/{ticket}/{scope_key}/readmap.md",
     "aidd/reports/actions/{ticket}/{scope_key}/writemap.json",
@@ -243,9 +243,9 @@ def validate_contract_data(payload: dict[str, Any], *, contract_path: Path | Non
         for expected in CANONICAL_PREFLIGHT_FILES:
             if expected not in write_files:
                 errors.append(f"writes.files must include canonical preflight artifact: {expected}")
-        for legacy in LEGACY_PREFLIGHT_FILES:
-            if legacy in write_files:
-                errors.append(f"writes.files must not include legacy preflight artifact: {legacy}")
+        for disallowed in DISALLOWED_PREFLIGHT_FILES:
+            if disallowed in write_files:
+                errors.append(f"writes.files must not include deprecated preflight artifact: {disallowed}")
 
     return errors
 

@@ -9,20 +9,21 @@ _DEBUG_FLAGS = {"1", "true", "yes", "on", "debug"}
 
 _PACKAGE_ROOT = Path(__file__).resolve().parent
 _PROJECT_ROOT = _PACKAGE_ROOT.parent.parent  # runtime/aidd_runtime -> runtime -> project_root
+_SKILLS_ROOT = _PROJECT_ROOT / "runtime" / "skills"
 
-_RUNTIME_DIRS = (
-    _PROJECT_ROOT / "runtime" / "skills" / "aidd-core" / "runtime",
-    _PROJECT_ROOT / "runtime" / "skills" / "aidd-docio" / "runtime",
-    _PROJECT_ROOT / "runtime" / "skills" / "aidd-flow-state" / "runtime",
-    _PROJECT_ROOT / "runtime" / "skills" / "aidd-observability" / "runtime",
-    _PROJECT_ROOT / "runtime" / "skills" / "aidd-loop" / "runtime",
-    _PROJECT_ROOT / "runtime" / "skills" / "aidd-rlm" / "runtime",
-    _PROJECT_ROOT / "runtime" / "skills" / "aidd-init" / "runtime",
-    _PROJECT_ROOT / "runtime" / "skills" / "researcher" / "runtime",
-    _PROJECT_ROOT / "runtime" / "skills" / "implement" / "runtime",
-    _PROJECT_ROOT / "runtime" / "skills" / "review" / "runtime",
-    _PROJECT_ROOT / "runtime" / "skills" / "qa" / "runtime",
-)
+_runtime_dirs: list[Path] = []
+if _SKILLS_ROOT.is_dir():
+    for skill_dir in sorted(_SKILLS_ROOT.iterdir()):
+        if not skill_dir.is_dir():
+            continue
+        # Support both layouts:
+        # - runtime/skills/<skill>/*.py
+        # - runtime/skills/<skill>/runtime/*.py
+        _runtime_dirs.append(skill_dir)
+        skill_runtime = skill_dir / "runtime"
+        if skill_runtime.is_dir():
+            _runtime_dirs.append(skill_runtime)
+_RUNTIME_DIRS = tuple(_runtime_dirs)
 
 # Runtime bridge: resolve `aidd_runtime.<module>` from skills/*/runtime locations
 for runtime_dir in _RUNTIME_DIRS:

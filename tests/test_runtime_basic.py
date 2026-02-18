@@ -26,7 +26,6 @@ class TestBasicRuntime:
     def test_require_plugin_root_missing(self, monkeypatch):
         """测试缺少环境变量时抛出异常"""
         monkeypatch.delenv("AIDD_ROOT", raising=False)
-        monkeypatch.delenv("AIDD_PLUGIN_DIR", raising=False)
         
         with pytest.raises(RuntimeError, match="AIDD_ROOT"):
             runtime.require_plugin_root()

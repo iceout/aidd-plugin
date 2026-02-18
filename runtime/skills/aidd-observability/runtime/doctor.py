@@ -70,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
     if not docs_ok:
         errors.append(
             "Run /feature-dev-aidd:aidd-init or "
-            "'python3 ${AIDD_ROOT}/skills/aidd-init/runtime/init.py' from the workspace root to bootstrap."
+            "'python3 ${AIDD_ROOT}/runtime/skills/aidd-init/runtime/init.py' from the workspace root to bootstrap."
         )
     else:
         critical = [

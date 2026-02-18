@@ -628,19 +628,6 @@ def build_research_pack(
     return _assemble.build_research_pack(payload, source_path=source_path, limits=limits)
 
 
-def build_research_context_pack(
-    payload: dict[str, Any],
-    *,
-    source_path: str | None = None,
-    limits: dict[str, int] | None = None,
-) -> dict[str, Any]:
-    print(
-        "[aidd] WARN: build_research_context_pack is deprecated; use build_research_pack.",
-        file=sys.stderr,
-    )
-    return build_research_pack(payload, source_path=source_path, limits=limits)
-
-
 def build_qa_pack(
     payload: dict[str, Any],
     *,
@@ -876,25 +863,6 @@ def write_research_pack(
         if _enforce_budget():
             raise ValueError("; ".join(errors))
     return _write_pack_text(text, pack_path)
-
-
-def write_research_context_pack(
-    json_path: Path,
-    *,
-    output: Path | None = None,
-    root: Path | None = None,
-    limits: dict[str, int] | None = None,
-) -> Path:
-    print(
-        "[aidd] WARN: write_research_context_pack is deprecated; use write_research_pack.",
-        file=sys.stderr,
-    )
-    return write_research_pack(
-        json_path,
-        output=output,
-        root=root,
-        limits=limits,
-    )
 
 
 def write_qa_pack(

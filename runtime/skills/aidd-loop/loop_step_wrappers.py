@@ -6,7 +6,6 @@ from __future__ import annotations
 import datetime as dt
 import os
 import shlex
-import shutil
 import subprocess
 import sys
 import threading
@@ -108,13 +107,14 @@ def _parse_wrapper_output(stdout: str) -> dict[str, str]:
 def _runtime_env(plugin_root: Path) -> dict[str, str]:
     env = os.environ.copy()
     env["AIDD_ROOT"] = str(plugin_root)
+    runtime_path = plugin_root / "runtime"
     current = env.get("PYTHONPATH", "")
     if current:
         parts = current.split(os.pathsep)
-        if str(plugin_root) not in parts:
-            env["PYTHONPATH"] = f"{plugin_root}{os.pathsep}{current}"
+        if str(runtime_path) not in parts:
+            env["PYTHONPATH"] = f"{runtime_path}{os.pathsep}{current}"
     else:
-        env["PYTHONPATH"] = str(plugin_root)
+        env["PYTHONPATH"] = str(runtime_path)
     return env
 
 
@@ -174,33 +174,7 @@ def _resolve_stage_paths(target: Path, ticket: str, scope_key: str, stage: str) 
         "writemap_json": context_dir / f"{scope_key}.writemap.json",
         "writemap_md": context_dir / f"{scope_key}.writemap.md",
         "preflight_result": loops_dir / "stage.preflight.result.json",
-        "readmap_json_fallback": actions_dir / "readmap.json",
-        "readmap_md_fallback": actions_dir / "readmap.md",
-        "writemap_json_fallback": actions_dir / "writemap.json",
-        "writemap_md_fallback": actions_dir / "writemap.md",
-        "preflight_result_fallback": actions_dir / "stage.preflight.result.json",
     }
-
-
-def _copy_optional_preflight_fallback(paths: dict[str, Path]) -> None:
-    if os.environ.get("AIDD_WRITE_FALLBACK_PREFLIGHT", "").strip() != "1":
-        return
-    mappings = (
-        ("readmap_json", "readmap_json_fallback"),
-        ("readmap_md", "readmap_md_fallback"),
-        ("writemap_json", "writemap_json_fallback"),
-        ("writemap_md", "writemap_md_fallback"),
-        ("preflight_result", "preflight_result_fallback"),
-    )
-    for source_key, target_key in mappings:
-        source = paths[source_key]
-        target = paths[target_key]
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, target)
-    print(
-        "[loop-step] WARN: fallback preflight artifacts emitted (AIDD_WRITE_FALLBACK_PREFLIGHT=1)",
-        file=sys.stderr,
-    )
 
 
 def run_stage_wrapper(
@@ -233,12 +207,12 @@ def run_stage_wrapper(
         commands: list[list[str]] = [
             [
                 sys.executable,
-                str(plugin_root / "skills" / "aidd-flow-state" / "runtime" / "set_active_feature.py"),
+                str(plugin_root / "runtime" / "skills" / "aidd-flow-state" / "set_active_feature.py"),
                 ticket,
             ],
             [
                 sys.executable,
-                str(plugin_root / "skills" / "aidd-flow-state" / "runtime" / "set_active_stage.py"),
+                str(plugin_root / "runtime" / "skills" / "aidd-flow-state" / "set_active_stage.py"),
                 stage,
             ],
         ]
@@ -246,7 +220,7 @@ def run_stage_wrapper(
             commands.append(
                 [
                     sys.executable,
-                    str(plugin_root / "skills" / "aidd-flow-state" / "runtime" / "prd_check.py"),
+                    str(plugin_root / "runtime" / "skills" / "aidd-flow-state" / "prd_check.py"),
                     "--ticket",
                     ticket,
                 ]
@@ -255,7 +229,7 @@ def run_stage_wrapper(
             [
                 [
                     sys.executable,
-                    str(plugin_root / "skills" / "aidd-loop" / "runtime" / "preflight_prepare.py"),
+                    str(plugin_root / "runtime" / "skills" / "aidd-loop" / "preflight_prepare.py"),
                     "--ticket",
                     ticket,
                     "--scope-key",
@@ -279,25 +253,25 @@ def run_stage_wrapper(
                 ],
                 [
                     sys.executable,
-                    str(plugin_root / "skills" / "aidd-docio" / "runtime" / "context_map_validate.py"),
+                    str(plugin_root / "runtime" / "skills" / "aidd-docio" / "context_map_validate.py"),
                     "--map",
                     runtime.rel_path(paths["readmap_json"], target),
                 ],
                 [
                     sys.executable,
-                    str(plugin_root / "skills" / "aidd-docio" / "runtime" / "context_map_validate.py"),
+                    str(plugin_root / "runtime" / "skills" / "aidd-docio" / "context_map_validate.py"),
                     "--map",
                     runtime.rel_path(paths["writemap_json"], target),
                 ],
                 [
                     sys.executable,
-                    str(plugin_root / "skills" / "aidd-docio" / "runtime" / "actions_validate.py"),
+                    str(plugin_root / "runtime" / "skills" / "aidd-docio" / "actions_validate.py"),
                     "--actions",
                     runtime.rel_path(paths["actions_template"], target),
                 ],
                 [
                     sys.executable,
-                    str(plugin_root / "skills" / "aidd-loop" / "runtime" / "preflight_result_validate.py"),
+                    str(plugin_root / "runtime" / "skills" / "aidd-loop" / "preflight_result_validate.py"),
                     "--result",
                     runtime.rel_path(paths["preflight_result"], target),
                 ],
@@ -314,7 +288,6 @@ def run_stage_wrapper(
             if rc != 0:
                 details = (stderr or stdout).strip() or f"exit={rc}"
                 return False, parsed, f"{kind} wrapper failed: {details}"
-        _copy_optional_preflight_fallback(paths)
         parsed.setdefault("log_path", runtime.rel_path(wrapper_log_path, target))
         parsed.setdefault("template_path", runtime.rel_path(paths["actions_template"], target))
         parsed.setdefault("readmap_path", runtime.rel_path(paths["readmap_json"], target))
@@ -326,9 +299,9 @@ def run_stage_wrapper(
 
     if kind == "run":
         stage_runtime = {
-            "implement": plugin_root / "skills" / "implement" / "runtime" / "implement_run.py",
-            "review": plugin_root / "skills" / "review" / "runtime" / "review_run.py",
-            "qa": plugin_root / "skills" / "qa" / "runtime" / "qa_run.py",
+            "implement": plugin_root / "runtime" / "skills" / "implement" / "implement_run.py",
+            "review": plugin_root / "runtime" / "skills" / "review" / "review_run.py",
+            "qa": plugin_root / "runtime" / "skills" / "qa" / "qa_run.py",
         }.get(stage)
         if not stage_runtime or not stage_runtime.exists():
             return False, parsed, f"run wrapper failed: stage runtime missing for {stage}"
@@ -368,7 +341,7 @@ def run_stage_wrapper(
         commands = [
             [
                 sys.executable,
-                str(plugin_root / "skills" / "aidd-docio" / "runtime" / "actions_apply.py"),
+                str(plugin_root / "runtime" / "skills" / "aidd-docio" / "actions_apply.py"),
                 "--actions",
                 runtime.rel_path(resolved_actions_path, target),
                 "--apply-log",
@@ -379,7 +352,7 @@ def run_stage_wrapper(
             commands.append(
                 [
                     sys.executable,
-                    str(plugin_root / "skills" / "aidd-core" / "runtime" / "diff_boundary_check.py"),
+                    str(plugin_root / "runtime" / "skills" / "aidd-core" / "runtime" / "diff_boundary_check.py"),
                     "--ticket",
                     ticket,
                 ]
@@ -387,7 +360,7 @@ def run_stage_wrapper(
         commands.append(
             [
                 sys.executable,
-                str(plugin_root / "skills" / "aidd-flow-state" / "runtime" / "progress_cli.py"),
+                str(plugin_root / "runtime" / "skills" / "aidd-flow-state" / "progress_cli.py"),
                 "--ticket",
                 ticket,
                 "--source",
@@ -396,7 +369,7 @@ def run_stage_wrapper(
         )
         stage_result_cmd = [
             sys.executable,
-            str(plugin_root / "skills" / "aidd-flow-state" / "runtime" / "stage_result.py"),
+            str(plugin_root / "runtime" / "skills" / "aidd-flow-state" / "stage_result.py"),
             "--ticket",
             ticket,
             "--stage",
@@ -414,7 +387,7 @@ def run_stage_wrapper(
         commands.append(
             [
                 sys.executable,
-                str(plugin_root / "skills" / "aidd-flow-state" / "runtime" / "status_summary.py"),
+                str(plugin_root / "runtime" / "skills" / "aidd-flow-state" / "status_summary.py"),
                 "--ticket",
                 ticket,
                 "--stage",

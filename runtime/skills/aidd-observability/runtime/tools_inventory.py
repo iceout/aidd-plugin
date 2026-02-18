@@ -30,15 +30,15 @@ from aidd_runtime.io_utils import utc_timestamp
 
 TOOL_PATTERN = re.compile(r"(?:\$\{AIDD_ROOT\}/)?tools/([A-Za-z0-9_.-]+\.(?:sh|py))")
 SKILL_RUNTIME_PATTERN = re.compile(
-    r"(?:\$\{AIDD_ROOT\}/)?skills/([A-Za-z0-9_.-]+)/runtime/([A-Za-z0-9_.-]+\.py)"
+    r"(?:\$\{AIDD_ROOT\}/)?runtime/skills/([A-Za-z0-9_.-]+)/(?:runtime/)?([A-Za-z0-9_.-]+\.py)"
 )
 HOOK_PATTERN = re.compile(r"(?:\$\{AIDD_ROOT\}/)?hooks/([A-Za-z0-9_.-]+\.sh)")
 
 CANONICAL_EXEC_RE = re.compile(
-    r'exec\s+"?\$\{AIDD_ROOT\}/(skills/[A-Za-z0-9_.-]+/runtime/[A-Za-z0-9_.-]+\.py)"?'
+    r'exec\s+"?\$\{AIDD_ROOT\}/(runtime/skills/[A-Za-z0-9_.-]+/(?:runtime/)?[A-Za-z0-9_.-]+\.py)"?'
 )
 SCRIPT_REF_RE = re.compile(
-    r"(?:\$\{AIDD_ROOT\}/)?((?:skills/[A-Za-z0-9_.-]+/runtime/[A-Za-z0-9_.-]+\.py)|(?:hooks/[A-Za-z0-9_.-]+\.sh)|(?:tools/[A-Za-z0-9_.-]+\.(?:sh|py)))"
+    r"(?:\$\{AIDD_ROOT\}/)?((?:runtime/skills/[A-Za-z0-9_.-]+/(?:runtime/)?[A-Za-z0-9_.-]+\.py)|(?:hooks/[A-Za-z0-9_.-]+\.sh)|(?:tools/[A-Za-z0-9_.-]+\.(?:sh|py)))"
 )
 PYTHON_CALL_RE = re.compile(
     r"\bpython(?:3)?\s+(?:\"|')?\$\{AIDD_ROOT\}/([A-Za-z0-9_./-]+\.py)(?:\"|')?"
@@ -48,7 +48,7 @@ AIDD_RUN_PY_MODULE_RE = re.compile(
 )
 
 DEFERRED_CORE_APIS: set[str] = set()
-SHARED_SKILL_PREFIXES = ("skills/aidd-",)
+SHARED_SKILL_PREFIXES = ("runtime/skills/aidd-",)
 SCAN_PATHS = (
     "commands",
     "agents",
@@ -92,7 +92,7 @@ def _collect_tool_entrypoints(repo_root: Path) -> list[str]:
 
 
 def _collect_skill_runtime(repo_root: Path) -> list[str]:
-    return sorted(path.relative_to(repo_root).as_posix() for path in repo_root.glob("skills/*/runtime/*.py"))
+    return sorted(path.relative_to(repo_root).as_posix() for path in repo_root.glob("runtime/skills/**/*.py"))
 
 
 def _collect_hook_scripts(repo_root: Path) -> list[str]:
@@ -132,7 +132,9 @@ def _scan_consumers(repo_root: Path, entrypoints: Iterable[str]) -> dict[str, li
             if tool in names:
                 usage[tool].append(path.relative_to(repo_root).as_posix())
         for match in SKILL_RUNTIME_PATTERN.finditer(text):
-            runtime_path = f"skills/{match.group(1)}/runtime/{match.group(2)}"
+            runtime_path = f"runtime/skills/{match.group(1)}/{match.group(2)}"
+            if runtime_path not in names:
+                runtime_path = f"runtime/skills/{match.group(1)}/runtime/{match.group(2)}"
             if runtime_path in names:
                 usage[runtime_path].append(path.relative_to(repo_root).as_posix())
         for match in HOOK_PATTERN.finditer(text):
@@ -158,7 +160,7 @@ def _extract_canonical_replacement(path: Path) -> str | None:
 def _consumer_type(rel_path: str) -> str:
     if rel_path.startswith("agents/"):
         return "agent"
-    if rel_path.startswith("skills/"):
+    if rel_path.startswith("runtime/skills/"):
         return "skill"
     if rel_path.startswith("hooks/"):
         return "hook"
@@ -179,7 +181,7 @@ def _consumer_type(rel_path: str) -> str:
 def _classify_entrypoint(rel_path: str, canonical_replacement_path: str | None) -> tuple[str, bool, bool]:
     if rel_path in DEFERRED_CORE_APIS:
         return "core_api_deferred", True, True
-    if rel_path.startswith("skills/"):
+    if rel_path.startswith("runtime/skills/"):
         if any(rel_path.startswith(prefix) for prefix in SHARED_SKILL_PREFIXES):
             return "shared_skill", False, False
         return "canonical_stage", False, False
@@ -297,7 +299,7 @@ def _runtime_classification(rel_path: str, *, python_shebang: bool, owners: list
         return "python_entrypoint"
     if rel_path.startswith("hooks/") and not owners:
         return "hook_shell_only"
-    return "legacy_shell_wrapper"
+    return "shell_wrapper"
 
 
 def _build_payload(repo_root: Path) -> dict[str, object]:

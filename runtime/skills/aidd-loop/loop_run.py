@@ -123,7 +123,7 @@ def run_loop_step(
 ) -> subprocess.CompletedProcess[str]:
     cmd = [
         sys.executable,
-        str(plugin_root / "skills" / "aidd-loop" / "runtime" / "loop_step.py"),
+        str(plugin_root / "runtime" / "skills" / "aidd-loop" / "loop_step.py"),
         "--ticket",
         ticket,
         "--format",
@@ -141,7 +141,12 @@ def run_loop_step(
         cmd.extend(["--stream", stream_mode])
     env = os.environ.copy()
     env["AIDD_ROOT"] = str(plugin_root)
-    env["PYTHONPATH"] = str(plugin_root) if not env.get("PYTHONPATH") else f"{plugin_root}:{env['PYTHONPATH']}"
+    runtime_path = plugin_root / "runtime"
+    env["PYTHONPATH"] = (
+        str(runtime_path)
+        if not env.get("PYTHONPATH")
+        else f"{runtime_path}:{env['PYTHONPATH']}"
+    )
     if stream_mode:
         return subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=None, cwd=workspace_root, env=env)
     return subprocess.run(cmd, text=True, capture_output=True, cwd=workspace_root, env=env)

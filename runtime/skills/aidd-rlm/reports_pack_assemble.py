@@ -337,15 +337,6 @@ def build_research_pack(
     return packed
 
 
-def build_research_context_pack(
-    payload: dict[str, Any],
-    *,
-    source_path: str | None = None,
-    limits: dict[str, int] | None = None,
-) -> dict[str, Any]:
-    return build_research_pack(payload, source_path=source_path, limits=limits)
-
-
 def build_qa_pack(
     payload: dict[str, Any],
     *,
