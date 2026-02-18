@@ -17,6 +17,14 @@
 - [x] **T2.2** 统一 Agent 文件中的环境变量（legacy 插件根变量 → `AIDD_ROOT`）、语言描述与工具权限，适配多 IDE。
 - [x] **T2.3** 编写 schema 验证 pytest，检查每个 Agent 是否包含 `---`, `<role>`, `<process>`, `<output>` 分段。
 
+## Priority Phase – Bootstrap & Layout Convergence (Now)
+> 说明：该阶段优先级高于 Phase 3+，用于先解决运行入口和目录结构分裂问题，避免后续任务重复返工。
+- [x] **P1.1** 统一所有 runtime/hook 入口的自举约定：仅使用 `AIDD_ROOT`，入口脚本负责注入 `sys.path`（`<repo>/runtime` + `<repo>`），禁止依赖手工设置 `PYTHONPATH`。  
+  完成情况：已为 `runtime/` 与 `hooks/` 下全部 `__main__` 入口注入统一 `_bootstrap_entrypoint()`，并验证 `research/rlm_targets/qa` 入口在未设置 `PYTHONPATH` 时可正常启动到业务校验阶段。
+- [ ] **P1.2** 产出“目录收敛最小迁移清单”：明确目标单一布局（推荐向 upstream 靠拢），列出移动路径、导入调整、命令文本更新范围和回滚点。
+- [ ] **P1.3** 执行目录收敛迁移并一次性替换路径引用（skills/hook/docs/tests），移除临时桥接与隐式 fallback。
+- [ ] **P1.4** 增加迁移 smoke tests（init/research/qa/hook），并把迁移结果与风险写回 `README.md`、`COMMANDS.md`。
+
 ## Phase 3 – Stage & Shared Skills (Weeks 3-4)
 - [ ] **T3.1** 用 upstream 阶段 SKILL（`skills/idea-new/SKILL.md`, `plan-new`, `tasks-new`, `implement`, `review`, `qa`, `researcher`, `review-spec`, `spec-interview`）替换现有 `/flow:aidd-*-flow` 文档。
 - [ ] **T3.2** 重新引入共享技能 `aidd-policy`, `aidd-reference`, `aidd-stage-research`，供子 Agent 继承统一策略与安全指引。

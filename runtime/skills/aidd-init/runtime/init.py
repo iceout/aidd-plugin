@@ -1,5 +1,37 @@
 from __future__ import annotations
 
+def _bootstrap_entrypoint() -> None:
+    import os
+    import sys
+    from pathlib import Path
+
+    raw_root = os.environ.get("AIDD_ROOT", "").strip()
+    plugin_root = None
+    if raw_root:
+        candidate = Path(raw_root).expanduser()
+        if candidate.exists():
+            plugin_root = candidate.resolve()
+
+    if plugin_root is None:
+        current = Path(__file__).resolve()
+        for parent in (current.parent, *current.parents):
+            runtime_dir = parent / "runtime"
+            if (runtime_dir / "aidd_runtime").is_dir():
+                plugin_root = parent
+                break
+
+    if plugin_root is None:
+        raise RuntimeError("Unable to resolve AIDD_ROOT from entrypoint path.")
+
+    os.environ["AIDD_ROOT"] = str(plugin_root)
+    for entry in (plugin_root / "runtime", plugin_root):
+        entry_str = str(entry)
+        if entry_str not in sys.path:
+            sys.path.insert(0, entry_str)
+
+
+_bootstrap_entrypoint()
+
 import argparse
 import json
 import os
@@ -8,13 +40,6 @@ import sys
 from pathlib import Path
 
 # runtime/skills/aidd-init/runtime/init.py → repo root is four levels up
-_PLUGIN_ROOT = Path(__file__).resolve().parents[4]
-_RUNTIME_PATH = _PLUGIN_ROOT / "runtime"
-os.environ.setdefault("AIDD_ROOT", str(_PLUGIN_ROOT))
-if str(_PLUGIN_ROOT) not in sys.path:
-    sys.path.insert(0, str(_PLUGIN_ROOT))
-if str(_RUNTIME_PATH) not in sys.path:
-    sys.path.insert(0, str(_RUNTIME_PATH))
 
 from aidd_runtime import runtime
 from aidd_runtime.resources import DEFAULT_PROJECT_SUBDIR
