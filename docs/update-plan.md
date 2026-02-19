@@ -29,23 +29,24 @@ Execution rule: finish this phase before Phase 3+ to avoid duplicated path churn
 - [x] Reintroduce shared skills (`aidd-policy`, `aidd-reference`, `aidd-stage-research`) so subagents inherit consistent policy, read discipline, and loop safety guidance.
 - [x] Update `scripts/install.sh` and docs so new skills are symlinked and discoverable via `/skill:` commands in Kimi/Cursor/Codex. Result: installer links only dirs containing `SKILL.md`, and `scripts/verify-flows.sh` validates required stage skills.
 
-## Phase 4 – Flow Runtime & IDE Adapter (Weeks 4-6)
-- [ ] Implement `aidd_runtime/flow_engine.py` that can execute flow definitions: resolve inputs, call stage runtimes, and transition states using `aidd-flow-state` utilities.
-- [ ] Add `aidd_runtime/agent_caller.py` plus `aidd_runtime/ide_adapter.py` with `KimiAdapter`, `CursorAdapter`, and `CodexAdapter` to abstract tool invocation differences.
-- [ ] Extend each flow SKILL with `runtime:` metadata pointing to the new engine entrypoints and add integration tests that drive a toy ticket through idea → implement.
+## Phase 4 – Stage Dispatch Runtime & IDE Profiles (Weeks 4-6)
+Note: after Phase 3, stage-command skills (`/skill:*`) are the primary interface, so this phase targets dispatch/profile convergence instead of a standalone Mermaid flow parser.
+- [x] Implement `aidd_runtime/stage_dispatch.py` to map stage commands to runtime entrypoints, normalize legacy flow aliases, and drive state transitions through `aidd-flow-state`. Result: baseline dispatch + command execution layer and tests are added (`aidd_runtime/stage_dispatch.py`, `aidd_runtime/command_runner.py`, `tests/runtime/test_stage_dispatch.py`, `tests/runtime/test_command_runner.py`); P4.1 subtask checklist in `docs/p4.1-stage-dispatch-checklist.md` is fully completed.
+- [ ] Add `aidd_runtime/command_runner.py` and `aidd_runtime/ide_profiles.py` to absorb Kimi/Cursor/Codex invocation differences via configuration profiles (instead of hardcoded adapter classes).
+- [ ] Add orchestration integration tests for `idea-new -> researcher -> plan-new -> tasks-new` plus legacy flow alias compatibility, validating `.active.json` and generated artifacts.
 
 ## Phase 5 – Automation Hooks & Gates (Week 7)
 - [x] Port hook scripts from upstream (`hooks/format-and-test.sh`, `gate-tests.sh`, `gate-qa.sh`, `gate-workflow.sh`, `context-gc-*.sh`) with updated env vars.
-- [ ] Wire hooks into `skills/aidd-core/runtime/gates.py` so flows can enforce readiness gates (analyst_check, research_check, plan_review_gate, diff_boundary_check, qa_gate).
+- [ ] Wire hooks into `skills/aidd-core/runtime/gates.py` so stage commands can enforce readiness gates (analyst_check, research_check, plan_review_gate, diff_boundary_check, qa_gate).
 - [ ] Document hook usage in `COMMANDS.md` and add CI-friendly wrappers for Codex CLI users.
 
 ## Phase 6 – Testing & QA Expansion (Weeks 8-9)
-- [ ] Backfill critical pytest suites from `ai_driven_dev/tests` (active_state, gates, docio, loop, hooks) and adapt fixtures for the new adapters.
-- [ ] Tighten `scripts/test.sh` to fail on Black/Ruff/MyPy issues and capture coverage for `aidd_runtime/flow_engine.py` + adapters.
+- [ ] Backfill critical pytest suites from `ai_driven_dev/tests` (active_state, gates, docio, loop, hooks) and adapt fixtures for the new stage-dispatch / IDE-profile runtime.
+- [ ] Tighten `scripts/test.sh` to fail on Black/Ruff/MyPy issues and capture coverage for `aidd_runtime/stage_dispatch.py`, `aidd_runtime/command_runner.py`, and `aidd_runtime/ide_profiles.py`.
 - [ ] Add end-to-end tests that initialize a workspace, run the idea → research → plan pipeline, and assert generated artifacts (PRD, research pack, plan, tasklist).
 
 ## Phase 7 – Documentation & Adoption (Week 10+)
-- [ ] Update `README.md`, `QUICKSTART.md`, and `docs/overview.md` with flow-runtime instructions, IDE adapter configuration, and hook usage.
+- [ ] Update `README.md`, `QUICKSTART.md`, and `docs/overview.md` with stage-dispatch runtime instructions, IDE profile configuration, and hook usage.
 - [ ] Link the new plan (this file) from `AGENTS.md` and future tasklists so contributors can track progress.
 - [ ] Publish a migration checklist comparing upstream commands vs. Codex CLI equivalents for teams moving from Claude Code.
 

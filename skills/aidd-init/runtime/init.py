@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import os
+import sys
+
+
 def _bootstrap_entrypoint() -> None:
-    import os
-    import sys
     from pathlib import Path
 
     raw_root = os.environ.get("AIDD_ROOT", "").strip()
@@ -32,13 +34,10 @@ _bootstrap_entrypoint()
 
 import argparse
 import json
-import os
 import shutil
-import sys
 from pathlib import Path
 
 # skills/aidd-init/runtime/init.py -> repo root is three levels up
-
 from aidd_runtime import runtime
 from aidd_runtime.resources import DEFAULT_PROJECT_SUBDIR
 

@@ -36,22 +36,24 @@
 - [x] **T3.3** 更新 `scripts/install.sh` 及文档，确保新技能被 `/skill:` 命令（Kimi/Cursor/Codex）正确发现。  
   完成情况：`scripts/install.sh` 已改为仅安装含 `SKILL.md` 的技能目录；`scripts/verify-flows.sh` 改为校验 required stage skills；`README.md`、`COMMANDS.md`、`QUICKSTART.md` 已切换到 stage command 用法。
 
-## Phase 4 – Flow Runtime & IDE Adapter (Weeks 4-6)
-- [ ] **T4.1** 实现 `aidd_runtime/flow_engine.py`，负责解析 flow、调度 stage runtimes，并通过 `aidd-flow-state` 管理状态转换。
-- [ ] **T4.2** 新增 `aidd_runtime/agent_caller.py` 与 `aidd_runtime/ide_adapter.py`，提供 `KimiAdapter`, `CursorAdapter`, `CodexAdapter` 来抽象工具调用差异。
-- [ ] **T4.3** 为各 flow SKILL 添加 `runtime:` 元数据，并编写串联 idea→implement 的集成测试。
+## Phase 4 – Stage Dispatch Runtime & IDE Profiles (Weeks 4-6)
+> 说明：Phase 3 已切换为 stage command（`/skill:*`）主入口，Phase 4 不再建设独立 Mermaid flow 解析器，而是补齐统一调度层与 IDE 差异收敛层。
+- [x] **T4.1** 实现 `aidd_runtime/stage_dispatch.py`，统一 stage command 到 runtime 入口的映射（含 legacy flow alias → stage command 归一化），并通过 `aidd-flow-state` 管理状态转换。  
+  完成情况：已新增 `aidd_runtime/stage_dispatch.py`、`aidd_runtime/command_runner.py` 与测试 `tests/runtime/test_stage_dispatch.py`、`tests/runtime/test_command_runner.py`；`docs/p4.1-stage-dispatch-checklist.md` 的 P4.1 子任务已全部完成。
+- [ ] **T4.2** 新增 `aidd_runtime/command_runner.py` 与 `aidd_runtime/ide_profiles.py`，以配置化 profile 方式收敛 Kimi/Cursor/Codex 的调用差异（替代硬编码 adapter class）。
+- [ ] **T4.3** 编写 stage 编排集成测试，覆盖 `idea-new → researcher → plan-new → tasks-new` 主链路及 legacy flow alias 回归，并校验 `.active.json` 与核心工件流转。
 
 ## Phase 5 – Automation Hooks & Gates (Week 7)
 - [x] **T5.1** 迁移 upstream hooks（`hooks/format-and-test.sh`, `gate-tests.sh`, `gate-qa.sh`, `gate-workflow.sh`, `context-gc-*.sh`）并更新环境变量。
-- [ ] **T5.2** 将 hooks 接入 `skills/aidd-core/runtime/gates.py`，启用 analyst_check、research_check、plan_review_gate、diff_boundary_check、qa_gate。
+- [ ] **T5.2** 将 hooks 接入 `skills/aidd-core/runtime/gates.py`，使 stage command 可统一执行 analyst_check、research_check、plan_review_gate、diff_boundary_check、qa_gate。
 - [ ] **T5.3** 在 `COMMANDS.md` 记录 hook 使用方式，并提供面向 Codex CLI 的 CI 包装脚本。
 
 ## Phase 6 – Testing & QA Expansion (Weeks 8-9)
-- [ ] **T6.1** 回填 `/Users/xuanyizhang/code/ai_driven_dev/tests` 中关键 pytest（active_state, gates, docio, loop, hooks）并适配新的 adapter fixture。
-- [ ] **T6.2** 加固 `scripts/test.sh`：Black/Ruff/MyPy 任一失败即退出，同时统计 `aidd_runtime/flow_engine.py` 与 adapters 的覆盖率。
+- [ ] **T6.1** 回填 `/Users/xuanyizhang/code/ai_driven_dev/tests` 中关键 pytest（active_state, gates, docio, loop, hooks）并适配新的 stage dispatch / IDE profiles fixtures。
+- [ ] **T6.2** 加固 `scripts/test.sh`：Black/Ruff/MyPy 任一失败即退出，同时统计 `aidd_runtime/stage_dispatch.py`、`aidd_runtime/command_runner.py`、`aidd_runtime/ide_profiles.py` 的覆盖率。
 - [ ] **T6.3** 编写端到端测试，执行 workspace init + idea→research→plan 流程并检查 PRD、research pack、plan、tasklist 产出。
 
 ## Phase 7 – Documentation & Adoption (Week 10+)
-- [ ] **T7.1** 更新 `README.md`, `QUICKSTART.md`, `docs/overview.md`，覆盖 flow runtime 指南、IDE adapter 配置和 hook 用法。
+- [ ] **T7.1** 更新 `README.md`, `QUICKSTART.md`, `docs/overview.md`，覆盖 stage dispatch runtime 指南、IDE profiles 配置和 hook 用法。
 - [ ] **T7.2** 在 `AGENTS.md` 及后续 tasklist 中引用 `docs/update-plan.md`，方便跟踪进度。
 - [ ] **T7.3** 发布迁移清单，对比 upstream 命令与 Codex CLI 等效操作，指导从 Claude Code 迁移。
