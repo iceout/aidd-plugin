@@ -13,10 +13,9 @@ def _bootstrap() -> None:
         raise SystemExit(2)
     plugin_root = Path(raw).expanduser().resolve()
     os.environ.setdefault("AIDD_ROOT", str(plugin_root))
-    for entry in (plugin_root / "runtime", plugin_root):
-        entry_str = str(entry)
-        if entry_str not in sys.path:
-            sys.path.insert(0, entry_str)
+    plugin_root_str = str(plugin_root)
+    if plugin_root_str not in sys.path:
+        sys.path.insert(0, plugin_root_str)
 
 
 def main() -> int:

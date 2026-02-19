@@ -10,14 +10,13 @@ def _bootstrap_entrypoint() -> None:
     plugin_root = None
     if raw_root:
         candidate = Path(raw_root).expanduser()
-        if candidate.exists():
+        if candidate.exists() and (candidate / "aidd_runtime").is_dir():
             plugin_root = candidate.resolve()
 
     if plugin_root is None:
         current = Path(__file__).resolve()
         for parent in (current.parent, *current.parents):
-            runtime_dir = parent / "runtime"
-            if (runtime_dir / "aidd_runtime").is_dir():
+            if (parent / "aidd_runtime").is_dir():
                 plugin_root = parent
                 break
 
@@ -25,10 +24,9 @@ def _bootstrap_entrypoint() -> None:
         raise RuntimeError("Unable to resolve AIDD_ROOT from entrypoint path.")
 
     os.environ["AIDD_ROOT"] = str(plugin_root)
-    for entry in (plugin_root / "runtime", plugin_root):
-        entry_str = str(entry)
-        if entry_str not in sys.path:
-            sys.path.insert(0, entry_str)
+    plugin_root_str = str(plugin_root)
+    if plugin_root_str not in sys.path:
+        sys.path.insert(0, plugin_root_str)
 
 
 _bootstrap_entrypoint()
@@ -479,7 +477,7 @@ def _enforce_rw_policy(
                     reason="Loop stage writes to DocOps-only paths must go through actions.",
                     system_message=(
                         "Loop stage policy: direct Edit/Write to DocOps-only paths is forbidden. "
-                        "Use actions + DocOps (`python3 ${AIDD_ROOT}/runtime/skills/aidd-docio/actions_apply.py`)."
+                        "Use actions + DocOps (`python3 ${AIDD_ROOT}/skills/aidd-docio/runtime/actions_apply.py`)."
                     ),
                 )
         return None
@@ -491,7 +489,7 @@ def _enforce_rw_policy(
                 reason="Missing readmap for loop stage. Run preflight first.",
                 system_message=(
                     "No readmap found for current loop scope. Run preflight "
-                    "(`python3 ${AIDD_ROOT}/runtime/skills/aidd-loop/preflight_prepare.py "
+                    "(`python3 ${AIDD_ROOT}/skills/aidd-loop/runtime/preflight_prepare.py "
                     "--ticket <ticket> --scope-key <scope_key> --stage <implement|review|qa>`) "
                     "before reading additional files."
                 ),
@@ -504,7 +502,7 @@ def _enforce_rw_policy(
                 system_message=(
                     "Read is outside readmap/allowed_paths. Use `context-expand` "
                     "("
-                    "`python3 ${AIDD_ROOT}/runtime/skills/aidd-docio/context_expand.py --path <path> "
+                    "`python3 ${AIDD_ROOT}/skills/aidd-docio/runtime/context_expand.py --path <path> "
                     "--reason-code <code> --reason <text>`"
                     ") to request progressive disclosure."
                 ),
@@ -517,7 +515,7 @@ def _enforce_rw_policy(
                 reason="Loop stage writes to DocOps-only paths must go through actions.",
                 system_message=(
                     "Loop stage policy: direct Edit/Write to DocOps-only paths is forbidden. "
-                    "Use actions + DocOps (`python3 ${AIDD_ROOT}/runtime/skills/aidd-docio/actions_apply.py`)."
+                    "Use actions + DocOps (`python3 ${AIDD_ROOT}/skills/aidd-docio/runtime/actions_apply.py`)."
                 ),
             )
 
@@ -528,7 +526,7 @@ def _enforce_rw_policy(
                     reason="Missing writemap for loop stage. Run preflight first.",
                     system_message=(
                         "No writemap found for current loop scope. Run preflight "
-                        "(`python3 ${AIDD_ROOT}/runtime/skills/aidd-loop/preflight_prepare.py "
+                        "(`python3 ${AIDD_ROOT}/skills/aidd-loop/runtime/preflight_prepare.py "
                         "--ticket <ticket> --scope-key <scope_key> --stage <implement|review|qa>`) "
                         "before writing files."
                     ),
@@ -541,7 +539,7 @@ def _enforce_rw_policy(
                     system_message=(
                         "Write is outside writemap. Use `context-expand` "
                         "("
-                        "`python3 ${AIDD_ROOT}/runtime/skills/aidd-docio/context_expand.py --expand-write --path <path> "
+                        "`python3 ${AIDD_ROOT}/skills/aidd-docio/runtime/context_expand.py --expand-write --path <path> "
                         "--reason-code <code> --reason <text>`"
                         ") to expand boundaries."
                     ),
@@ -557,7 +555,7 @@ def _enforce_rw_policy(
                         "Planning-stage write is outside writemap/contract. "
                         "Expand with `context-expand` "
                         "("
-                        "`python3 ${AIDD_ROOT}/runtime/skills/aidd-docio/context_expand.py --expand-write ...` "
+                        "`python3 ${AIDD_ROOT}/skills/aidd-docio/runtime/context_expand.py --expand-write ...` "
                         ") "
                         "or update stage contract."
                     ),

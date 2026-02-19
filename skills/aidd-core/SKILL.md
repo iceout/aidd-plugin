@@ -48,19 +48,19 @@ source $AIDD_ROOT/scripts/activate.sh
 ### 状态管理
 ```bash
 # 设置活动功能
-python3 $AIDD_ROOT/runtime/skills/aidd-flow-state/runtime/set_active_feature.py FUNC-123
+python3 $AIDD_ROOT/skills/aidd-flow-state/runtime/set_active_feature.py FUNC-123
 
 # 设置当前阶段
-python3 $AIDD_ROOT/runtime/skills/aidd-flow-state/runtime/set_active_stage.py implement
+python3 $AIDD_ROOT/skills/aidd-flow-state/runtime/set_active_stage.py implement
 
 # 诊断环境
-python3 $AIDD_ROOT/runtime/skills/aidd-observability/runtime/doctor.py
+python3 $AIDD_ROOT/skills/aidd-observability/runtime/doctor.py
 ```
 
 ### RLM 研究
 ```bash
 # 生成 RLM Pack
-python3 $AIDD_ROOT/runtime/skills/aidd-rlm/runtime/rlm_slice.py --ticket FUNC-123 --query "PaymentService"
+python3 $AIDD_ROOT/skills/aidd-rlm/runtime/rlm_slice.py --ticket FUNC-123 --query "PaymentService"
 ```
 
 ## Flow Skills

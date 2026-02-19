@@ -31,8 +31,7 @@ export AIDD_ROOT=<your-path-to-plugin>
 ### 4. 验证安装
 
 ```bash
-export PYTHONPATH=$AIDD_ROOT/runtime:$PYTHONPATH
-python3 $AIDD_ROOT/runtime/skills/aidd-observability/runtime/doctor.py
+python3 $AIDD_ROOT/skills/aidd-observability/runtime/doctor.py
 ```
 
 ### 5. 在 Kimi/Codex/Cursor 中使用
@@ -60,6 +59,25 @@ python3 $AIDD_ROOT/runtime/skills/aidd-observability/runtime/doctor.py
 | dev | mypy | 1.11.2 |
 
 > 通过固定版本，我们可以在多个 IDE/CLI（Kimi、Cursor、Codex）之间获得可重复的 lint/test 结果。
+
+## 目录收敛结果（P1.3 / P1.4）
+
+- 运行时代码已收敛为单一布局：`aidd_runtime/` + `skills/*/runtime/`。
+- 旧目录 `runtime/skills` 与 `runtime/aidd_runtime` 已移除。
+- 运行入口与 hooks 已统一使用 `AIDD_ROOT` 自举，不再依赖手工 `PYTHONPATH`。
+- 已新增迁移烟测：`tests/runtime/test_layout_migration_smoke.py`（覆盖 init / research / qa / hook）。
+
+烟测执行示例：
+
+```bash
+.venv/bin/pytest -q tests/runtime/test_layout_migration_smoke.py
+```
+
+### 已知风险
+
+- `research`/`rlm_targets` 在缺少 `AIDD:RESEARCH_HINTS` 时会按设计阻断，这属于业务前置条件，不是导入错误。
+- `qa --skip-tests` 会把测试记录为 `skipped`，可能掩盖本地依赖缺失（如 Python 包、工具链）问题。
+- `gate-qa` 在插件仓库根目录执行会被工作区保护机制阻断；应在目标项目工作区执行。
 
 ## 开发状态
 
@@ -92,25 +110,22 @@ python3 $AIDD_ROOT/runtime/skills/aidd-observability/runtime/doctor.py
 
 ```
 aidd-plugin/
-├── runtime/
-│   ├── aidd_runtime/          # 核心运行时包
-│   └── skills/                # 各阶段运行时
-│       ├── aidd-core/
-│       ├── aidd-flow-state/
-│       ├── aidd-docio/
-│       ├── aidd-rlm/
-│       ├── aidd-loop/
-│       ├── aidd-observability/
-│       ├── aidd-init/
-│       ├── researcher/
-│       ├── implement/
-│       ├── review/
-│       └── qa/
+├── aidd_runtime/              # 共享运行时包
 ├── skills/                    # Skills
-│   ├── aidd-core/SKILL.md
+│   ├── aidd-core/
+│   │   ├── SKILL.md
+│   │   └── runtime/
 │   ├── aidd-init-flow/SKILL.md
 │   ├── aidd-idea-flow/SKILL.md
 │   ├── aidd-implement-flow/SKILL.md
+│   ├── aidd-rlm/runtime/
+│   ├── aidd-loop/runtime/
+│   ├── aidd-flow-state/runtime/
+│   ├── aidd-docio/runtime/
+│   ├── researcher/runtime/
+│   ├── implement/runtime/
+│   ├── review/runtime/
+│   └── qa/runtime/
 │   └── ...
 ├── tests/
 ├── scripts/

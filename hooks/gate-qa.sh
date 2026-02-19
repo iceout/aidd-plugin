@@ -16,14 +16,9 @@ def _bootstrap() -> Path:
         raise SystemExit(2)
     plugin_root = Path(raw).expanduser().resolve()
     os.environ.setdefault("AIDD_ROOT", str(plugin_root))
-
-    runtime_path = plugin_root / "runtime"
-    for entry in (runtime_path, plugin_root):
-        entry_str = str(entry)
-        if entry_str not in sys.path:
-            sys.path.insert(0, entry_str)
-    current = os.environ.get("PYTHONPATH", "")
-    os.environ["PYTHONPATH"] = str(runtime_path) if not current else f"{runtime_path}:{current}"
+    plugin_root_str = str(plugin_root)
+    if plugin_root_str not in sys.path:
+        sys.path.insert(0, plugin_root_str)
     return plugin_root
 
 
@@ -34,7 +29,7 @@ def main(argv: list[str] | None = None) -> int:
     ctx = hooklib.read_hook_context()
     root, _ = hooklib.resolve_project_root(ctx)
 
-    qa_runtime = plugin_root / "runtime" / "skills" / "qa" / "qa.py"
+    qa_runtime = plugin_root / "skills" / "qa" / "runtime" / "qa.py"
     cmd = [sys.executable, str(qa_runtime), "--gate"]
     if argv:
         cmd.extend(argv)

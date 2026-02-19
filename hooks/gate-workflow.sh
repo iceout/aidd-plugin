@@ -15,12 +15,9 @@ def _bootstrap() -> None:
         raise SystemExit(2)
     plugin_root = Path(raw).expanduser().resolve()
     os.environ.setdefault("AIDD_ROOT", str(plugin_root))
-
-    runtime_path = plugin_root / "runtime"
-    for entry in (runtime_path, plugin_root):
-        entry_str = str(entry)
-        if entry_str not in sys.path:
-            sys.path.insert(0, entry_str)
+    plugin_root_str = str(plugin_root)
+    if plugin_root_str not in sys.path:
+        sys.path.insert(0, plugin_root_str)
 
     vendor_dir = plugin_root / "hooks" / "_vendor"
     if vendor_dir.exists():

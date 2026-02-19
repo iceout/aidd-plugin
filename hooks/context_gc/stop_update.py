@@ -10,14 +10,13 @@ def _bootstrap_entrypoint() -> None:
     plugin_root = None
     if raw_root:
         candidate = Path(raw_root).expanduser()
-        if candidate.exists():
+        if candidate.exists() and (candidate / "aidd_runtime").is_dir():
             plugin_root = candidate.resolve()
 
     if plugin_root is None:
         current = Path(__file__).resolve()
         for parent in (current.parent, *current.parents):
-            runtime_dir = parent / "runtime"
-            if (runtime_dir / "aidd_runtime").is_dir():
+            if (parent / "aidd_runtime").is_dir():
                 plugin_root = parent
                 break
 
@@ -25,10 +24,9 @@ def _bootstrap_entrypoint() -> None:
         raise RuntimeError("Unable to resolve AIDD_ROOT from entrypoint path.")
 
     os.environ["AIDD_ROOT"] = str(plugin_root)
-    for entry in (plugin_root / "runtime", plugin_root):
-        entry_str = str(entry)
-        if entry_str not in sys.path:
-            sys.path.insert(0, entry_str)
+    plugin_root_str = str(plugin_root)
+    if plugin_root_str not in sys.path:
+        sys.path.insert(0, plugin_root_str)
 
 
 _bootstrap_entrypoint()

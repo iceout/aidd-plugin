@@ -69,6 +69,32 @@ kimi
 > /skill:aidd-implementer
 ```
 
+## 迁移后 Smoke 命令（P1.4）
+
+在插件仓库根目录执行（并设置 `AIDD_ROOT` 指向插件目录）：
+
+```bash
+# 一键执行迁移烟测（init / research / qa / hook）
+.venv/bin/pytest -q tests/runtime/test_layout_migration_smoke.py
+```
+
+手工分项验证示例：
+
+```bash
+python3 $AIDD_ROOT/skills/aidd-init/runtime/init.py --force
+python3 $AIDD_ROOT/skills/aidd-core/runtime/rlm_targets.py --ticket P13-SMOKE-001
+python3 $AIDD_ROOT/skills/researcher/runtime/research.py --ticket P13-SMOKE-001 --auto
+python3 $AIDD_ROOT/skills/qa/runtime/qa.py --ticket P13-SMOKE-001 --skip-tests
+python3 $AIDD_ROOT/hooks/gate-workflow.sh
+```
+
+预期现象：
+
+- `init` 成功创建 `aidd/` 结构。
+- `rlm_targets` / `research` 在缺少 `AIDD:RESEARCH_HINTS` 时会阻断（预期行为）。
+- `qa --skip-tests` 成功并输出 `tests_summary=skipped`。
+- `gate-workflow` 能正常执行且不出现 `cannot import name ... from aidd_runtime`。
+
 ## 命名规则说明
 
 - **Skill 名称格式**: `{功能}-{阶段}-flow`（如 `aidd-idea-flow`）

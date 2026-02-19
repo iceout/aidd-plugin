@@ -3,13 +3,13 @@
 Purpose: close the known gaps between this multi-IDE port and the upstream `ai_driven_dev` project so future tasklists can reference concrete milestones.
 
 ## Phase 0 – Baseline Assessment (Week 0)
-- [x] Validate current workspace bootstrap by running `python3 runtime/skills/aidd-init/runtime/init.py --force` inside a temp folder; capture failures as blockers.
+- [x] Validate current workspace bootstrap by running `python3 skills/aidd-init/runtime/init.py --force` inside a temp folder; capture failures as blockers.
 - [x] Inventory missing assets vs. upstream (`docs/overview.md`, `aidd-plugin与AIDD核心差距分析报告.md`) and confirm required directories (agents/, templates/, hooks/).
 - [x] Freeze dependency versions in `pyproject.toml` and document environment expectations in `README.md` + `AGENTS.md`.
 
 ## Phase 1 – Core Assets & Templates (Week 1)
 - [x] Port workspace templates from `ai_driven_dev/templates/aidd` plus stage-specific templates (PRD/plan/tasklist/spec/context) to `templates/aidd/`.
-- [x] Ensure `runtime/skills/aidd-init/runtime/init.py:19-44` references valid template paths (rename seeds if needed) and add a pytest that runs init inside `tmp_path` and asserts expected files exist.
+- [x] Ensure `skills/aidd-init/runtime/init.py:19-44` references valid template paths (rename seeds if needed) and add a pytest that runs init inside `tmp_path` and asserts expected files exist.
 - [x] Restore shared skill templates such as `skills/aidd-core/templates/workspace-agents.md` to keep docs in sync with init output.
 
 ## Phase 2 – Agents Library (Week 2)
@@ -20,9 +20,9 @@ Purpose: close the known gaps between this multi-IDE port and the upstream `ai_d
 ## Priority Phase – Bootstrap & Layout Convergence (Now)
 Execution rule: finish this phase before Phase 3+ to avoid duplicated path churn.
 - [x] Unify runtime/hook entrypoint bootstrap so scripts rely on `AIDD_ROOT` and self-inject `sys.path` (`<repo>/runtime` + `<repo>`), with no manual `PYTHONPATH` requirement.
-- [ ] Produce a minimal layout-convergence migration checklist (target single canonical layout, move map, import rewrites, command/docs rewrites, rollback points).
-- [ ] Execute the layout convergence migration and remove temporary bridges/fallbacks in one pass.
-- [ ] Add migration smoke tests (init/research/qa/hooks) and record outcomes in `README.md` and `COMMANDS.md`.
+- [x] Produce a minimal layout-convergence migration checklist (target single canonical layout, move map, import rewrites, command/docs rewrites, rollback points). Deliverable: `docs/layout-convergence-min-migration.md`.
+- [x] Execute the layout convergence migration and remove temporary bridges/fallbacks in one pass. Result: migrated to `aidd_runtime/` + `skills/*/runtime/`, rewrote skills/hooks/docs/tests path references, and removed `PYTHONPATH` fallback injections from runtime/hook code paths.
+- [x] Add migration smoke tests (init/research/qa/hooks) and record outcomes in `README.md` and `COMMANDS.md`. Added `tests/runtime/test_layout_migration_smoke.py`; verified with `pytest -q tests/runtime/test_layout_migration_smoke.py tests/runtime/test_init_runtime.py tests/test_runtime_basic.py` (12 passed).
 
 ## Phase 3 – Stage & Shared Skills (Weeks 3-4)
 - [ ] Replace the simplified `/flow:aidd-*-flow` SKILL docs with the upstream stage commands (`skills/idea-new/SKILL.md`, `plan-new`, `tasks-new`, `implement`, `review`, `qa`, `researcher`, `review-spec`, `spec-interview`).
@@ -36,7 +36,7 @@ Execution rule: finish this phase before Phase 3+ to avoid duplicated path churn
 
 ## Phase 5 – Automation Hooks & Gates (Week 7)
 - [x] Port hook scripts from upstream (`hooks/format-and-test.sh`, `gate-tests.sh`, `gate-qa.sh`, `gate-workflow.sh`, `context-gc-*.sh`) with updated env vars.
-- [ ] Wire hooks into `runtime/skills/aidd-core/runtime/gates.py` so flows can enforce readiness gates (analyst_check, research_check, plan_review_gate, diff_boundary_check, qa_gate).
+- [ ] Wire hooks into `skills/aidd-core/runtime/gates.py` so flows can enforce readiness gates (analyst_check, research_check, plan_review_gate, diff_boundary_check, qa_gate).
 - [ ] Document hook usage in `COMMANDS.md` and add CI-friendly wrappers for Codex CLI users.
 
 ## Phase 6 – Testing & QA Expansion (Weeks 8-9)

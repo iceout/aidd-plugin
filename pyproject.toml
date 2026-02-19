@@ -18,7 +18,8 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-where = ["runtime"]
+where = ["."]
+include = ["aidd_runtime*"]
 
 [tool.black]
 line-length = 100

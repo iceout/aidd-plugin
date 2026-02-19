@@ -3,7 +3,7 @@
 > Upstream `ai_driven_dev` root: `/Users/xuanyizhang/code/ai_driven_dev`
 
 ## T0.1 – Init Script Validation
-- Command: `python3 runtime/skills/aidd-init/runtime/init.py --force` (executed inside `/var/folders/.../tmp.uS8bMxf8pp`).
+- Command: `python3 skills/aidd-init/runtime/init.py --force` (executed inside `/var/folders/.../tmp.uS8bMxf8pp`).
 - Result (initial run): ❌ failed because `runtime/templates/aidd` was missing and plugin root resolved incorrectly.
 - Log:
   ```

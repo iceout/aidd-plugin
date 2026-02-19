@@ -3,13 +3,13 @@
 > 说明：本计划引用的 upstream 仓库 `ai_driven_dev` 对应本地路径 `/Users/xuanyizhang/code/ai_driven_dev`，后续同步/对比均以该路径为准。
 
 ## Phase 0 – Baseline Assessment (Week 0)
-- [x] **T0.1** 运行 `python3 runtime/skills/aidd-init/runtime/init.py --force` 于隔离 temp 目录，保存执行日志并把任何失败登记为 blocker。
+- [x] **T0.1** 运行 `python3 skills/aidd-init/runtime/init.py --force` 于隔离 temp 目录，保存执行日志并把任何失败登记为 blocker。
 - [x] **T0.2** 对比 `/Users/xuanyizhang/code/ai_driven_dev` 缺失资产（`docs/overview.md`, `aidd-plugin与AIDD核心差距分析报告.md` 等），补齐 `agents/`, `templates/`, `hooks/` 目录并输出差距清单。
 - [x] **T0.3** 在 `pyproject.toml` 冻结依赖版本，并把环境要求同步写入 `README.md` 与 `AGENTS.md`。
 
 ## Phase 1 – Core Assets & Templates (Week 1)
 - [x] **T1.1** 迁移 `ai_driven_dev/templates/aidd` 与 PRD/plan/tasklist/spec/context 模板至 `templates/aidd/`。
-- [x] **T1.2** 校正 `runtime/skills/aidd-init/runtime/init.py:19-44` 的模板路径，新增基于 `tmp_path` 的 pytest，确保 init 后的文件集正确。
+- [x] **T1.2** 校正 `skills/aidd-init/runtime/init.py:19-44` 的模板路径，新增基于 `tmp_path` 的 pytest，确保 init 后的文件集正确。
 - [x] **T1.3** 恢复共享模板 `skills/aidd-core/templates/workspace-agents.md`，保证 init 输出与文档一致。
 
 ## Phase 2 – Agents Library (Week 2)
@@ -21,9 +21,12 @@
 > 说明：该阶段优先级高于 Phase 3+，用于先解决运行入口和目录结构分裂问题，避免后续任务重复返工。
 - [x] **P1.1** 统一所有 runtime/hook 入口的自举约定：仅使用 `AIDD_ROOT`，入口脚本负责注入 `sys.path`（`<repo>/runtime` + `<repo>`），禁止依赖手工设置 `PYTHONPATH`。  
   完成情况：已为 `runtime/` 与 `hooks/` 下全部 `__main__` 入口注入统一 `_bootstrap_entrypoint()`，并验证 `research/rlm_targets/qa` 入口在未设置 `PYTHONPATH` 时可正常启动到业务校验阶段。
-- [ ] **P1.2** 产出“目录收敛最小迁移清单”：明确目标单一布局（推荐向 upstream 靠拢），列出移动路径、导入调整、命令文本更新范围和回滚点。
-- [ ] **P1.3** 执行目录收敛迁移并一次性替换路径引用（skills/hook/docs/tests），移除临时桥接与隐式 fallback。
-- [ ] **P1.4** 增加迁移 smoke tests（init/research/qa/hook），并把迁移结果与风险写回 `README.md`、`COMMANDS.md`。
+- [x] **P1.2** 产出“目录收敛最小迁移清单”：明确目标单一布局（推荐向 upstream 靠拢），列出移动路径、导入调整、命令文本更新范围和回滚点。  
+  交付件：`docs/layout-convergence-min-migration.md`（含目标布局、Move Map、改写范围、批次执行和回滚点）。
+- [x] **P1.3** 执行目录收敛迁移并一次性替换路径引用（skills/hook/docs/tests），移除临时桥接与隐式 fallback。  
+  完成情况：代码源目录已收敛为 `aidd_runtime/` + `skills/*/runtime/`，旧 `runtime/skills` 与 `runtime/aidd_runtime` 已移除；hooks/skills/docs/tests 的路径文本已同步到新布局，代码内 `PYTHONPATH` 注入 fallback 已清理。
+- [x] **P1.4** 增加迁移 smoke tests（init/research/qa/hook），并把迁移结果与风险写回 `README.md`、`COMMANDS.md`。  
+  完成情况：新增 `tests/runtime/test_layout_migration_smoke.py` 覆盖 `init/research/qa/hook`；`README.md` 与 `COMMANDS.md` 已补充迁移结果、执行命令与已知风险；`pytest -q tests/runtime/test_layout_migration_smoke.py tests/runtime/test_init_runtime.py tests/test_runtime_basic.py` 通过（12 passed）。
 
 ## Phase 3 – Stage & Shared Skills (Weeks 3-4)
 - [ ] **T3.1** 用 upstream 阶段 SKILL（`skills/idea-new/SKILL.md`, `plan-new`, `tasks-new`, `implement`, `review`, `qa`, `researcher`, `review-spec`, `spec-interview`）替换现有 `/flow:aidd-*-flow` 文档。
@@ -37,7 +40,7 @@
 
 ## Phase 5 – Automation Hooks & Gates (Week 7)
 - [x] **T5.1** 迁移 upstream hooks（`hooks/format-and-test.sh`, `gate-tests.sh`, `gate-qa.sh`, `gate-workflow.sh`, `context-gc-*.sh`）并更新环境变量。
-- [ ] **T5.2** 将 hooks 接入 `runtime/skills/aidd-core/runtime/gates.py`，启用 analyst_check、research_check、plan_review_gate、diff_boundary_check、qa_gate。
+- [ ] **T5.2** 将 hooks 接入 `skills/aidd-core/runtime/gates.py`，启用 analyst_check、research_check、plan_review_gate、diff_boundary_check、qa_gate。
 - [ ] **T5.3** 在 `COMMANDS.md` 记录 hook 使用方式，并提供面向 Codex CLI 的 CI 包装脚本。
 
 ## Phase 6 – Testing & QA Expansion (Weeks 8-9)

@@ -54,7 +54,6 @@ kimi
 ### 环境变量错误？
 ```bash
 export AIDD_ROOT=<your-path-to-plugin>
-export PYTHONPATH=$AIDD_ROOT/runtime:$PYTHONPATH
 ```
 
 ## 下一步

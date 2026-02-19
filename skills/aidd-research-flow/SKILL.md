@@ -36,7 +36,7 @@ flowchart TD
 
 ```bash
 # 生成完整 RLM
-python3 $AIDD_ROOT/runtime/skills/researcher/runtime/research.py --ticket {ticket} --auto
+python3 $AIDD_ROOT/skills/researcher/runtime/research.py --ticket {ticket} --auto
 ```
 
 ## 下一步

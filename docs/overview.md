@@ -62,7 +62,7 @@ AIDD Plugin 是一个**跨平台、多 IDE 兼容**的 AI 驱动开发（AI-Driv
 
 ```bash
 # 示例：查询所有与 "payment" 相关的代码
-python3 $AIDD_ROOT/runtime/skills/aidd-rlm/runtime/rlm_slice.py \
+python3 $AIDD_ROOT/skills/aidd-rlm/runtime/rlm_slice.py \
   --ticket FUNC-123 \
   --query "payment|charge|billing" \
   --paths src/services \
@@ -148,22 +148,21 @@ aidd-plugin/
 │   ├── aidd-implement-flow/    # Implement 阶段 Flow
 │   ├── aidd-review-flow/       # Review 阶段 Flow
 │   └── aidd-qa-flow/           # QA 阶段 Flow
-├── runtime/                     # 运行时实现
-│   ├── aidd_runtime/           # 核心运行时包
-│   │   ├── runtime.py          # 路径解析、状态管理
-│   │   ├── gates.py            # 质量门禁
-│   │   └── resources.py        # 资源管理
-│   └── skills/                 # 各阶段运行时
-│       ├── aidd-core/          # 核心运行时
-│       ├── aidd-rlm/           # RLM 运行时
-│       ├── aidd-loop/          # Loop 模式运行时
-│       ├── aidd-flow-state/    # 流程状态管理
-│       ├── aidd-docio/         # 文档 IO
-│       ├── aidd-observability/ # 可观测性
-│       ├── researcher/         # Research 阶段
-│       ├── implement/          # Implement 阶段
-│       ├── review/             # Review 阶段
-│       └── qa/                 # QA 阶段
+├── aidd_runtime/               # 核心运行时包
+│   ├── runtime.py              # 路径解析、状态管理
+│   ├── gates.py                # 质量门禁
+│   └── resources.py            # 资源管理
+├── skills/                     # Skill 定义 + 各阶段 runtime
+│   ├── aidd-core/runtime/      # 核心运行时
+│   ├── aidd-rlm/runtime/       # RLM 运行时
+│   ├── aidd-loop/runtime/      # Loop 模式运行时
+│   ├── aidd-flow-state/runtime/ # 流程状态管理
+│   ├── aidd-docio/runtime/     # 文档 IO
+│   ├── aidd-observability/runtime/
+│   ├── researcher/runtime/     # Research 阶段
+│   ├── implement/runtime/      # Implement 阶段
+│   ├── review/runtime/         # Review 阶段
+│   └── qa/runtime/             # QA 阶段
 ├── hooks/                       # 自动化钩子（待实现）
 ├── templates/                   # 工作区模板
 ├── tests/                       # 测试
@@ -284,8 +283,7 @@ export AIDD_ROOT=/path/to/aidd-plugin
 
 ```bash
 # 诊断环境
-export PYTHONPATH=$AIDD_ROOT/runtime:$PYTHONPATH
-python3 $AIDD_ROOT/runtime/skills/aidd-observability/runtime/doctor.py
+python3 $AIDD_ROOT/skills/aidd-observability/runtime/doctor.py
 ```
 
 ### 在 Kimi Code 中使用

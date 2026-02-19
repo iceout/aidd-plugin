@@ -1,11 +1,6 @@
 """基础运行时测试"""
 import os
-import sys
-import tempfile
 from pathlib import Path
-
-# 添加 runtime 到路径
-sys.path.insert(0, str(Path(__file__).parent.parent / "runtime"))
 
 import pytest
 from aidd_runtime import runtime

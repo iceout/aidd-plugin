@@ -16,9 +16,9 @@ def _bootstrap() -> Path:
         raise SystemExit(2)
     plugin_root = Path(raw).expanduser().resolve()
     os.environ.setdefault("AIDD_ROOT", str(plugin_root))
-    runtime_path = plugin_root / "runtime"
-    current = os.environ.get("PYTHONPATH", "")
-    os.environ["PYTHONPATH"] = str(runtime_path) if not current else f"{runtime_path}:{current}"
+    plugin_root_str = str(plugin_root)
+    if plugin_root_str not in sys.path:
+        sys.path.insert(0, plugin_root_str)
     return plugin_root
 
 
