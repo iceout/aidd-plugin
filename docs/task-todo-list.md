@@ -43,7 +43,8 @@
 - [x] **T4.2** 新增 `aidd_runtime/ide_profiles.py` 并接入 `aidd_runtime/command_runner.py`，以 profile 配置收敛“宿主协议差异”而非业务流程差异（不再实现多套 adapter class）。  
   范围约束：仅处理命令前缀/调用入口（如 `$aidd...` vs `/skill:...`）、skills 发现目录、超时/输出限制、权限开关；stage 逻辑与工件契约保持单一实现。
   完成情况：`ide_profiles` 已接管 profile 选择顺序（显式参数→命令前缀→环境变量→skills 自动探测→默认），`command_runner` 已注入 `AIDD_SKILLS_DIRS/AIDD_PRIMARY_SKILLS_DIR`，并新增策略文档 `docs/p4.2-ide-profiles.md` 与配套测试。
-- [ ] **T4.3** 编写 stage 编排集成测试，覆盖 `idea-new → researcher → plan-new → tasks-new` 主链路及 legacy flow alias 回归，并校验 `.active.json` 与核心工件流转。
+- [x] **T4.3** 编写 stage 编排集成测试，覆盖 `idea-new → researcher → plan-new → tasks-new` 主链路及 legacy flow alias 回归，并校验 `.active.json` 与核心工件流转。  
+  完成情况：新增 `tests/runtime/test_stage_orchestration_integration.py`，主链路用例校验 `docs/research/*`、`reports/research/*`、`docs/tasklist/*` 工件，以及 `.active.json` 的 stage/ticket 流转；新增 legacy alias 链路回归（`/flow:aidd-idea-flow`、`/flow:aidd-research-flow`、`/flow:aidd-plan-flow`）。
 
 ## Phase 5 – Automation Hooks & Gates (Week 7)
 - [x] **T5.1** 迁移 upstream hooks（`hooks/format-and-test.sh`, `gate-tests.sh`, `gate-qa.sh`, `gate-workflow.sh`, `context-gc-*.sh`）并更新环境变量。
