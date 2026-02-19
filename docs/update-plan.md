@@ -32,7 +32,8 @@ Execution rule: finish this phase before Phase 3+ to avoid duplicated path churn
 ## Phase 4 – Stage Dispatch Runtime & IDE Profiles (Weeks 4-6)
 Note: after Phase 3, stage-command skills (`/skill:*`) are the primary interface, so this phase targets dispatch/profile convergence instead of a standalone Mermaid flow parser.
 - [x] Implement `aidd_runtime/stage_dispatch.py` to map stage commands to runtime entrypoints, normalize legacy flow aliases, and drive state transitions through `aidd-flow-state`. Result: baseline dispatch + command execution layer and tests are added (`aidd_runtime/stage_dispatch.py`, `aidd_runtime/command_runner.py`, `tests/runtime/test_stage_dispatch.py`, `tests/runtime/test_command_runner.py`); P4.1 subtask checklist in `docs/p4.1-stage-dispatch-checklist.md` is fully completed.
-- [ ] Add `aidd_runtime/command_runner.py` and `aidd_runtime/ide_profiles.py` to absorb Kimi/Cursor/Codex invocation differences via configuration profiles (instead of hardcoded adapter classes).
+- [x] Add `aidd_runtime/ide_profiles.py` and wire it into `aidd_runtime/command_runner.py` to absorb host-protocol differences (for example command prefix dialect, skills discovery path, timeout/output limits, permission toggles), while keeping stage/runtime business logic single-path.
+  Result: `ide_profiles.select_profile()` now centralizes selection order (explicit profile -> command prefix -> env hints -> single skills-dir detection -> default), `command_runner.build_runtime_env()` now exports discovered `AIDD_SKILLS_DIRS/AIDD_PRIMARY_SKILLS_DIR`, and the strategy is documented in `docs/p4.2-ide-profiles.md`.
 - [ ] Add orchestration integration tests for `idea-new -> researcher -> plan-new -> tasks-new` plus legacy flow alias compatibility, validating `.active.json` and generated artifacts.
 
 ## Phase 5 – Automation Hooks & Gates (Week 7)

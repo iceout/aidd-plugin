@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
 
-from aidd_runtime import command_runner, runtime
+from aidd_runtime import command_runner, ide_profiles, runtime
 from aidd_runtime.resources import DEFAULT_PROJECT_SUBDIR
 
 
@@ -33,6 +33,7 @@ class DispatchTarget:
 @dataclass(frozen=True)
 class DispatchResult:
     target: DispatchTarget
+    profile: str
     ticket: str | None
     workspace_root: Path
     project_root: Path
@@ -113,25 +114,23 @@ LEGACY_COMMAND_ALIASES: dict[str, str] = {
 }
 
 
-def normalize_command_name(command: str) -> str:
-    raw = (command or "").strip()
+def normalize_command_name(command: str, profile: str | ide_profiles.IdeProfile | None = None) -> str:
+    profile_cfg = _resolve_profile(command, profile)
+    raw = ide_profiles.strip_host_prefix(command, profile_cfg)
     if not raw:
         return ""
-    if raw.startswith("/"):
-        raw = raw[1:]
-    if ":" in raw:
-        prefix, suffix = raw.split(":", 1)
-        lowered_prefix = prefix.strip().lower()
-        if lowered_prefix in {"skill", "flow", "feature-dev-aidd"}:
-            raw = suffix.strip()
     normalized = raw.strip().lower().translate(_SEPARATOR_TABLE)
     while "--" in normalized:
         normalized = normalized.replace("--", "-")
     return normalized.strip("-")
 
 
-def resolve_dispatch_target(command: str) -> DispatchTarget:
-    requested = normalize_command_name(command)
+def resolve_dispatch_target(
+    command: str,
+    *,
+    profile: str | ide_profiles.IdeProfile | None = None,
+) -> DispatchTarget:
+    requested = normalize_command_name(command, profile=profile)
     if not requested:
         raise ValueError("command name is required")
 
@@ -156,11 +155,13 @@ def dispatch_stage_command(
     ticket: str | None = None,
     argv: Sequence[str] | None = None,
     cwd: Path | None = None,
+    profile: str | ide_profiles.IdeProfile | None = None,
     check: bool = False,
 ) -> DispatchResult:
-    target = resolve_dispatch_target(command)
+    profile_cfg = _resolve_profile(command, profile)
+    target = resolve_dispatch_target(command, profile=profile_cfg)
     plugin_root = runtime.require_plugin_root()
-    env = command_runner.build_runtime_env(plugin_root)
+    env = command_runner.build_runtime_env(plugin_root, profile=profile_cfg)
 
     workspace_root: Path
     project_root: Path
@@ -182,6 +183,7 @@ def dispatch_stage_command(
             script="set_active_feature.py",
             args=[effective_ticket],
             cwd=workspace_root,
+            profile=profile_cfg,
             env=env,
         )
     if target.spec.set_stage and target.spec.stage:
@@ -190,6 +192,7 @@ def dispatch_stage_command(
             script="set_active_stage.py",
             args=[target.spec.stage],
             cwd=workspace_root,
+            profile=profile_cfg,
             env=env,
         )
 
@@ -209,6 +212,7 @@ def dispatch_stage_command(
     command_result = command_runner.run_command(
         command_list,
         cwd=workspace_root,
+        profile=profile_cfg,
         env=env,
         check=check,
         error_context=f"dispatch failed for '{target.resolved_command}'",
@@ -216,6 +220,7 @@ def dispatch_stage_command(
 
     return DispatchResult(
         target=target,
+        profile=profile_cfg.name,
         ticket=effective_ticket,
         workspace_root=workspace_root,
         project_root=project_root,
@@ -247,6 +252,7 @@ def _run_state_script(
     script: str,
     args: Sequence[str],
     cwd: Path,
+    profile: ide_profiles.IdeProfile,
     env: dict[str, str],
 ) -> None:
     script_path = plugin_root / "skills" / "aidd-flow-state" / "runtime" / script
@@ -256,7 +262,15 @@ def _run_state_script(
         script_path,
         argv=args,
         cwd=cwd,
+        profile=profile,
         env=env,
         check=True,
         error_context=f"state transition via {script} failed",
     )
+
+
+def _resolve_profile(
+    command: str,
+    profile: str | ide_profiles.IdeProfile | None,
+) -> ide_profiles.IdeProfile:
+    return ide_profiles.select_profile(command, profile=profile)

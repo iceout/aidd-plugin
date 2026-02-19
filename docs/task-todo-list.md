@@ -40,7 +40,9 @@
 > 说明：Phase 3 已切换为 stage command（`/skill:*`）主入口，Phase 4 不再建设独立 Mermaid flow 解析器，而是补齐统一调度层与 IDE 差异收敛层。
 - [x] **T4.1** 实现 `aidd_runtime/stage_dispatch.py`，统一 stage command 到 runtime 入口的映射（含 legacy flow alias → stage command 归一化），并通过 `aidd-flow-state` 管理状态转换。  
   完成情况：已新增 `aidd_runtime/stage_dispatch.py`、`aidd_runtime/command_runner.py` 与测试 `tests/runtime/test_stage_dispatch.py`、`tests/runtime/test_command_runner.py`；`docs/p4.1-stage-dispatch-checklist.md` 的 P4.1 子任务已全部完成。
-- [ ] **T4.2** 新增 `aidd_runtime/command_runner.py` 与 `aidd_runtime/ide_profiles.py`，以配置化 profile 方式收敛 Kimi/Cursor/Codex 的调用差异（替代硬编码 adapter class）。
+- [x] **T4.2** 新增 `aidd_runtime/ide_profiles.py` 并接入 `aidd_runtime/command_runner.py`，以 profile 配置收敛“宿主协议差异”而非业务流程差异（不再实现多套 adapter class）。  
+  范围约束：仅处理命令前缀/调用入口（如 `$aidd...` vs `/skill:...`）、skills 发现目录、超时/输出限制、权限开关；stage 逻辑与工件契约保持单一实现。
+  完成情况：`ide_profiles` 已接管 profile 选择顺序（显式参数→命令前缀→环境变量→skills 自动探测→默认），`command_runner` 已注入 `AIDD_SKILLS_DIRS/AIDD_PRIMARY_SKILLS_DIR`，并新增策略文档 `docs/p4.2-ide-profiles.md` 与配套测试。
 - [ ] **T4.3** 编写 stage 编排集成测试，覆盖 `idea-new → researcher → plan-new → tasks-new` 主链路及 legacy flow alias 回归，并校验 `.active.json` 与核心工件流转。
 
 ## Phase 5 – Automation Hooks & Gates (Week 7)

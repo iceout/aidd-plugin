@@ -41,6 +41,13 @@ def test_resolve_dispatch_target_legacy_flow_alias() -> None:
     assert target.is_legacy_alias is True
 
 
+def test_resolve_dispatch_target_codex_style_prefix() -> None:
+    target = stage_dispatch.resolve_dispatch_target("$aidd:plan-new")
+    assert target.resolved_command == "plan-new"
+    assert target.spec.stage == "plan"
+    assert target.is_legacy_alias is False
+
+
 def test_dispatch_tasks_new_updates_active_state(dispatch_workspace: Path) -> None:
     result = stage_dispatch.dispatch_stage_command(
         "/skill:tasks-new",
