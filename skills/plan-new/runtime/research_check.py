@@ -33,8 +33,9 @@ _bootstrap_entrypoint()
 
 import argparse
 
-from aidd_runtime import runtime
 from aidd_runtime.research_guard import ResearchValidationError, load_settings, validate_research
+
+from aidd_runtime import runtime
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

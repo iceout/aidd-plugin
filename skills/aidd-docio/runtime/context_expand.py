@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+
 def _bootstrap_entrypoint() -> None:
     import os
     import sys

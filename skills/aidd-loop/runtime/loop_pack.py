@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+
 def _bootstrap_entrypoint() -> None:
     import os
     import sys
@@ -41,10 +42,11 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
+from aidd_runtime.tasklist_parser import PATH_TOKEN_RE, extract_boundaries
+
 from aidd_runtime import runtime
 from aidd_runtime.feature_ids import write_active_state
 from aidd_runtime.io_utils import dump_yaml, parse_front_matter, utc_timestamp
-from aidd_runtime.tasklist_parser import PATH_TOKEN_RE, extract_boundaries
 
 SECTION_RE = re.compile(r"^##\s+(AIDD:[A-Z0-9_]+)\b")
 CHECKBOX_RE = re.compile(r"^\s*-\s*\[(?P<state>[ xX])\]\s+(?P<body>.+)$")

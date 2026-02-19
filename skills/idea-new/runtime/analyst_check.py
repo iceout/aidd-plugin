@@ -33,8 +33,9 @@ _bootstrap_entrypoint()
 
 import argparse
 
-from aidd_runtime import runtime
 from aidd_runtime.analyst_guard import AnalystValidationError, load_settings, validate_prd
+
+from aidd_runtime import runtime
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

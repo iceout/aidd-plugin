@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+
 def _bootstrap_entrypoint() -> None:
     import os
     import sys
@@ -38,8 +39,9 @@ import json
 import sys
 from pathlib import Path
 
-from aidd_runtime import runtime
 from aidd_runtime.md_slice import parse_ref
+
+from aidd_runtime import runtime
 
 
 def _extract_content(path: Path) -> list[str]:

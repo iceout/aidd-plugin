@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+
 def _bootstrap_entrypoint() -> None:
-    import os
     import sys
     from pathlib import Path
 
@@ -36,7 +36,6 @@ import os
 import shutil
 import sys
 from pathlib import Path
-
 
 from aidd_runtime import actions_validate, launcher, runtime
 

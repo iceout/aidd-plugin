@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+
 def _bootstrap_entrypoint() -> None:
     import os
     import sys
@@ -38,8 +39,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-from aidd_runtime import runtime
 from aidd_runtime.diff_boundary_check import extract_boundaries, parse_front_matter
+
+from aidd_runtime import runtime
 from aidd_runtime.io_utils import utc_timestamp
 
 STAGES = ["preflight", "implement", "review", "qa"]

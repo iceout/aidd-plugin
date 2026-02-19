@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+
 def _bootstrap_entrypoint() -> None:
     import os
     import sys
@@ -42,9 +43,6 @@ import sys
 import time
 from pathlib import Path
 
-from aidd_runtime import runtime
-from aidd_runtime.feature_ids import write_active_state
-from aidd_runtime.io_utils import dump_yaml, utc_timestamp
 from aidd_runtime.loop_pack import (
     is_open_item,
     parse_iteration_items,
@@ -52,6 +50,10 @@ from aidd_runtime.loop_pack import (
     parse_sections,
     select_first_open,
 )
+
+from aidd_runtime import runtime
+from aidd_runtime.feature_ids import write_active_state
+from aidd_runtime.io_utils import dump_yaml, utc_timestamp
 
 DONE_CODE = 0
 CONTINUE_CODE = 10

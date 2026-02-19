@@ -7,7 +7,6 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from aidd_runtime import runtime
 from aidd_runtime.tasklist_check import (
     CHECKBOX_RE,
     build_next3_lines,
@@ -23,6 +22,8 @@ from aidd_runtime.tasklist_check import (
     resolve_plan_path,
     section_body,
 )
+
+from aidd_runtime import runtime
 
 
 @dataclass

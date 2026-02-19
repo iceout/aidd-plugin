@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 def _bootstrap_entrypoint() -> None:
     import os
     import sys
@@ -39,7 +40,6 @@ import subprocess
 import sys
 from fnmatch import fnmatch
 from pathlib import Path
-
 
 from aidd_runtime import qa_agent as _qa_agent
 from aidd_runtime import runtime, tasklist_parser

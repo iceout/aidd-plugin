@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+
 def _bootstrap_entrypoint() -> None:
     import os
     import sys
@@ -42,6 +43,8 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
+from aidd_runtime.diff_boundary_check import extract_boundaries, parse_front_matter
+
 from aidd_runtime import (
     actions_validate,
     context_map_validate,
@@ -49,7 +52,6 @@ from aidd_runtime import (
     runtime,
     skill_contract_validate,
 )
-from aidd_runtime.diff_boundary_check import extract_boundaries, parse_front_matter
 from aidd_runtime.io_utils import utc_timestamp
 
 DEFAULT_ACTION_TYPES = [

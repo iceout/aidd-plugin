@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 def _bootstrap_entrypoint() -> None:
     import os
     import sys
@@ -38,7 +39,6 @@ import re
 import sys
 from collections.abc import Iterable
 from pathlib import Path
-
 
 from aidd_runtime import research_hints as prd_hints
 from aidd_runtime import rlm_manifest, rlm_nodes_build, rlm_targets, runtime

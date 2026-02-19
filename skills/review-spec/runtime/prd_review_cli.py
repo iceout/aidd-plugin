@@ -31,12 +31,11 @@ def _bootstrap_entrypoint() -> None:
 
 _bootstrap_entrypoint()
 
-from typing import Optional
 
 from aidd_runtime import prd_review, runtime
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = prd_review.parse_args(argv)
     _, target = runtime.require_workflow_root()
     exit_code = prd_review.run(args)
