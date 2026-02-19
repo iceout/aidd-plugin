@@ -19,19 +19,19 @@ Purpose: close the known gaps between this multi-IDE port and the upstream `ai_d
 
 ## Priority Phase – Bootstrap & Layout Convergence (Now)
 Execution rule: finish this phase before Phase 3+ to avoid duplicated path churn.
-- [x] Unify runtime/hook entrypoint bootstrap so scripts rely on `AIDD_ROOT` and self-inject `sys.path` (`<repo>/runtime` + `<repo>`), with no manual `PYTHONPATH` requirement.
+- [x] Unify runtime/hook entrypoint bootstrap so scripts rely on `AIDD_ROOT` and self-inject `sys.path` (`<repo>`), with no manual `PYTHONPATH` requirement.
 - [x] Produce a minimal layout-convergence migration checklist (target single canonical layout, move map, import rewrites, command/docs rewrites, rollback points). Deliverable: `docs/layout-convergence-min-migration.md`.
 - [x] Execute the layout convergence migration and remove temporary bridges/fallbacks in one pass. Result: migrated to `aidd_runtime/` + `skills/*/runtime/`, rewrote skills/hooks/docs/tests path references, and removed `PYTHONPATH` fallback injections from runtime/hook code paths.
 - [x] Add migration smoke tests (init/research/qa/hooks) and record outcomes in `README.md` and `COMMANDS.md`. Added `tests/runtime/test_layout_migration_smoke.py`; verified with `pytest -q tests/runtime/test_layout_migration_smoke.py tests/runtime/test_init_runtime.py tests/test_runtime_basic.py` (12 passed).
 
 ## Phase 3 – Stage & Shared Skills (Weeks 3-4)
-- [ ] Replace the simplified `/flow:aidd-*-flow` SKILL docs with the upstream stage commands (`skills/idea-new/SKILL.md`, `plan-new`, `tasks-new`, `implement`, `review`, `qa`, `researcher`, `review-spec`, `spec-interview`).
-- [ ] Reintroduce shared skills (`aidd-policy`, `aidd-reference`, `aidd-stage-research`) so subagents inherit consistent policy, read discipline, and loop safety guidance.
-- [ ] Update `scripts/install.sh` and docs so new skills are symlinked and discoverable via `/skill:` commands in Kimi/Cursor/Codex.
+- [x] Replace the simplified `/flow:aidd-*-flow` SKILL docs with the upstream stage commands (`skills/idea-new/SKILL.md`, `plan-new`, `tasks-new`, `implement`, `review`, `qa`, `researcher`, `review-spec`, `spec-interview`). Result: stage command skills are now primary; legacy flow skills remain as compatibility shims.
+- [x] Reintroduce shared skills (`aidd-policy`, `aidd-reference`, `aidd-stage-research`) so subagents inherit consistent policy, read discipline, and loop safety guidance.
+- [x] Update `scripts/install.sh` and docs so new skills are symlinked and discoverable via `/skill:` commands in Kimi/Cursor/Codex. Result: installer links only dirs containing `SKILL.md`, and `scripts/verify-flows.sh` validates required stage skills.
 
 ## Phase 4 – Flow Runtime & IDE Adapter (Weeks 4-6)
-- [ ] Implement `runtime/flow_engine.py` that can execute flow definitions: resolve inputs, call stage runtimes, and transition states using `aidd-flow-state` utilities.
-- [ ] Add `runtime/agent_caller.py` plus `runtime/ide_adapter.py` with `KimiAdapter`, `CursorAdapter`, and `CodexAdapter` to abstract tool invocation differences.
+- [ ] Implement `aidd_runtime/flow_engine.py` that can execute flow definitions: resolve inputs, call stage runtimes, and transition states using `aidd-flow-state` utilities.
+- [ ] Add `aidd_runtime/agent_caller.py` plus `aidd_runtime/ide_adapter.py` with `KimiAdapter`, `CursorAdapter`, and `CodexAdapter` to abstract tool invocation differences.
 - [ ] Extend each flow SKILL with `runtime:` metadata pointing to the new engine entrypoints and add integration tests that drive a toy ticket through idea → implement.
 
 ## Phase 5 – Automation Hooks & Gates (Week 7)
@@ -41,7 +41,7 @@ Execution rule: finish this phase before Phase 3+ to avoid duplicated path churn
 
 ## Phase 6 – Testing & QA Expansion (Weeks 8-9)
 - [ ] Backfill critical pytest suites from `ai_driven_dev/tests` (active_state, gates, docio, loop, hooks) and adapt fixtures for the new adapters.
-- [ ] Tighten `scripts/test.sh` to fail on Black/Ruff/MyPy issues and capture coverage for `runtime/flow_engine.py` + adapters.
+- [ ] Tighten `scripts/test.sh` to fail on Black/Ruff/MyPy issues and capture coverage for `aidd_runtime/flow_engine.py` + adapters.
 - [ ] Add end-to-end tests that initialize a workspace, run the idea → research → plan pipeline, and assert generated artifacts (PRD, research pack, plan, tasklist).
 
 ## Phase 7 – Documentation & Adoption (Week 10+)

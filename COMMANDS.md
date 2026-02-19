@@ -1,115 +1,69 @@
 # AIDD for Kimi/Codex/Cursor - 命令速查表
 
-## 正确的命令格式
+## 推荐命令（Stage Skills）
 
-### Flow Skills（执行工作流）
-
-| 命令 | 功能 |
-|------|------|
+| 命令 | 作用 |
+| --- | --- |
 | `/flow:aidd-init-flow` | 初始化 AIDD 工作区 |
-| `/flow:aidd-idea-flow` | 创建 PRD 草案 |
-| `/flow:aidd-research-flow` | 代码库研究 |
-| `/flow:aidd-plan-flow` | 制定实施计划 |
-| `/flow:aidd-implement-flow` | 迭代实现代码 |
-| `/flow:aidd-review-flow` | 代码审核 |
-| `/flow:aidd-qa-flow` | 质量检查 |
+| `/skill:idea-new <ticket> [note...]` | Idea 阶段：创建/更新 PRD |
+| `/skill:researcher <ticket> [--paths ... --keywords ...]` | Research 阶段：生成 RLM 与研究报告 |
+| `/skill:plan-new <ticket> [note...]` | Plan 阶段：生成实施计划 |
+| `/skill:review-spec <ticket> [note...]` | Review-Spec 阶段：计划/PRD 就绪检查 |
+| `/skill:spec-interview <ticket> [note...]` | Spec-Interview 阶段：更新 spec.yaml |
+| `/skill:tasks-new <ticket> [note...]` | Tasklist 阶段：生成任务清单 |
+| `/skill:implement <ticket> [note...]` | Implement 阶段：执行实现循环 |
+| `/skill:review <ticket> [note...]` | Review 阶段：生成 findings |
+| `/skill:qa <ticket> [note...]` | QA 阶段：执行质量检查 |
 
-### Standard Skills（查看帮助）
+## 兼容别名（迁移期）
 
-| 命令 | 功能 |
-|------|------|
-| `/skill:aidd-core` | 查看 AIDD 核心文档 |
-| `/skill:aidd-research` | 查看研究阶段指南 |
-| `/skill:aidd-implementer` | 查看实现者指南 |
-| `/skill:aidd-reviewer` | 查看审核者指南 |
+以下 `/flow` 入口已保留，但建议优先使用上面的 `/skill` 命令：
 
-## 使用示例
+| 旧命令 | 新命令 |
+| --- | --- |
+| `/flow:aidd-idea-flow` | `/skill:idea-new` |
+| `/flow:aidd-research-flow` | `/skill:researcher` |
+| `/flow:aidd-plan-flow` | `/skill:plan-new` |
+| `/flow:aidd-implement-flow` | `/skill:implement` |
+| `/flow:aidd-review-flow` | `/skill:review` |
+| `/flow:aidd-qa-flow` | `/skill:qa` |
 
-### 完整工作流
+## 常用辅助命令
+
+| 命令 | 作用 |
+| --- | --- |
+| `/skill:aidd-core` | 核心工作流说明 |
+| `/skill:aidd-policy` | 输出/提问/阅读策略约束 |
+| `/skill:aidd-reference` | wrapper/runtime 合约参考 |
+| `/skill:aidd-stage-research` | 研究阶段证据与交接约束 |
+
+## 完整流程示例
 
 ```bash
-# 1. 进入项目目录
-cd my-project
-
-# 2. 启动 Kimi
-kimi
-
-# 3. 初始化 AIDD 工作区（首次使用）
+# 1) 初始化（首次）
 > /flow:aidd-init-flow
 
-# 4. 创建新功能
-> /flow:aidd-idea-flow FUNC-001 "实现用户登录功能"
+# 2) Idea -> Research -> Plan
+> /skill:idea-new FUNC-001 "实现用户登录功能"
+> /skill:researcher FUNC-001
+> /skill:plan-new FUNC-001
 
-# 5. 代码研究（自动生成 RLM）
-> /flow:aidd-research-flow FUNC-001
+# 3) Review-Spec -> Tasklist
+> /skill:review-spec FUNC-001
+> /skill:spec-interview FUNC-001
+> /skill:tasks-new FUNC-001
 
-# 6. 制定计划
-> /flow:aidd-plan-flow FUNC-001
-
-# 7. 实现代码
-> /flow:aidd-implement-flow FUNC-001
-
-# 8. 代码审核
-> /flow:aidd-review-flow FUNC-001
-
-# 9. QA 检查
-> /flow:aidd-qa-flow FUNC-001
+# 4) Loop stages
+> /skill:implement FUNC-001
+> /skill:review FUNC-001
+> /skill:qa FUNC-001
 ```
 
-### 查看帮助
+## 安装验证
 
 ```bash
-# 查看 AIDD 核心概念
-> /skill:aidd-core
-
-# 查看研究阶段如何使用 RLM
-> /skill:aidd-research
-
-# 查看如何实现代码
-> /skill:aidd-implementer
+./scripts/install.sh
+./scripts/verify-flows.sh
 ```
 
-## 迁移后 Smoke 命令（P1.4）
-
-在插件仓库根目录执行（并设置 `AIDD_ROOT` 指向插件目录）：
-
-```bash
-# 一键执行迁移烟测（init / research / qa / hook）
-.venv/bin/pytest -q tests/runtime/test_layout_migration_smoke.py
-```
-
-手工分项验证示例：
-
-```bash
-python3 $AIDD_ROOT/skills/aidd-init/runtime/init.py --force
-python3 $AIDD_ROOT/skills/aidd-core/runtime/rlm_targets.py --ticket P13-SMOKE-001
-python3 $AIDD_ROOT/skills/researcher/runtime/research.py --ticket P13-SMOKE-001 --auto
-python3 $AIDD_ROOT/skills/qa/runtime/qa.py --ticket P13-SMOKE-001 --skip-tests
-python3 $AIDD_ROOT/hooks/gate-workflow.sh
-```
-
-预期现象：
-
-- `init` 成功创建 `aidd/` 结构。
-- `rlm_targets` / `research` 在缺少 `AIDD:RESEARCH_HINTS` 时会阻断（预期行为）。
-- `qa --skip-tests` 成功并输出 `tests_summary=skipped`。
-- `gate-workflow` 能正常执行且不出现 `cannot import name ... from aidd_runtime`。
-
-## 命名规则说明
-
-- **Skill 名称格式**: `{功能}-{阶段}-flow`（如 `aidd-idea-flow`）
-- **Flow 命令**: `/flow:{skill-name}`（如 `/flow:aidd-idea-flow`）
-- **Skill 命令**: `/skill:{skill-name}`（如 `/skill:aidd-core`）
-
-## 常见问题
-
-### Q: 为什么不是 `/flow:aidd-idea` 而是 `/flow:aidd-idea-flow`？
-A: 为了与 Standard Skills 区分，Flow Skills 的名称包含了 `-flow` 后缀。
-
-### Q: `/skill:aidd-idea-flow` 和 `/flow:aidd-idea-flow` 有什么区别？
-A: 
-- `/skill:aidd-idea-flow` - 加载 SKILL.md 内容作为提示词（不执行流程）
-- `/flow:aidd-idea-flow` - 执行 Mermaid 流程图定义的自动化工作流
-
-### Q: 如何查看有哪些可用的 AIDD 命令？
-A: 在 Kimi 中输入 `/` 然后按 Tab 键，可以看到所有可用的斜杠命令。
+预期：`verify-flows.sh` 输出所有 required stage skills 已安装。

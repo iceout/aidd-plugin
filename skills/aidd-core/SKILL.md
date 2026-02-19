@@ -63,15 +63,18 @@ python3 $AIDD_ROOT/skills/aidd-observability/runtime/doctor.py
 python3 $AIDD_ROOT/skills/aidd-rlm/runtime/rlm_slice.py --ticket FUNC-123 --query "PaymentService"
 ```
 
-## Flow Skills
+## Stage Commands
 
 - `/flow:aidd-init-flow` - 初始化 AIDD 工作区
-- `/flow:aidd-idea-flow` - 启动 Idea 阶段
-- `/flow:aidd-research-flow` - 启动 Research 阶段
-- `/flow:aidd-plan-flow` - 启动 Plan 阶段
-- `/flow:aidd-implement-flow` - 启动 Implement 阶段
-- `/flow:aidd-review-flow` - 启动 Review 阶段
-- `/flow:aidd-qa-flow` - 启动 QA 阶段
+- `/skill:idea-new` - 启动 Idea 阶段并产出 PRD
+- `/skill:researcher` - 执行 Research 阶段并生成 RLM 证据
+- `/skill:plan-new` - 执行 Plan 阶段并产出实现计划
+- `/skill:review-spec` - 执行 review-spec 阶段（review-plan + review-prd）
+- `/skill:spec-interview` - 执行规格访谈并更新 spec
+- `/skill:tasks-new` - 生成/校验 tasklist
+- `/skill:implement` - 实现阶段循环
+- `/skill:review` - 审核阶段循环
+- `/skill:qa` - QA 阶段循环
 
 ## 输出合约
 
@@ -94,12 +97,12 @@ Next actions:
 
 2. **开始新功能**：
    ```
-   /flow:aidd-idea-flow FUNC-001 "实现用户登录功能"
+   /skill:idea-new FUNC-001 "实现用户登录功能"
    ```
 
 3. **继续开发**：
    ```
-   /flow:aidd-implement-flow FUNC-001
+   /skill:implement FUNC-001
    ```
 
 ## 目录结构

@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-This plugin is organized around runtime code, reusable skills, and contributor tooling. `aidd_runtime/` hosts shared Python runtime modules, and stage runtimes live under `skills/*/runtime/` (RLM, loop, flow state, docio, QA, etc.). `skills/` also contains the public SKILL.md definitions for `/skill:aidd-*` and `/flow:aidd-*-flow`, while `scripts/` stores helper automation and `tests/` holds pytest suites and fixtures. Top-level docs (`README.md`, `COMMANDS.md`, `QUICKSTART.md`) describe flows; keep new specs beside them for visibility.
+This plugin is organized around runtime code, reusable skills, and contributor tooling. `aidd_runtime/` hosts shared Python runtime modules, and stage runtimes live under `skills/*/runtime/` (RLM, loop, flow state, docio, QA, etc.). `skills/` also contains public SKILL.md definitions for stage commands (for example `/skill:idea-new`, `/skill:plan-new`, `/skill:implement`) plus legacy flow aliases (for example `/flow:aidd-idea-flow`), while `scripts/` stores helper automation and `tests/` holds pytest suites and fixtures. Top-level docs (`README.md`, `COMMANDS.md`, `QUICKSTART.md`) describe command usage; keep new specs beside them for visibility.
 
 ## Build, Test, and Development Commands
 Run `source scripts/activate.sh` to enter the UV-backed Python 3.13 environment, then install/refresh dependencies with `./scripts/install.sh`. Validate the CLI glue with `python3 skills/aidd-observability/runtime/doctor.py` after adjusting `AIDD_ROOT`. Use `./scripts/test.sh` for the full gate (Black, Ruff, MyPy, pytest with coverage) and `./scripts/verify-flows.sh` to ensure every flow SKILL is synced into `~/.config/agents/skills/`.

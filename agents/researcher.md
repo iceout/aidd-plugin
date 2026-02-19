@@ -7,6 +7,9 @@ source_version: 0.1.0
 tools: Read, Edit, Write, Glob, Bash(rg *), Bash(sed *), Bash(python3 *)
 skills:
   - aidd-core
+  - aidd-policy
+  - aidd-reference
+  - aidd-stage-research
   - aidd-research
 model: inherit
 permissionMode: default

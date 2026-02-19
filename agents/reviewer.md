@@ -7,6 +7,8 @@ source_version: 0.1.0
 tools: Read, Edit, Write, Glob, Bash(rg *), Bash(sed *), Bash(git *)
 skills:
   - aidd-core
+  - aidd-policy
+  - aidd-reference
   - aidd-reviewer
 model: inherit
 permissionMode: default

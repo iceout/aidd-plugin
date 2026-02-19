@@ -19,8 +19,8 @@
 
 ## Priority Phase – Bootstrap & Layout Convergence (Now)
 > 说明：该阶段优先级高于 Phase 3+，用于先解决运行入口和目录结构分裂问题，避免后续任务重复返工。
-- [x] **P1.1** 统一所有 runtime/hook 入口的自举约定：仅使用 `AIDD_ROOT`，入口脚本负责注入 `sys.path`（`<repo>/runtime` + `<repo>`），禁止依赖手工设置 `PYTHONPATH`。  
-  完成情况：已为 `runtime/` 与 `hooks/` 下全部 `__main__` 入口注入统一 `_bootstrap_entrypoint()`，并验证 `research/rlm_targets/qa` 入口在未设置 `PYTHONPATH` 时可正常启动到业务校验阶段。
+- [x] **P1.1** 统一所有 runtime/hook 入口的自举约定：仅使用 `AIDD_ROOT`，入口脚本负责注入 `sys.path`（`<repo>`），禁止依赖手工设置 `PYTHONPATH`。  
+  完成情况：已为 `skills/*/runtime/` 与 `hooks/` 下全部 `__main__` 入口注入统一 `_bootstrap_entrypoint()`，并验证 `research/rlm_targets/qa` 入口在未设置 `PYTHONPATH` 时可正常启动到业务校验阶段。
 - [x] **P1.2** 产出“目录收敛最小迁移清单”：明确目标单一布局（推荐向 upstream 靠拢），列出移动路径、导入调整、命令文本更新范围和回滚点。  
   交付件：`docs/layout-convergence-min-migration.md`（含目标布局、Move Map、改写范围、批次执行和回滚点）。
 - [x] **P1.3** 执行目录收敛迁移并一次性替换路径引用（skills/hook/docs/tests），移除临时桥接与隐式 fallback。  
@@ -29,13 +29,16 @@
   完成情况：新增 `tests/runtime/test_layout_migration_smoke.py` 覆盖 `init/research/qa/hook`；`README.md` 与 `COMMANDS.md` 已补充迁移结果、执行命令与已知风险；`pytest -q tests/runtime/test_layout_migration_smoke.py tests/runtime/test_init_runtime.py tests/test_runtime_basic.py` 通过（12 passed）。
 
 ## Phase 3 – Stage & Shared Skills (Weeks 3-4)
-- [ ] **T3.1** 用 upstream 阶段 SKILL（`skills/idea-new/SKILL.md`, `plan-new`, `tasks-new`, `implement`, `review`, `qa`, `researcher`, `review-spec`, `spec-interview`）替换现有 `/flow:aidd-*-flow` 文档。
-- [ ] **T3.2** 重新引入共享技能 `aidd-policy`, `aidd-reference`, `aidd-stage-research`，供子 Agent 继承统一策略与安全指引。
-- [ ] **T3.3** 更新 `scripts/install.sh` 及文档，确保新技能被 `/skill:` 命令（Kimi/Cursor/Codex）正确发现。
+- [x] **T3.1** 用 upstream 阶段 SKILL（`skills/idea-new/SKILL.md`, `plan-new`, `tasks-new`, `implement`, `review`, `qa`, `researcher`, `review-spec`, `spec-interview`）替换现有 `/flow:aidd-*-flow` 文档。  
+  完成情况：已补齐 9 个阶段技能 SKILL（含 `idea-new/plan-new/tasks-new/review-spec/spec-interview` 与 `implement/review/qa/researcher`），并把 `aidd-*-flow` 改为迁移桥接说明。
+- [x] **T3.2** 重新引入共享技能 `aidd-policy`, `aidd-reference`, `aidd-stage-research`，供子 Agent 继承统一策略与安全指引。  
+  完成情况：已新增共享技能目录与文档（含 policy references 与 wrapper contract），并统一变量为 `AIDD_ROOT`。
+- [x] **T3.3** 更新 `scripts/install.sh` 及文档，确保新技能被 `/skill:` 命令（Kimi/Cursor/Codex）正确发现。  
+  完成情况：`scripts/install.sh` 已改为仅安装含 `SKILL.md` 的技能目录；`scripts/verify-flows.sh` 改为校验 required stage skills；`README.md`、`COMMANDS.md`、`QUICKSTART.md` 已切换到 stage command 用法。
 
 ## Phase 4 – Flow Runtime & IDE Adapter (Weeks 4-6)
-- [ ] **T4.1** 实现 `runtime/flow_engine.py`，负责解析 flow、调度 stage runtimes，并通过 `aidd-flow-state` 管理状态转换。
-- [ ] **T4.2** 新增 `runtime/agent_caller.py` 与 `runtime/ide_adapter.py`，提供 `KimiAdapter`, `CursorAdapter`, `CodexAdapter` 来抽象工具调用差异。
+- [ ] **T4.1** 实现 `aidd_runtime/flow_engine.py`，负责解析 flow、调度 stage runtimes，并通过 `aidd-flow-state` 管理状态转换。
+- [ ] **T4.2** 新增 `aidd_runtime/agent_caller.py` 与 `aidd_runtime/ide_adapter.py`，提供 `KimiAdapter`, `CursorAdapter`, `CodexAdapter` 来抽象工具调用差异。
 - [ ] **T4.3** 为各 flow SKILL 添加 `runtime:` 元数据，并编写串联 idea→implement 的集成测试。
 
 ## Phase 5 – Automation Hooks & Gates (Week 7)
@@ -45,7 +48,7 @@
 
 ## Phase 6 – Testing & QA Expansion (Weeks 8-9)
 - [ ] **T6.1** 回填 `/Users/xuanyizhang/code/ai_driven_dev/tests` 中关键 pytest（active_state, gates, docio, loop, hooks）并适配新的 adapter fixture。
-- [ ] **T6.2** 加固 `scripts/test.sh`：Black/Ruff/MyPy 任一失败即退出，同时统计 `runtime/flow_engine.py` 与 adapters 的覆盖率。
+- [ ] **T6.2** 加固 `scripts/test.sh`：Black/Ruff/MyPy 任一失败即退出，同时统计 `aidd_runtime/flow_engine.py` 与 adapters 的覆盖率。
 - [ ] **T6.3** 编写端到端测试，执行 workspace init + idea→research→plan 流程并检查 PRD、research pack、plan、tasklist 产出。
 
 ## Phase 7 – Documentation & Adoption (Week 10+)

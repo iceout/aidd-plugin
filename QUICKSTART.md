@@ -1,62 +1,66 @@
 # AIDD for Kimi/Codex/Cursor - 快速开始
 
-## 安装（已完成）
+## 环境准备
 
 ```bash
-# 环境已配置好
 export AIDD_ROOT=<your-path-to-plugin>
+./scripts/install.sh
 ```
 
 ## 3 分钟上手
 
-### 1. 启动 Kimi/Codex/Cursor
+### 1. 进入目标项目并启动 IDE Agent
+
 ```bash
 cd your-project
-kimi
 ```
 
-### 2. 初始化（首次）
-```
+### 2. 初始化工作区（首次）
+
+```text
 > /flow:aidd-init-flow
 ```
 
-### 3. 创建功能
-```
-> /flow:aidd-idea-flow MY-001 "实现XX功能"
+### 3. 执行阶段命令
+
+```text
+> /skill:idea-new MY-001 "实现XX功能"
+> /skill:researcher MY-001
+> /skill:plan-new MY-001
+> /skill:review-spec MY-001
+> /skill:spec-interview MY-001
+> /skill:tasks-new MY-001
+> /skill:implement MY-001
+> /skill:review MY-001
+> /skill:qa MY-001
 ```
 
-### 4. 后续流程
-```
-> /flow:aidd-research-flow MY-001   # 研究代码
-> /flow:aidd-plan-flow MY-001       # 制定计划
-> /flow:aidd-implement-flow MY-001  # 实现代码
-> /flow:aidd-review-flow MY-001     # 代码审核
-> /flow:aidd-qa-flow MY-001         # 质量检查
-```
-
-## 核心命令对照表
+## 核心命令对照
 
 | 你想做 | 输入命令 |
-|--------|----------|
+| --- | --- |
 | 初始化工作区 | `/flow:aidd-init-flow` |
-| 创建新功能 | `/flow:aidd-idea-flow TICKET "描述"` |
-| 研究代码 | `/flow:aidd-research-flow TICKET` |
-| 写代码 | `/flow:aidd-implement-flow TICKET` |
-| 审核代码 | `/flow:aidd-review-flow TICKET` |
-| 查看帮助 | `/skill:aidd-core` |
+| 创建新功能 | `/skill:idea-new TICKET "描述"` |
+| 研究代码 | `/skill:researcher TICKET` |
+| 生成计划 | `/skill:plan-new TICKET` |
+| 生成任务清单 | `/skill:tasks-new TICKET` |
+| 实现与审查 | `/skill:implement TICKET` / `/skill:review TICKET` |
+| QA 验收 | `/skill:qa TICKET` |
+| 查看核心说明 | `/skill:aidd-core` |
 
-## 故障排除
+## 验证安装
 
-### 命令不存在？
-1. 确认已安装：`ls ~/.config/agents/skills/ | grep aidd`
-2. 重启 Kimi/Codex/Cursor
-
-### 环境变量错误？
 ```bash
-export AIDD_ROOT=<your-path-to-plugin>
+./scripts/verify-flows.sh
 ```
+
+## 故障排查
+
+1. 命令不存在：重启 IDE，并确认 `~/.config/agents/skills` 下有对应 skill 目录。
+2. Python 导入失败：确认 `AIDD_ROOT` 指向插件根目录。
+3. 旧 flow 命令仍被调用：改用 `/skill:idea-new` 等 stage skills。
 
 ## 下一步
 
-- 阅读完整文档：[README.md](README.md)
-- 查看命令详情：[COMMANDS.md](COMMANDS.md)
+- 详细命令：`COMMANDS.md`
+- 项目说明：`README.md`

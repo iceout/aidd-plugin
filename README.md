@@ -39,7 +39,7 @@ python3 $AIDD_ROOT/skills/aidd-observability/runtime/doctor.py
 ```
 /skill:aidd-core
 /flow:aidd-init-flow
-/flow:aidd-idea-flow FUNC-001 "实现用户登录功能"
+/skill:idea-new FUNC-001 "实现用户登录功能"
 ```
 
 ## 开发环境要求
@@ -94,13 +94,14 @@ python3 $AIDD_ROOT/skills/aidd-observability/runtime/doctor.py
 ### ✅ Phase 2: Skills 创建 (核心)
 - [x] aidd-core (Standard Skill)
 - [x] aidd-init-flow (Flow Skill)
-- [x] aidd-idea-flow (Flow Skill)
-- [x] aidd-implement-flow (Flow Skill)
-- [x] aidd-research, aidd-implementer, aidd-reviewer
+- [x] implement / review / qa / researcher (Stage Skills)
+- [x] idea-new / plan-new / tasks-new / review-spec / spec-interview
+- [x] aidd-policy / aidd-reference / aidd-stage-research (Shared Skills)
 
-### 🔄 Phase 3: 初始化系统 (进行中)
-- [ ] 完善 init.py
-- [ ] 创建工作区模板
+### ✅ Phase 3: Stage & Shared Skills
+- [x] 以 stage commands 替换旧 flow 文档入口（保留兼容别名）
+- [x] 引入共享策略技能：aidd-policy / aidd-reference / aidd-stage-research
+- [x] 安装脚本改为仅安装包含 SKILL.md 的目录，并补充验证脚本
 
 ### ⏳ Phase 4: 测试和文档
 - [ ] 端到端测试
@@ -116,16 +117,19 @@ aidd-plugin/
 │   │   ├── SKILL.md
 │   │   └── runtime/
 │   ├── aidd-init-flow/SKILL.md
-│   ├── aidd-idea-flow/SKILL.md
-│   ├── aidd-implement-flow/SKILL.md
+│   ├── idea-new/SKILL.md
+│   ├── plan-new/SKILL.md
+│   ├── tasks-new/SKILL.md
+│   ├── review-spec/SKILL.md
+│   ├── spec-interview/SKILL.md
+│   ├── implement/SKILL.md
+│   ├── review/SKILL.md
+│   ├── qa/SKILL.md
 │   ├── aidd-rlm/runtime/
 │   ├── aidd-loop/runtime/
 │   ├── aidd-flow-state/runtime/
 │   ├── aidd-docio/runtime/
-│   ├── researcher/runtime/
-│   ├── implement/runtime/
-│   ├── review/runtime/
-│   └── qa/runtime/
+│   └── ...
 │   └── ...
 ├── tests/
 ├── scripts/
@@ -135,15 +139,20 @@ aidd-plugin/
 └── pyproject.toml
 ```
 
-## 可用的 Flow Skills
+## 可用命令技能
 
 - `/flow:aidd-init-flow` - 初始化 AIDD 工作区
-- `/flow:aidd-idea-flow` - 创建 PRD 草案
-- `/flow:aidd-research-flow` - 代码库研究 (RLM)
-- `/flow:aidd-plan-flow` - 制定实施计划
-- `/flow:aidd-implement-flow` - 迭代实现代码
-- `/flow:aidd-review-flow` - 代码审核
-- `/flow:aidd-qa-flow` - 质量检查
+- `/skill:idea-new` - 创建 PRD 草案
+- `/skill:researcher` - 代码库研究 (RLM)
+- `/skill:plan-new` - 制定实施计划
+- `/skill:review-spec` - 审核计划与 PRD
+- `/skill:spec-interview` - 规格访谈（可选）
+- `/skill:tasks-new` - 生成任务清单
+- `/skill:implement` - 迭代实现代码
+- `/skill:review` - 代码审核
+- `/skill:qa` - 质量检查
+
+兼容别名（迁移期保留）：`/flow:aidd-idea-flow`、`/flow:aidd-research-flow`、`/flow:aidd-plan-flow`、`/flow:aidd-implement-flow`、`/flow:aidd-review-flow`、`/flow:aidd-qa-flow`。
 
 ## 技术栈
 
