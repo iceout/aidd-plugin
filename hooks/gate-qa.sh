@@ -29,8 +29,8 @@ def main(argv: list[str] | None = None) -> int:
     ctx = hooklib.read_hook_context()
     root, _ = hooklib.resolve_project_root(ctx)
 
-    qa_runtime = plugin_root / "skills" / "qa" / "runtime" / "qa.py"
-    cmd = [sys.executable, str(qa_runtime), "--gate"]
+    qa_gate_runtime = plugin_root / "skills" / "aidd-core" / "runtime" / "qa_gate.py"
+    cmd = [sys.executable, str(qa_gate_runtime)]
     if argv:
         cmd.extend(argv)
     proc = subprocess.run(cmd, cwd=root, check=False)

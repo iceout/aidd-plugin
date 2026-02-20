@@ -32,12 +32,10 @@ def _bootstrap_entrypoint() -> None:
 
 _bootstrap_entrypoint()
 
-import io
 import json
 import os
 import re
 import sys
-from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 HOOK_PREFIX = "[gate-workflow]"
@@ -230,46 +228,40 @@ def _loop_preflight_guard(root: Path, ticket: str, stage: str, hooks_mode: str) 
 
 
 def _run_plan_review_gate(root: Path, ticket: str, file_path: str, branch: str) -> tuple[int, str]:
-    from aidd_runtime import plan_review_gate
+    from aidd_runtime import readiness_gates
 
-    args = ["--ticket", ticket, "--file-path", file_path, "--skip-on-plan-edit"]
-    if branch:
-        args.extend(["--branch", branch])
-    parsed = plan_review_gate.parse_args(args)
-    buf = io.StringIO()
-    with redirect_stdout(buf):
-        status = plan_review_gate.run_gate(parsed)
-    return status, buf.getvalue().strip()
+    result = readiness_gates.run_plan_review_gate(
+        root,
+        ticket=ticket,
+        file_path=file_path,
+        branch=branch or None,
+    )
+    return result.returncode, result.output
 
 
 def _run_prd_review_gate(root: Path, ticket: str, slug_hint: str, file_path: str, branch: str) -> tuple[int, str]:
-    from aidd_runtime import prd_review_gate
+    from aidd_runtime import readiness_gates
 
-    args = ["--ticket", ticket, "--file-path", file_path, "--skip-on-prd-edit"]
-    if slug_hint:
-        args.extend(["--slug-hint", slug_hint])
-    if branch:
-        args.extend(["--branch", branch])
-    parsed = prd_review_gate.parse_args(args)
-    buf = io.StringIO()
-    with redirect_stdout(buf):
-        status = prd_review_gate.run_gate(parsed)
-    return status, buf.getvalue().strip()
+    result = readiness_gates.run_prd_review_gate(
+        root,
+        ticket=ticket,
+        slug_hint=slug_hint,
+        file_path=file_path,
+        branch=branch or None,
+    )
+    return result.returncode, result.output
 
 
 def _run_tasklist_check(root: Path, ticket: str, slug_hint: str, branch: str) -> tuple[int, str]:
-    from aidd_runtime import tasklist_check
+    from aidd_runtime import readiness_gates
 
-    args = ["--ticket", ticket, "--quiet-ok"]
-    if slug_hint:
-        args.extend(["--slug-hint", slug_hint])
-    if branch:
-        args.extend(["--branch", branch])
-    parsed = tasklist_check.parse_args(args)
-    buf = io.StringIO()
-    with redirect_stderr(buf):
-        status = tasklist_check.run_check(parsed)
-    return status, buf.getvalue().strip()
+    result = readiness_gates.run_tasklist_check(
+        root,
+        ticket=ticket,
+        slug_hint=slug_hint,
+        branch=branch or None,
+    )
+    return result.returncode, result.output
 
 
 def _reviewer_notice(root: Path, ticket: str, slug_hint: str) -> str:
@@ -479,11 +471,8 @@ def _handoff_block(root: Path, ticket: str, slug_hint: str, branch: str, tasklis
 
 def main() -> int:
     _bootstrap()
-    from aidd_runtime.analyst_guard import AnalystValidationError, validate_prd
-    from aidd_runtime.analyst_guard import load_settings as load_analyst_settings
     from aidd_runtime.progress import ProgressConfig, check_progress
-    from aidd_runtime.research_guard import ResearchValidationError, validate_research
-    from aidd_runtime.research_guard import load_settings as load_research_settings
+    from aidd_runtime import readiness_gates
 
     from hooks import hooklib
 
@@ -593,11 +582,13 @@ def main() -> int:
             _log_stderr(f"BLOCK: missing PRD -> run /feature-dev-aidd:idea-new {ticket}")
             return 2
 
-        analyst_settings = load_analyst_settings(root)
-        try:
-            validate_prd(root, ticket, settings=analyst_settings, branch=current_branch or None)
-        except AnalystValidationError as exc:
-            _log_stderr(str(exc))
+        analyst_result = readiness_gates.run_analyst_gate(
+            root,
+            ticket=ticket,
+            branch=current_branch or None,
+        )
+        if analyst_result.returncode != 0:
+            _log_stderr(analyst_result.output or "BLOCK: analyst gate failed.")
             return 2
 
         status, output = _run_plan_review_gate(root, ticket, file_path, current_branch)
@@ -630,16 +621,26 @@ def main() -> int:
                     _log_stderr(f"BLOCK: PRD Review is not ready -> run /feature-dev-aidd:review-spec {ticket}")
                 return 2
 
-        research_settings = load_research_settings(root)
-        try:
-            research_summary = validate_research(root, ticket, settings=research_settings, branch=current_branch or None)
-        except ResearchValidationError as exc:
-            _log_stderr(str(exc))
+        research_result = readiness_gates.run_research_gate(
+            root,
+            ticket=ticket,
+            branch=current_branch or None,
+        )
+        if research_result.returncode != 0:
+            _log_stderr(research_result.output or "BLOCK: research gate failed.")
             return 2
 
-        if research_summary.skipped_reason == "pending-baseline":
+        if research_result.skipped and "pending-baseline" in (research_result.output or ""):
             event_status = "pass"
             return 0
+
+        if active_stage in {"implement", "review"}:
+            diff_result = readiness_gates.run_diff_boundary_check(root, ticket=ticket)
+            if diff_result.returncode != 0:
+                _log_stderr(diff_result.output or "BLOCK: diff boundary check failed.")
+                return 2
+            if diff_result.output and diff_result.skipped:
+                _log_stdout(diff_result.output)
 
         if not _next3_has_real_items(tasklist_path):
             _log_stderr(f"BLOCK: missing tasks -> run /feature-dev-aidd:tasks-new {ticket} (docs/tasklist/{ticket}.md)")

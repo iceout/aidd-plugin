@@ -67,3 +67,28 @@
 ```
 
 预期：`verify-flows.sh` 输出所有 required stage skills 已安装。
+
+## Hooks 命令
+
+```bash
+# 在目标项目工作区运行（不是插件仓库根目录）
+python3 $AIDD_ROOT/hooks/gate-workflow.sh
+python3 $AIDD_ROOT/hooks/gate-tests.sh
+python3 $AIDD_ROOT/hooks/gate-qa.sh
+python3 $AIDD_ROOT/hooks/format-and-test.sh
+```
+
+说明：
+- `gate-workflow.sh`：执行 readiness gates（analyst/research/plan/prd/tasklist + stage 相关 diff-boundary）。
+- `gate-tests.sh`：调用 `format-and-test.sh`。
+- `gate-qa.sh`：通过统一 `qa_gate` facade 执行 `qa --gate`。
+
+## Codex CI Wrapper
+
+```bash
+# 在 CI 中串行执行 workflow/tests/qa 三个 gate
+./scripts/ci-gates.sh --workspace <project-root>
+
+# 仅执行 workflow + qa，并透传 qa 参数
+./scripts/ci-gates.sh --workspace <project-root> --skip-tests -- --skip-tests
+```

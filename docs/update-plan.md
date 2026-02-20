@@ -39,10 +39,10 @@ Note: after Phase 3, stage-command skills (`/skill:*`) are the primary interface
 
 ## Phase 5 – Automation Hooks & Gates (Week 7)
 - [x] Port hook scripts from upstream (`hooks/format-and-test.sh`, `gate-tests.sh`, `gate-qa.sh`, `gate-workflow.sh`, `context-gc-*.sh`) with updated env vars.
-- [ ] Converge hook gate orchestration into a shared runtime facade (current orchestration lives in `skills/aidd-core/runtime/gate_workflow.py`, while `aidd_runtime/gates.py` still focuses on config/pattern helpers), so stage commands and hooks enforce the same readiness policy.
-  Current state: `gate_workflow.py` already invokes analyst/research validation plus plan/prd/tasklist gates; remaining gap is unifying this with stage-dispatch-facing gate APIs and consolidating `diff_boundary_check` + `qa --gate` under one orchestration contract.
-- [ ] Document hook usage in `COMMANDS.md` and add CI-friendly wrappers for Codex CLI users.
-  Current state: hook entry scripts exist and are wired via `hooks/hooks.json`, but command docs and Codex-oriented CI wrapper scripts are not finalized.
+- [x] Converge hook gate orchestration into a shared runtime facade (current orchestration lives in `skills/aidd-core/runtime/gate_workflow.py`, while `aidd_runtime/gates.py` still focuses on config/pattern helpers), so stage commands and hooks enforce the same readiness policy.
+  Result: added `aidd_runtime/readiness_gates.py` as shared gate facade and wired it into `gate_workflow.py`; stage dispatch now runs preflight readiness gates for `implement/review/qa` by default (toggle: `AIDD_STAGE_DISPATCH_GATES=0`), and QA hook now uses shared `skills/aidd-core/runtime/qa_gate.py`.
+- [x] Document hook usage in `COMMANDS.md` and add CI-friendly wrappers for Codex CLI users.
+  Result: `COMMANDS.md` now includes hook commands and Codex CI examples; added `scripts/ci-gates.sh` to run workflow/tests/qa gates in CI with workspace/skip/passthrough options.
 
 ## Phase 6 – Testing & QA Expansion (Weeks 8-9)
 - [ ] Backfill critical pytest suites from `ai_driven_dev/tests` (active_state, gates, docio, loop, hooks) and adapt fixtures for the new stage-dispatch / IDE-profile runtime.

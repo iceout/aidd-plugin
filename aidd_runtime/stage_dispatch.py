@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
 
-from aidd_runtime import command_runner, ide_profiles, runtime
+from aidd_runtime import command_runner, ide_profiles, readiness_gates, runtime
 from aidd_runtime.resources import DEFAULT_PROJECT_SUBDIR
 
 
@@ -99,7 +100,7 @@ DISPATCH_SPECS: dict[str, DispatchSpec] = {
     "qa": DispatchSpec(
         command="qa",
         stage="qa",
-        entrypoint="skills/qa/runtime/qa.py",
+        entrypoint="skills/aidd-core/runtime/qa_gate.py",
     ),
 }
 
@@ -196,6 +197,28 @@ def dispatch_stage_command(
             env=env,
         )
 
+    preflight = _run_preflight_if_enabled(
+        target,
+        project_root=project_root,
+        ticket=effective_ticket or "",
+        slug_hint=runtime.read_active_slug(project_root),
+    )
+    if preflight is not None and preflight.returncode != 0:
+        message = preflight.output or f"BLOCK: {preflight.name} failed."
+        if check:
+            raise RuntimeError(message)
+        return DispatchResult(
+            target=target,
+            profile=profile_cfg.name,
+            ticket=effective_ticket,
+            workspace_root=workspace_root,
+            project_root=project_root,
+            returncode=preflight.returncode,
+            stdout="",
+            stderr=message,
+            command=(),
+        )
+
     script_path = (plugin_root / target.spec.entrypoint).resolve()
     if not script_path.exists():
         raise FileNotFoundError(f"entrypoint not found: {script_path}")
@@ -274,3 +297,36 @@ def _resolve_profile(
     profile: str | ide_profiles.IdeProfile | None,
 ) -> ide_profiles.IdeProfile:
     return ide_profiles.select_profile(command, profile=profile)
+
+
+def _run_preflight_if_enabled(
+    target: DispatchTarget,
+    *,
+    project_root: Path,
+    ticket: str,
+    slug_hint: str,
+) -> readiness_gates.GateResult | None:
+    if target.resolved_command not in {"implement", "review", "qa"}:
+        return None
+    if not _env_enabled("AIDD_STAGE_DISPATCH_GATES", default=True):
+        return None
+    if not ticket:
+        return None
+    branch = runtime.detect_branch(project_root)
+    return readiness_gates.run_stage_preflight(
+        project_root,
+        ticket=ticket,
+        slug_hint=slug_hint,
+        stage=target.resolved_command,
+        branch=branch,
+    )
+
+
+def _env_enabled(name: str, *, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    value = raw.strip().lower()
+    if not value:
+        return default
+    return value not in {"0", "false", "no", "off", "disable", "disabled"}
