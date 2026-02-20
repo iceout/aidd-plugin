@@ -53,8 +53,11 @@ Note: after Phase 3, stage-command skills (`/skill:*`) are the primary interface
   Result: added `tests/runtime/test_phase6_e2e_pipeline.py` covering runtime-script-based pipeline execution and artifact assertions; `skills/plan-new/runtime/research_check.py` now scaffolds `docs/plan/<ticket>.md` from template to make plan artifact generation deterministic for E2E verification.
 
 ## Phase 7 – Documentation & Adoption (Week 10+)
-- [ ] Update `README.md`, `QUICKSTART.md`, and `docs/overview.md` with stage-dispatch runtime instructions, IDE profile configuration, and hook usage.
+- [x] Update `README.md`, `QUICKSTART.md`, and `docs/overview.md` with stage-dispatch runtime instructions, IDE profile configuration, and hook usage.
+  Result (2026-02-20): completed; the three docs now share stage-command-first guidance, stage dispatch runtime behavior, IDE profile/env configuration, and hook execution conventions.
 - [ ] Link the new plan (this file) from `AGENTS.md` and future tasklists so contributors can track progress.
+  Status (2026-02-20): not started; no canonical reference to `docs/update-plan.md` exists in `AGENTS.md` or tasklist templates.
 - [ ] Publish a migration checklist comparing upstream commands vs. Codex CLI equivalents for teams moving from Claude Code.
+  Status (2026-02-20): not started; existing `docs/layout-convergence-min-migration.md` focuses on repository layout and does not replace adoption command mapping.
 
 Deliverables from each phase become input to structured tasklists (e.g., per phase -> tasks {T1, T2, ...}) used by loop implementers. Adjust timeline based on staffing; phases should not overlap unless dependencies are satisfied.

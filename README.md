@@ -1,166 +1,151 @@
-# AIDD for Kimi/Codex/Cursor
+# AIDD for Kimi/Cursor/Codex
 
-AIDD (AI-Driven Development) 插件移植到 Kimi/Codex/Cursor。
+AIDD (AI-Driven Development) 多 IDE 插件，当前采用 **stage command + stage dispatch runtime** 的统一实现。
 
-## 快速开始
+## 核心定位
 
-### 1. 环境设置
+- 单一运行时调度：`aidd_runtime/stage_dispatch.py`
+- 单一路径工件：`./aidd/` 工作区（docs/reports/config/.cache）
+- 多宿主兼容：Kimi、Codex、Cursor 共用同一套 stage 逻辑
+
+## 环境要求
+
+- Python `3.13.x`
+- 建议使用仓库自带虚拟环境与 `uv`
+
+固定依赖见 `pyproject.toml`（runtime + dev 均锁定版本）。
+
+## 安装
+
+### 1. 激活环境
 
 ```bash
-cd <your-path-to-plugin>
 source scripts/activate.sh
 ```
 
-### 2. 安装 Skills
+### 2. 安装 skills
 
 ```bash
+# 安装到所有已存在的 skills 目录（Kimi/Codex/Cursor）
 ./scripts/install.sh
+
+# 或按 IDE 精确安装
+./scripts/install.sh --ide kimi --ide codex
+./scripts/install.sh --ide cursor
 ```
-Cursor/Codex 都不支持 `.config/agents/skills`,
-Codex 需要 `ln -s ~/.config/agents/skills ~/.codex/skills/custom_skills`
-Cursor 需要 `rsync -avL --delete ~/.config/agents/skills/ ~/.cursor/skills/`
 
-### 3. 设置环境变量
-
-添加到 `~/.bashrc` 或 `~/.zshrc`：
+### 3. 设置插件根路径
 
 ```bash
-export AIDD_ROOT=<your-path-to-plugin>
+export AIDD_ROOT=/path/to/aidd-plugin
 ```
 
 ### 4. 验证安装
 
 ```bash
+./scripts/verify-flows.sh
 python3 $AIDD_ROOT/skills/aidd-observability/runtime/doctor.py
 ```
 
-### 5. 在 Kimi/Codex/Cursor 中使用
+## 使用方式（Stage Commands）
 
-```
-/skill:aidd-core
+首次在目标项目执行：
+
+```text
 /flow:aidd-init-flow
-/skill:idea-new FUNC-001 "实现用户登录功能"
 ```
 
-## 开发环境要求
+之后按阶段执行：
 
-- Python 3.13.x（推荐通过 `uv` 提供的虚拟环境管理）。
-- `pyproject.toml` 中所有依赖均已锁定，使用 `uv pip sync pyproject.toml` 可还原。
-- 当前固定依赖：
+```text
+/skill:idea-new <ticket> "需求描述"
+/skill:researcher <ticket>
+/skill:plan-new <ticket>
+/skill:review-spec <ticket>
+/skill:spec-interview <ticket>
+/skill:tasks-new <ticket>
+/skill:implement <ticket>
+/skill:review <ticket>
+/skill:qa <ticket>
+```
 
-| 分组 | 包 | 版本 |
-| --- | --- | --- |
-| runtime | pydantic | 2.8.2 |
-| runtime | pyyaml | 6.0.1 |
-| dev | pytest | 8.3.2 |
-| dev | pytest-cov | 5.0.0 |
-| dev | black | 24.8.0 |
-| dev | ruff | 0.5.5 |
-| dev | mypy | 1.11.2 |
+兼容别名（迁移期）仍可用：
 
-> 通过固定版本，我们可以在多个 IDE/CLI（Kimi、Cursor、Codex）之间获得可重复的 lint/test 结果。
+- `/flow:aidd-idea-flow` -> `/skill:idea-new`
+- `/flow:aidd-research-flow` -> `/skill:researcher`
+- `/flow:aidd-plan-flow` -> `/skill:plan-new`
+- `/flow:aidd-implement-flow` -> `/skill:implement`
+- `/flow:aidd-review-flow` -> `/skill:review`
+- `/flow:aidd-qa-flow` -> `/skill:qa`
 
-## 目录收敛结果（P1.3 / P1.4）
+## Stage Dispatch Runtime 说明
 
-- 运行时代码已收敛为单一布局：`aidd_runtime/` + `skills/*/runtime/`。
-- 旧目录 `runtime/skills` 与 `runtime/aidd_runtime` 已移除。
-- 运行入口与 hooks 已统一使用 `AIDD_ROOT` 自举，不再依赖手工 `PYTHONPATH`。
-- 已新增迁移烟测：`tests/runtime/test_layout_migration_smoke.py`（覆盖 init / research / qa / hook）。
+`aidd_runtime/stage_dispatch.py` 负责把宿主命令归一到统一 runtime 入口：
 
-烟测执行示例：
+- 归一命令名与 legacy alias。
+- 自动解析/注入 `--ticket`（未显式传入时读取 `docs/.active.json`）。
+- 自动推进 active feature/stage（调用 `aidd-flow-state` 脚本）。
+- `implement/review/qa` 默认执行 preflight gates。
+  - 可通过 `AIDD_STAGE_DISPATCH_GATES=0` 临时关闭。
+
+## IDE Profiles 配置
+
+Profile 由 `aidd_runtime/ide_profiles.py` 管理，默认选择顺序：
+
+1. 显式 profile 参数
+2. 命令前缀（如 `$aidd:...`）
+3. 环境变量 `AIDD_IDE_PROFILE` / `AIDD_HOST`
+4. skills 目录自动探测
+5. 默认 `kimi`
+
+常用环境变量：
+
+- `AIDD_IDE_PROFILE`: 强制 profile（`kimi|codex|cursor`）
+- `AIDD_HOST`: 宿主标识兜底
+- `AIDD_SKILLS_DIRS`: 覆盖 skills 搜索目录（`os.pathsep` 分隔）
+- `AIDD_PRIMARY_SKILLS_DIR`: 主 skills 目录（由 runtime 注入）
+
+## Hooks 用法
+
+在 **目标项目工作区** 执行（不是插件仓库根目录）：
 
 ```bash
-.venv/bin/pytest -q tests/runtime/test_layout_migration_smoke.py
+python3 $AIDD_ROOT/hooks/gate-workflow.sh
+python3 $AIDD_ROOT/hooks/gate-tests.sh
+python3 $AIDD_ROOT/hooks/gate-qa.sh
+python3 $AIDD_ROOT/hooks/format-and-test.sh
 ```
 
-### 已知风险
+说明：
 
-- `research`/`rlm_targets` 在缺少 `AIDD:RESEARCH_HINTS` 时会按设计阻断，这属于业务前置条件，不是导入错误。
-- `qa --skip-tests` 会把测试记录为 `skipped`，可能掩盖本地依赖缺失（如 Python 包、工具链）问题。
-- `gate-qa` 在插件仓库根目录执行会被工作区保护机制阻断；应在目标项目工作区执行。
+- `gate-workflow.sh`：readiness gates（analyst/research/plan/prd/tasklist/diff）
+- `gate-tests.sh`：测试 gate（调用 `format-and-test.sh`）
+- `gate-qa.sh`：统一 QA gate 入口
 
-## 开发状态
+## 开发与测试
 
-### ✅ Phase 0: 环境准备
-- [x] 项目目录结构
-- [x] Python 3.13 虚拟环境 (UV)
-- [x] 开发辅助脚本
-
-### ✅ Phase 1: 核心运行时迁移
-- [x] 复制 AIDD Runtime 代码
-- [x] 替换环境变量 (CLAUDE_ → AIDD_)
-- [x] 基础测试通过
-
-### ✅ Phase 2: Skills 创建 (核心)
-- [x] aidd-core (Standard Skill)
-- [x] aidd-init-flow (Flow Skill)
-- [x] implement / review / qa / researcher (Stage Skills)
-- [x] idea-new / plan-new / tasks-new / review-spec / spec-interview
-- [x] aidd-policy / aidd-reference / aidd-stage-research (Shared Skills)
-
-### ✅ Phase 3: Stage & Shared Skills
-- [x] 以 stage commands 替换旧 flow 文档入口（保留兼容别名）
-- [x] 引入共享策略技能：aidd-policy / aidd-reference / aidd-stage-research
-- [x] 安装脚本改为仅安装包含 SKILL.md 的目录，并补充验证脚本
-
-### ⏳ Phase 4: 测试和文档
-- [ ] 端到端测试
-- [ ] 完整文档
-
-## 项目结构
-
+```bash
+./scripts/test.sh
 ```
+
+`test.sh` 现为严格模式：Black/Ruff/MyPy/Pytest 任一失败即退出，并输出覆盖率。
+
+## 目录结构
+
+```text
 aidd-plugin/
-├── aidd_runtime/              # 共享运行时包
-├── skills/                    # Skills
-│   ├── aidd-core/
-│   │   ├── SKILL.md
-│   │   └── runtime/
-│   ├── aidd-init-flow/SKILL.md
-│   ├── idea-new/SKILL.md
-│   ├── plan-new/SKILL.md
-│   ├── tasks-new/SKILL.md
-│   ├── review-spec/SKILL.md
-│   ├── spec-interview/SKILL.md
-│   ├── implement/SKILL.md
-│   ├── review/SKILL.md
-│   ├── qa/SKILL.md
-│   ├── aidd-rlm/runtime/
-│   ├── aidd-loop/runtime/
-│   ├── aidd-flow-state/runtime/
-│   ├── aidd-docio/runtime/
-│   └── ...
-│   └── ...
-├── tests/
-├── scripts/
-│   ├── activate.sh
-│   ├── install.sh
-│   └── test.sh
-└── pyproject.toml
+├── aidd_runtime/                # 共享运行时
+├── skills/*/runtime/            # 各阶段与共享 runtime
+├── hooks/                       # hooks 入口与上下文工具
+├── templates/                   # 初始化模板
+├── tests/                       # pytest
+└── scripts/                     # install/test/verify 等脚本
 ```
 
-## 可用命令技能
+## 文档索引
 
-- `/flow:aidd-init-flow` - 初始化 AIDD 工作区
-- `/skill:idea-new` - 创建 PRD 草案
-- `/skill:researcher` - 代码库研究 (RLM)
-- `/skill:plan-new` - 制定实施计划
-- `/skill:review-spec` - 审核计划与 PRD
-- `/skill:spec-interview` - 规格访谈（可选）
-- `/skill:tasks-new` - 生成任务清单
-- `/skill:implement` - 迭代实现代码
-- `/skill:review` - 代码审核
-- `/skill:qa` - 质量检查
-
-兼容别名（迁移期保留）：`/flow:aidd-idea-flow`、`/flow:aidd-research-flow`、`/flow:aidd-plan-flow`、`/flow:aidd-implement-flow`、`/flow:aidd-review-flow`、`/flow:aidd-qa-flow`。
-
-## 技术栈
-
-- Python 3.13+
-- UV (包管理)
-- Pydantic (数据验证)
-- PyYAML (配置解析)
-
-## 许可证
-
-MIT
+- 命令速查：`COMMANDS.md`
+- 快速上手：`QUICKSTART.md`
+- 架构说明：`docs/overview.md`
+- 进度计划：`docs/update-plan.md`
+- 任务清单：`docs/task-todo-list.md`

@@ -1,66 +1,81 @@
-# AIDD for Kimi/Codex/Cursor - 快速开始
+# AIDD Quickstart (Kimi/Cursor/Codex)
 
-## 环境准备
+## 0. 一次性准备
+
+在插件仓库执行：
 
 ```bash
-export AIDD_ROOT=<your-path-to-plugin>
+cd /path/to/aidd-plugin
+source scripts/activate.sh
+
+# 安装到已存在的 skills 目录
 ./scripts/install.sh
-```
+# 或按 IDE 安装
+./scripts/install.sh --ide codex --ide cursor
 
-## 3 分钟上手
-
-### 1. 进入目标项目并启动 IDE Agent
-
-```bash
-cd your-project
-```
-
-### 2. 初始化工作区（首次）
-
-```text
-> /flow:aidd-init-flow
-```
-
-### 3. 执行阶段命令
-
-```text
-> /skill:idea-new MY-001 "实现XX功能"
-> /skill:researcher MY-001
-> /skill:plan-new MY-001
-> /skill:review-spec MY-001
-> /skill:spec-interview MY-001
-> /skill:tasks-new MY-001
-> /skill:implement MY-001
-> /skill:review MY-001
-> /skill:qa MY-001
-```
-
-## 核心命令对照
-
-| 你想做 | 输入命令 |
-| --- | --- |
-| 初始化工作区 | `/flow:aidd-init-flow` |
-| 创建新功能 | `/skill:idea-new TICKET "描述"` |
-| 研究代码 | `/skill:researcher TICKET` |
-| 生成计划 | `/skill:plan-new TICKET` |
-| 生成任务清单 | `/skill:tasks-new TICKET` |
-| 实现与审查 | `/skill:implement TICKET` / `/skill:review TICKET` |
-| QA 验收 | `/skill:qa TICKET` |
-| 查看核心说明 | `/skill:aidd-core` |
-
-## 验证安装
-
-```bash
+export AIDD_ROOT=/path/to/aidd-plugin
 ./scripts/verify-flows.sh
 ```
 
-## 故障排查
+## 1. 在目标项目初始化
 
-1. 命令不存在：重启 IDE，并确认 `~/.config/agents/skills` 下有对应 skill 目录。
-2. Python 导入失败：确认 `AIDD_ROOT` 指向插件根目录。
-3. 旧 flow 命令仍被调用：改用 `/skill:idea-new` 等 stage skills。
+```bash
+cd /path/to/your-project
+```
 
-## 下一步
+在 IDE 对话里执行：
 
-- 详细命令：`COMMANDS.md`
-- 项目说明：`README.md`
+```text
+/flow:aidd-init-flow
+```
+
+## 2. 跑通主链路
+
+```text
+/skill:idea-new DEMO-001 "实现一个最小功能"
+/skill:researcher DEMO-001
+/skill:plan-new DEMO-001
+/skill:tasks-new DEMO-001
+/skill:implement DEMO-001
+/skill:review DEMO-001
+/skill:qa DEMO-001
+```
+
+## 3. IDE Profile 关键点
+
+- Kimi/Cursor：通常使用 `/skill:...`
+- Codex：通常使用 `$aidd:...`（也兼容 `/skill:...`）
+- 如需强制 profile：
+
+```bash
+export AIDD_IDE_PROFILE=codex   # kimi|codex|cursor
+```
+
+- 如需覆盖 skills 搜索目录：
+
+```bash
+export AIDD_SKILLS_DIRS="$HOME/.codex/skills:$HOME/.cursor/skills"
+```
+
+## 4. Hooks（可选）
+
+在目标项目工作区执行：
+
+```bash
+python3 $AIDD_ROOT/hooks/gate-workflow.sh
+python3 $AIDD_ROOT/hooks/gate-tests.sh
+python3 $AIDD_ROOT/hooks/gate-qa.sh
+```
+
+## 5. 常见问题
+
+1. `ticket is required`：先执行 `idea-new <ticket>`，或显式传 `--ticket`。
+2. `AIDD_ROOT is required`：确认已 `export AIDD_ROOT=...`。
+3. 找不到命令：重启 IDE 后再执行 `./scripts/install.sh` + `./scripts/verify-flows.sh`。
+4. QA 报测试 skipped：补齐目标项目依赖后重跑 `qa`。
+
+## 参考
+
+- `README.md`
+- `COMMANDS.md`
+- `docs/overview.md`
