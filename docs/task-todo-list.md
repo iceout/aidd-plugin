@@ -65,7 +65,7 @@
 ## Phase 7 – Documentation & Adoption (Week 10+)
 - [x] **T7.1** 更新 `README.md`, `QUICKSTART.md`, `docs/overview.md`，统一为 stage command + stage dispatch 运行时口径，并补齐 IDE profiles 与 hooks 指南。  
   完成情况（2026-02-20）：三份文档已统一为 stage-command-first 叙事；`README.md` 已补 stage dispatch 行为、IDE profile 变量与 hooks 用法；`QUICKSTART.md` 已补安装参数（`--ide`）、profile 配置与 hooks 快速命令；`docs/overview.md` 已重写为当前架构（stage_dispatch/ide_profiles/readiness_gates）与 legacy alias 归一说明。
-- [ ] **T7.2** 在 `AGENTS.md` 与后续 tasklist 模板中引用 `docs/update-plan.md`，形成固定进度入口。  
-  当前状态（2026-02-20）：`AGENTS.md` 尚未加入 `docs/update-plan.md` 引用；tasklist 模板中也未设置统一“计划跟踪”链接位。
-- [ ] **T7.3** 发布独立迁移清单，对比 upstream 命令与 Codex/Cursor/Kimi 等效操作，指导从 Claude Code 迁移。  
-  当前状态（2026-02-20）：已有 `docs/layout-convergence-min-migration.md`（目录迁移），但缺少“命令对照 + 迁移步骤 + 回滚建议”的 adopt 文档。
+- [x] **T7.2** 收敛文档入口策略：仅保留稳定入口文档（`README.md`、`COMMANDS.md`、`docs/overview.md`），不再要求在 `AGENTS.md` 或 tasklist 模板中引用临时迁移计划文档。  
+  完成情况（2026-02-20）：已确认 `docs/update-plan.md` 作为迁移期文档，不作为长期入口；后续协作统一使用稳定入口文档。
+- [ ] **T7.3** 发布 Codex/Cursor/Kimi 采用指南，覆盖安装目录差异、命令前缀差异、profile 配置与常见问题排查。  
+  当前状态（2026-02-20）：已有 `COMMANDS.md` 与 `docs/p4.2-ide-profiles.md` 的分散信息，但缺少面向三种目标工具的一体化 adopt 文档。

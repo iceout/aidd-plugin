@@ -55,9 +55,9 @@ Note: after Phase 3, stage-command skills (`/skill:*`) are the primary interface
 ## Phase 7 – Documentation & Adoption (Week 10+)
 - [x] Update `README.md`, `QUICKSTART.md`, and `docs/overview.md` with stage-dispatch runtime instructions, IDE profile configuration, and hook usage.
   Result (2026-02-20): completed; the three docs now share stage-command-first guidance, stage dispatch runtime behavior, IDE profile/env configuration, and hook execution conventions.
-- [ ] Link the new plan (this file) from `AGENTS.md` and future tasklists so contributors can track progress.
-  Status (2026-02-20): not started; no canonical reference to `docs/update-plan.md` exists in `AGENTS.md` or tasklist templates.
-- [ ] Publish a migration checklist comparing upstream commands vs. Codex CLI equivalents for teams moving from Claude Code.
-  Status (2026-02-20): not started; existing `docs/layout-convergence-min-migration.md` focuses on repository layout and does not replace adoption command mapping.
+- [x] Converge documentation entrypoints to stable docs (`README.md`, `COMMANDS.md`, `docs/overview.md`) and avoid binding long-term workflow to temporary migration-plan files.
+  Result (2026-02-20): completed; `docs/update-plan.md` remains a migration-period tracking artifact and is not required as a permanent reference in `AGENTS.md` or tasklist templates.
+- [ ] Publish an adoption guide for Codex/Cursor/Kimi that covers skills install directories, command-prefix differences, IDE profile/env settings, and troubleshooting.
+  Status (2026-02-20): not started; existing docs contain partial pieces (`COMMANDS.md`, `docs/p4.2-ide-profiles.md`) but no single end-to-end onboarding/adoption guide.
 
 Deliverables from each phase become input to structured tasklists (e.g., per phase -> tasks {T1, T2, ...}) used by loop implementers. Adjust timeline based on staffing; phases should not overlap unless dependencies are satisfied.
