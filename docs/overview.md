@@ -163,7 +163,7 @@ aidd-plugin/
 │   ├── implement/runtime/      # Implement 阶段
 │   ├── review/runtime/         # Review 阶段
 │   └── qa/runtime/             # QA 阶段
-├── hooks/                       # 自动化钩子（待实现）
+├── hooks/                       # 自动化钩子（已迁移，编排待收敛）
 ├── templates/                   # 工作区模板
 ├── tests/                       # 测试
 └── scripts/                     # 开发脚本

@@ -39,8 +39,10 @@ Note: after Phase 3, stage-command skills (`/skill:*`) are the primary interface
 
 ## Phase 5 – Automation Hooks & Gates (Week 7)
 - [x] Port hook scripts from upstream (`hooks/format-and-test.sh`, `gate-tests.sh`, `gate-qa.sh`, `gate-workflow.sh`, `context-gc-*.sh`) with updated env vars.
-- [ ] Wire hooks into `skills/aidd-core/runtime/gates.py` so stage commands can enforce readiness gates (analyst_check, research_check, plan_review_gate, diff_boundary_check, qa_gate).
+- [ ] Converge hook gate orchestration into a shared runtime facade (current orchestration lives in `skills/aidd-core/runtime/gate_workflow.py`, while `aidd_runtime/gates.py` still focuses on config/pattern helpers), so stage commands and hooks enforce the same readiness policy.
+  Current state: `gate_workflow.py` already invokes analyst/research validation plus plan/prd/tasklist gates; remaining gap is unifying this with stage-dispatch-facing gate APIs and consolidating `diff_boundary_check` + `qa --gate` under one orchestration contract.
 - [ ] Document hook usage in `COMMANDS.md` and add CI-friendly wrappers for Codex CLI users.
+  Current state: hook entry scripts exist and are wired via `hooks/hooks.json`, but command docs and Codex-oriented CI wrapper scripts are not finalized.
 
 ## Phase 6 – Testing & QA Expansion (Weeks 8-9)
 - [ ] Backfill critical pytest suites from `ai_driven_dev/tests` (active_state, gates, docio, loop, hooks) and adapt fixtures for the new stage-dispatch / IDE-profile runtime.

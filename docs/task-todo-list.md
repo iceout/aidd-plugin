@@ -48,8 +48,11 @@
 
 ## Phase 5 – Automation Hooks & Gates (Week 7)
 - [x] **T5.1** 迁移 upstream hooks（`hooks/format-and-test.sh`, `gate-tests.sh`, `gate-qa.sh`, `gate-workflow.sh`, `context-gc-*.sh`）并更新环境变量。
-- [ ] **T5.2** 将 hooks 接入 `skills/aidd-core/runtime/gates.py`，使 stage command 可统一执行 analyst_check、research_check、plan_review_gate、diff_boundary_check、qa_gate。
+  完成情况：hooks 入口与配置已落地（`hooks/hooks.json` + `hooks/*.sh`），并通过布局迁移烟测覆盖 `gate-workflow` 入口可执行性。
+- [ ] **T5.2** 收敛 hooks gate 编排层（当前主要在 `skills/aidd-core/runtime/gate_workflow.py`，而非 `aidd_runtime/gates.py`），使 stage command 与 hooks 共享一致的 readiness gate 策略。
+  当前现状：`gate_workflow.py` 已串联 `analyst_guard.validate_prd`、`research_guard.validate_research`、`plan_review_gate`、`prd_review_gate`、`tasklist_check`；`aidd_runtime/gates.py` 仍以配置解析/分支匹配为主，尚未形成统一 gate facade，`diff_boundary_check` 与 `qa --gate` 也未并入同一编排层。
 - [ ] **T5.3** 在 `COMMANDS.md` 记录 hook 使用方式，并提供面向 Codex CLI 的 CI 包装脚本。
+  当前现状：仓库已有可直接执行的 hook 命令（`hooks/gate-workflow.sh`、`hooks/gate-tests.sh`、`hooks/gate-qa.sh`、`hooks/format-and-test.sh`），但 `COMMANDS.md` 尚未形成 hook 使用章节，`scripts/` 下也暂无 Codex CLI 的 CI wrapper（如统一 gate runner）。
 
 ## Phase 6 – Testing & QA Expansion (Weeks 8-9)
 - [ ] **T6.1** 回填 `/Users/xuanyizhang/code/ai_driven_dev/tests` 中关键 pytest（active_state, gates, docio, loop, hooks）并适配新的 stage dispatch / IDE profiles fixtures。
