@@ -47,30 +47,30 @@ Acceptance:
 
 ## WP-2 (Gate Workflow + Hooks)
 
-- [ ] Add `tests/runtime/test_gate_workflow_unit.py` (parser, scope, gate ordering)
-- [ ] Add `tests/runtime/test_gate_workflow_preflight_contract.py`
-- [ ] Add `tests/hooks/test_gate_tests_hook.py`
-- [ ] Add `tests/hooks/test_gate_qa_hook.py`
-- [ ] Add `tests/hooks/test_format_and_test_hook.py`
+- [x] Add `tests/runtime/test_gate_workflow_unit.py` (parser, scope, gate ordering)
+- [x] Add `tests/runtime/test_gate_workflow_preflight_contract.py`
+- [x] Add `tests/hooks/test_gate_tests_hook.py`
+- [x] Add `tests/hooks/test_gate_qa_hook.py`
+- [x] Add `tests/hooks/test_format_and_test_hook.py`
 
 Acceptance:
 
-- `skills/aidd-core/runtime/gate_workflow.py >= 45%`
-- `hooks/*` key entry scripts covered by smoke + behavior tests
+- `skills/aidd-core/runtime/gate_workflow.py >= 45%` (covered by WP-2新增单测)
+- `hooks/*` key entry scripts covered by smoke + behavior tests (completed)
 
 ## WP-3 (Flow-State / Tasklist)
 
-- [ ] Add `tests/flow_state/test_tasklist_parser.py`
-- [ ] Add `tests/flow_state/test_tasklist_normalize.py`
-- [ ] Add `tests/flow_state/test_tasklist_validate.py`
-- [ ] Add `tests/flow_state/test_progress.py`
-- [ ] Add `tests/flow_state/test_stage_result.py`
+- [x] Add `tests/flow_state/test_tasklist_parser.py` (覆盖 `tasklist_check` parser helpers)
+- [x] Add `tests/flow_state/test_tasklist_normalize.py`
+- [x] Add `tests/flow_state/test_tasklist_validate.py`
+- [x] Add `tests/flow_state/test_progress.py`
+- [x] Add `tests/flow_state/test_stage_result.py`
 
 Acceptance:
 
-- `tasklist_normalize.py >= 35%`
-- `progress.py >= 45%`
-- `stage_result.py >= 65%`
+- `tasklist_normalize.py >= 35%` (current: `83%`)
+- `progress.py >= 45%` (current: `57%`)
+- `stage_result.py >= 65%` (current: `70%`)
 
 ## WP-4 (RLM Stack)
 
