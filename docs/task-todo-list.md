@@ -56,8 +56,11 @@
 
 ## Phase 6 – Testing & QA Expansion (Weeks 8-9)
 - [ ] **T6.1** 回填 `/Users/xuanyizhang/code/ai_driven_dev/tests` 中关键 pytest（active_state, gates, docio, loop, hooks）并适配新的 stage dispatch / IDE profiles fixtures。
+  当前现状：已具备 active_state / stage-dispatch / hooks 方向的基础覆盖（`tests/test_runtime_basic.py`、`tests/runtime/test_stage_dispatch.py`、`tests/runtime/test_layout_migration_smoke.py`、`tests/runtime/test_readiness_gates.py`），但尚未系统回填 upstream 的 gates/docio/loop 测试矩阵与对应 fixture 迁移。
 - [ ] **T6.2** 加固 `scripts/test.sh`：Black/Ruff/MyPy 任一失败即退出，同时统计 `aidd_runtime/stage_dispatch.py`、`aidd_runtime/command_runner.py`、`aidd_runtime/ide_profiles.py` 的覆盖率。
+  当前现状：`scripts/test.sh` 已串联 Black/Ruff/MyPy/Pytest 与覆盖率输出，但仍为“软失败提示”模式（失败后仅告警不退出），且覆盖率仅按 `--cov=aidd_runtime` 汇总，尚未对 `stage_dispatch/command_runner/ide_profiles` 设定针对性覆盖门槛。
 - [ ] **T6.3** 编写端到端测试，执行 workspace init + idea→research→plan 流程并检查 PRD、research pack、plan、tasklist 产出。
+  当前现状：已有编排集成测试 `tests/runtime/test_stage_orchestration_integration.py` 覆盖 init + idea→research→plan→tasks 与核心工件/`.active.json` 校验；仍需补充“真实端到端”断言（尤其 PRD/plan 由流程自产生而非测试注入）与更接近实际命令路径的执行场景。
 
 ## Phase 7 – Documentation & Adoption (Week 10+)
 - [ ] **T7.1** 更新 `README.md`, `QUICKSTART.md`, `docs/overview.md`，覆盖 stage dispatch runtime 指南、IDE profiles 配置和 hook 用法。
