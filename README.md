@@ -147,5 +147,6 @@ aidd-plugin/
 - 命令速查：`COMMANDS.md`
 - 快速上手：`QUICKSTART.md`
 - 架构说明：`docs/overview.md`
+- 多 IDE 采用指南：`docs/adoption-codex-cursor-kimi.md`
 - 进度计划：`docs/update-plan.md`
 - 任务清单：`docs/task-todo-list.md`

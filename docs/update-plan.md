@@ -57,7 +57,7 @@ Note: after Phase 3, stage-command skills (`/skill:*`) are the primary interface
   Result (2026-02-20): completed; the three docs now share stage-command-first guidance, stage dispatch runtime behavior, IDE profile/env configuration, and hook execution conventions.
 - [x] Converge documentation entrypoints to stable docs (`README.md`, `COMMANDS.md`, `docs/overview.md`) and avoid binding long-term workflow to temporary migration-plan files.
   Result (2026-02-20): completed; `docs/update-plan.md` remains a migration-period tracking artifact and is not required as a permanent reference in `AGENTS.md` or tasklist templates.
-- [ ] Publish an adoption guide for Codex/Cursor/Kimi that covers skills install directories, command-prefix differences, IDE profile/env settings, and troubleshooting.
-  Status (2026-02-20): not started; existing docs contain partial pieces (`COMMANDS.md`, `docs/p4.2-ide-profiles.md`) but no single end-to-end onboarding/adoption guide.
+- [x] Publish an adoption guide for Codex/Cursor/Kimi that covers skills install directories, command-prefix differences, IDE profile/env settings, and troubleshooting.
+  Result (2026-02-20): completed via `docs/adoption-codex-cursor-kimi.md`; README doc index now includes the guide as a stable entrypoint.
 
 Deliverables from each phase become input to structured tasklists (e.g., per phase -> tasks {T1, T2, ...}) used by loop implementers. Adjust timeline based on staffing; phases should not overlap unless dependencies are satisfied.

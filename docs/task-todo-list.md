@@ -67,5 +67,5 @@
   完成情况（2026-02-20）：三份文档已统一为 stage-command-first 叙事；`README.md` 已补 stage dispatch 行为、IDE profile 变量与 hooks 用法；`QUICKSTART.md` 已补安装参数（`--ide`）、profile 配置与 hooks 快速命令；`docs/overview.md` 已重写为当前架构（stage_dispatch/ide_profiles/readiness_gates）与 legacy alias 归一说明。
 - [x] **T7.2** 收敛文档入口策略：仅保留稳定入口文档（`README.md`、`COMMANDS.md`、`docs/overview.md`），不再要求在 `AGENTS.md` 或 tasklist 模板中引用临时迁移计划文档。  
   完成情况（2026-02-20）：已确认 `docs/update-plan.md` 作为迁移期文档，不作为长期入口；后续协作统一使用稳定入口文档。
-- [ ] **T7.3** 发布 Codex/Cursor/Kimi 采用指南，覆盖安装目录差异、命令前缀差异、profile 配置与常见问题排查。  
-  当前状态（2026-02-20）：已有 `COMMANDS.md` 与 `docs/p4.2-ide-profiles.md` 的分散信息，但缺少面向三种目标工具的一体化 adopt 文档。
+- [x] **T7.3** 发布 Codex/Cursor/Kimi 采用指南，覆盖安装目录差异、命令前缀差异、profile 配置与常见问题排查。  
+  完成情况（2026-02-20）：已新增 `docs/adoption-codex-cursor-kimi.md`，并在 `README.md` 文档索引中加入入口；指南覆盖安装目录、命令前缀、profile/env 配置与故障排查。
