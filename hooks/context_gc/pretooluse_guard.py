@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+
 def _bootstrap_entrypoint() -> None:
     import os
     import sys
@@ -74,10 +75,10 @@ def _wrap_with_log_and_tail(log_dir: Path, tail_lines: int, original_cmd: str) -
     wrapped = (
         f"mkdir -p {shlex.quote(str(log_dir))}; "
         f"LOG_FILE={shlex.quote(str(log_path))}; "
-        f"({original_cmd}) >\"$LOG_FILE\" 2>&1; status=$?; "
-        f"echo \"\"; echo \"[Context GC] Full output saved to: $LOG_FILE\"; "
-        f"echo \"[Context GC] Showing last {int(tail_lines)} lines:\"; "
-        f"tail -n {int(tail_lines)} \"$LOG_FILE\"; "
+        f'({original_cmd}) >"$LOG_FILE" 2>&1; status=$?; '
+        f'echo ""; echo "[Context GC] Full output saved to: $LOG_FILE"; '
+        f'echo "[Context GC] Showing last {int(tail_lines)} lines:"; '
+        f'tail -n {int(tail_lines)} "$LOG_FILE"; '
         f"exit $status"
     )
     return f"bash -lc {shlex.quote(wrapped)}"
@@ -320,7 +321,9 @@ def _normalize_candidate(value: str) -> str:
     return normalized
 
 
-def _glob_candidates(tool_input: Dict[str, Any], project_dir: Path, aidd_root: Optional[Path]) -> list[str]:
+def _glob_candidates(
+    tool_input: Dict[str, Any], project_dir: Path, aidd_root: Optional[Path]
+) -> list[str]:
     candidates: list[str] = []
 
     def _add(raw: str) -> None:
@@ -373,7 +376,9 @@ def _policy_state(project_dir: Path, aidd_root: Optional[Path]) -> Dict[str, Any
     if isinstance(readmap.get("allowed_paths"), list):
         read_allowed.extend(str(item) for item in readmap.get("allowed_paths") if str(item).strip())
     if isinstance(readmap.get("loop_allowed_paths"), list):
-        read_allowed.extend(str(item) for item in readmap.get("loop_allowed_paths") if str(item).strip())
+        read_allowed.extend(
+            str(item) for item in readmap.get("loop_allowed_paths") if str(item).strip()
+        )
     read_allowed.extend(_extract_loop_allowed_paths(loop_pack_path))
     if isinstance(readmap.get("always_allow"), list):
         read_allowed.extend(str(item) for item in readmap.get("always_allow") if str(item).strip())
@@ -381,17 +386,25 @@ def _policy_state(project_dir: Path, aidd_root: Optional[Path]) -> Dict[str, Any
 
     write_allowed = []
     if isinstance(writemap.get("allowed_paths"), list):
-        write_allowed.extend(str(item) for item in writemap.get("allowed_paths") if str(item).strip())
+        write_allowed.extend(
+            str(item) for item in writemap.get("allowed_paths") if str(item).strip()
+        )
     if isinstance(writemap.get("loop_allowed_paths"), list):
-        write_allowed.extend(str(item) for item in writemap.get("loop_allowed_paths") if str(item).strip())
+        write_allowed.extend(
+            str(item) for item in writemap.get("loop_allowed_paths") if str(item).strip()
+        )
     write_allowed.extend(_extract_loop_allowed_paths(loop_pack_path))
     if isinstance(writemap.get("always_allow"), list):
-        write_allowed.extend(str(item) for item in writemap.get("always_allow") if str(item).strip())
+        write_allowed.extend(
+            str(item) for item in writemap.get("always_allow") if str(item).strip()
+        )
     write_allowed.extend(ALWAYS_ALLOW_PATTERNS)
 
     docops_only = []
     if isinstance(writemap.get("docops_only_paths"), list):
-        docops_only.extend(str(item) for item in writemap.get("docops_only_paths") if str(item).strip())
+        docops_only.extend(
+            str(item) for item in writemap.get("docops_only_paths") if str(item).strip()
+        )
 
     return {
         "root": root,
@@ -471,7 +484,9 @@ def _enforce_rw_policy(
 
     if _always_allow(candidates):
         if tool_name in {"Write", "Edit"} and loop_stage:
-            if _is_tasklist_or_context_pack(candidates) or _docops_only_violation(candidates, state):
+            if _is_tasklist_or_context_pack(candidates) or _docops_only_violation(
+                candidates, state
+            ):
                 return _deny_or_warn(
                     strict_mode,
                     reason="Loop stage writes to DocOps-only paths must go through actions.",
@@ -509,7 +524,9 @@ def _enforce_rw_policy(
             )
 
     if tool_name in {"Write", "Edit"}:
-        if loop_stage and (_is_tasklist_or_context_pack(candidates) or _docops_only_violation(candidates, state)):
+        if loop_stage and (
+            _is_tasklist_or_context_pack(candidates) or _docops_only_violation(candidates, state)
+        ):
             return _deny_or_warn(
                 strict_mode,
                 reason="Loop stage writes to DocOps-only paths must go through actions.",
@@ -631,7 +648,9 @@ def _should_rate_limit(
     return False
 
 
-def handle_bash(project_dir: Path, aidd_root: Optional[Path], cfg: Dict[str, Any], tool_input: Dict[str, Any]) -> None:
+def handle_bash(
+    project_dir: Path, aidd_root: Optional[Path], cfg: Dict[str, Any], tool_input: Dict[str, Any]
+) -> None:
     cmd = tool_input.get("command")
     if not isinstance(cmd, str) or not cmd.strip():
         return
@@ -657,8 +676,12 @@ def handle_bash(project_dir: Path, aidd_root: Optional[Path], cfg: Dict[str, Any
             )
         return
 
-    only_for = re.compile(str(guard.get("only_for_regex", ""))) if guard.get("only_for_regex") else None
-    skip_if = re.compile(str(guard.get("skip_if_regex", ""))) if guard.get("skip_if_regex") else None
+    only_for = (
+        re.compile(str(guard.get("only_for_regex", ""))) if guard.get("only_for_regex") else None
+    )
+    skip_if = (
+        re.compile(str(guard.get("skip_if_regex", ""))) if guard.get("skip_if_regex") else None
+    )
 
     if only_for and not only_for.search(cmd):
         if injection_message:
@@ -706,7 +729,9 @@ def handle_bash(project_dir: Path, aidd_root: Optional[Path], cfg: Dict[str, Any
     )
 
 
-def handle_read(project_dir: Path, aidd_root: Optional[Path], cfg: Dict[str, Any], tool_input: Dict[str, Any]) -> None:
+def handle_read(
+    project_dir: Path, aidd_root: Optional[Path], cfg: Dict[str, Any], tool_input: Dict[str, Any]
+) -> None:
     file_path = tool_input.get("file_path") or tool_input.get("path") or tool_input.get("filename")
     if not isinstance(file_path, str) or not file_path:
         return

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+
 def _bootstrap_entrypoint() -> None:
     import os
     import sys
@@ -37,8 +38,8 @@ import argparse
 import datetime as dt
 import json
 import re
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
 
 from aidd_runtime import runtime
 
@@ -70,7 +71,7 @@ def _read_text(path: Path) -> str:
         return ""
 
 
-def _extract_section(md: str, name: str) -> List[str]:
+def _extract_section(md: str, name: str) -> list[str]:
     lines = md.splitlines()
     start = None
     target = name.strip().lower()
@@ -81,7 +82,7 @@ def _extract_section(md: str, name: str) -> List[str]:
             break
     if start is None:
         return []
-    collected: List[str] = []
+    collected: list[str] = []
     for line in lines[start:]:
         if HEADING_RE.match(line):
             break
@@ -109,7 +110,7 @@ def _rel_path(root: Path, path: Path) -> str:
     return rel
 
 
-def _collect_reports(root: Path, ticket: str) -> List[str]:
+def _collect_reports(root: Path, ticket: str) -> list[str]:
     reports = []
     candidates = [
         root / "reports" / "research" / f"{ticket}-rlm-targets.json",
@@ -164,7 +165,7 @@ def _read_prd_review_status(root: Path, ticket: str) -> str:
     return ""
 
 
-def _collect_events(root: Path, ticket: str, limit: int = EVENTS_LIMIT) -> List[Dict[str, object]]:
+def _collect_events(root: Path, ticket: str, limit: int = EVENTS_LIMIT) -> list[dict[str, object]]:
     path = root / "reports" / "events" / f"{ticket}.jsonl"
     if not path.exists():
         return []
@@ -172,7 +173,7 @@ def _collect_events(root: Path, ticket: str, limit: int = EVENTS_LIMIT) -> List[
         lines = path.read_text(encoding="utf-8").splitlines()
     except OSError:
         return []
-    events: List[Dict[str, object]] = []
+    events: list[dict[str, object]] = []
     for raw in reversed(lines):
         if not raw.strip():
             continue
@@ -187,7 +188,7 @@ def _collect_events(root: Path, ticket: str, limit: int = EVENTS_LIMIT) -> List[
     return list(reversed(events))
 
 
-def _find_report_variant(report_path: Path) -> Optional[Path]:
+def _find_report_variant(report_path: Path) -> Path | None:
     if report_path.exists():
         return report_path
     if report_path.suffix == ".json":
@@ -197,7 +198,7 @@ def _find_report_variant(report_path: Path) -> Optional[Path]:
     return None
 
 
-def _collect_artifacts(root: Path, ticket: str) -> List[str]:
+def _collect_artifacts(root: Path, ticket: str) -> list[str]:
     artifacts = []
     candidates = [
         root / "docs" / "prd" / f"{ticket}.prd.md",
@@ -212,8 +213,8 @@ def _collect_artifacts(root: Path, ticket: str) -> List[str]:
     return artifacts
 
 
-def _collect_checks(root: Path, ticket: str) -> List[Dict[str, str]]:
-    checks: List[Dict[str, str]] = []
+def _collect_checks(root: Path, ticket: str) -> list[dict[str, str]]:
+    checks: list[dict[str, str]] = []
     prd_doc_status = _read_prd_review_status(root, ticket)
     prd_path = _find_report_variant(root / "reports" / "prd" / f"{ticket}.json")
     if prd_path:
@@ -234,25 +235,29 @@ def _collect_checks(root: Path, ticket: str) -> List[Dict[str, str]]:
     if qa_path:
         try:
             payload = json.loads(qa_path.read_text(encoding="utf-8"))
-            checks.append({
-                "name": "qa",
-                "status": payload.get("status") or "",
-                "path": _rel_path(root, qa_path),
-            })
+            checks.append(
+                {
+                    "name": "qa",
+                    "status": payload.get("status") or "",
+                    "path": _rel_path(root, qa_path),
+                }
+            )
         except json.JSONDecodeError:
             pass
 
     reviewer_path = root / "reports" / "reviewer" / f"{ticket}.json"
     if reviewer_path.exists():
-        checks.append({
-            "name": "reviewer-tests",
-            "status": "present",
-            "path": _rel_path(root, reviewer_path),
-        })
+        checks.append(
+            {
+                "name": "reviewer-tests",
+                "status": "present",
+                "path": _rel_path(root, reviewer_path),
+            }
+        )
     return checks
 
 
-def build_index(root: Path, ticket: str, slug: str) -> Dict[str, object]:
+def build_index(root: Path, ticket: str, slug: str) -> dict[str, object]:
     tasklist_path = root / "docs" / "tasklist" / f"{ticket}.md"
     prd_path = root / "docs" / "prd" / f"{ticket}.prd.md"
 
@@ -282,7 +287,7 @@ def build_index(root: Path, ticket: str, slug: str) -> Dict[str, object]:
         "ticket": ticket,
         "slug": slug,
         "stage": _detect_stage(root),
-        "updated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "updated": dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "summary": summary,
         "artifacts": _collect_artifacts(root, ticket),
         "reports": _collect_reports(root, ticket),
@@ -295,7 +300,7 @@ def build_index(root: Path, ticket: str, slug: str) -> Dict[str, object]:
     }
 
 
-def write_index(root: Path, ticket: str, slug: str, *, output: Optional[Path] = None) -> Path:
+def write_index(root: Path, ticket: str, slug: str, *, output: Path | None = None) -> Path:
     index_dir = root / "docs" / "index"
     index_dir.mkdir(parents=True, exist_ok=True)
     path = output or (index_dir / f"{ticket}.json")
@@ -304,7 +309,7 @@ def write_index(root: Path, ticket: str, slug: str, *, output: Optional[Path] = 
     return path
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Generate/update ticket index file.")
     parser.add_argument("--ticket", help="Ticket identifier (defaults to docs/.active.json).")
     parser.add_argument("--slug-hint", dest="slug_hint", help="Optional slug hint override.")

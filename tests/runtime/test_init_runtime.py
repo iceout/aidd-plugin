@@ -1,11 +1,11 @@
 """Tests for the aidd-init bootstrap CLI."""
+
 from __future__ import annotations
 
 import os
 import subprocess
 import sys
 from pathlib import Path
-
 
 SCRIPT_PATH = Path(__file__).resolve().parents[2] / "skills" / "aidd-init" / "runtime" / "init.py"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]

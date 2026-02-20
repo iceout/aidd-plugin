@@ -109,7 +109,13 @@ def _reason_allows_full_doc(reason: str) -> bool:
     lowered = reason.lower()
     return any(
         token in lowered
-        for token in ("missing field", "missing_fields", "missing-fields", "excerpt missing", "missing excerpt")
+        for token in (
+            "missing field",
+            "missing_fields",
+            "missing-fields",
+            "excerpt missing",
+            "missing excerpt",
+        )
     )
 
 
@@ -140,7 +146,9 @@ def _expected_status(
     stage_result_path: Path | None = None,
 ) -> tuple[str, str]:
     if stage_result_path is None:
-        stage_result_path = target / "reports" / "loops" / ticket / scope_key / f"stage.{stage}.result.json"
+        stage_result_path = (
+            target / "reports" / "loops" / ticket / scope_key / f"stage.{stage}.result.json"
+        )
     payload = _status_summary._load_stage_result(stage_result_path)
     if not payload:
         return "", runtime.rel_path(stage_result_path, target)
@@ -179,8 +187,12 @@ def check_output_contract(
             warnings.append("non_pack_read_log_entry")
 
     loop_idx = _find_index(read_entries, lambda item: ".loop.pack." in (item.get("path") or ""))
-    review_idx = _find_index(read_entries, lambda item: "review.latest.pack" in (item.get("path") or ""))
-    context_idx = _find_index(read_entries, lambda item: "/reports/context/" in (item.get("path") or ""))
+    review_idx = _find_index(
+        read_entries, lambda item: "review.latest.pack" in (item.get("path") or "")
+    )
+    context_idx = _find_index(
+        read_entries, lambda item: "/reports/context/" in (item.get("path") or "")
+    )
 
     if stage in {"implement", "review"}:
         actions_value = str(fields.get("actions_log") or "").strip()
@@ -224,7 +236,11 @@ def check_output_contract(
         stage_result_path=stage_result_path,
     )
     status_output = fields.get("status", "")
-    if expected_status and status_output and expected_status.upper() != status_output.strip().upper():
+    if (
+        expected_status
+        and status_output
+        and expected_status.upper() != status_output.strip().upper()
+    ):
         warnings.append("status_mismatch_stage_result")
 
     status = "warn" if warnings or missing else "ok"
@@ -248,7 +264,9 @@ def check_output_contract(
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Validate output contract for implement/review/qa.")
+    parser = argparse.ArgumentParser(
+        description="Validate output contract for implement/review/qa."
+    )
     parser.add_argument("--ticket", help="Ticket identifier (defaults to docs/.active.json).")
     parser.add_argument("--slug-hint", help="Optional slug hint override.")
     parser.add_argument("--stage", required=True, choices=("implement", "review", "qa"))
@@ -256,7 +274,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--work-item-key", help="Optional work item key override.")
     parser.add_argument("--log", dest="log_path", required=True, help="Path to command output log.")
     parser.add_argument("--stage-result", help="Optional stage_result path override.")
-    parser.add_argument("--max-read-items", type=int, default=3, help="Max entries allowed in AIDD:READ_LOG.")
+    parser.add_argument(
+        "--max-read-items", type=int, default=3, help="Max entries allowed in AIDD:READ_LOG."
+    )
     parser.add_argument("--format", choices=("json", "text"), default="json")
     return parser.parse_args(argv)
 
@@ -281,7 +301,11 @@ def main(argv: list[str] | None = None) -> int:
             scope_key = runtime.resolve_scope_key(work_item_key, ticket)
 
     log_path = runtime.resolve_path_for_target(Path(args.log_path), target)
-    stage_result_path = runtime.resolve_path_for_target(Path(args.stage_result), target) if args.stage_result else None
+    stage_result_path = (
+        runtime.resolve_path_for_target(Path(args.stage_result), target)
+        if args.stage_result
+        else None
+    )
 
     payload = check_output_contract(
         target=target,

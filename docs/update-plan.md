@@ -45,12 +45,12 @@ Note: after Phase 3, stage-command skills (`/skill:*`) are the primary interface
   Result: `COMMANDS.md` now includes hook commands and Codex CI examples; added `scripts/ci-gates.sh` to run workflow/tests/qa gates in CI with workspace/skip/passthrough options.
 
 ## Phase 6 – Testing & QA Expansion (Weeks 8-9)
-- [ ] Backfill critical pytest suites from `ai_driven_dev/tests` (active_state, gates, docio, loop, hooks) and adapt fixtures for the new stage-dispatch / IDE-profile runtime.
-  Current state: baseline coverage exists for active-state/dispatch/hooks paths (`tests/test_runtime_basic.py`, `tests/runtime/test_stage_dispatch.py`, `tests/runtime/test_layout_migration_smoke.py`, `tests/runtime/test_readiness_gates.py`), but upstream-style gates/docio/loop suites are not yet fully ported.
-- [ ] Tighten `scripts/test.sh` to fail on Black/Ruff/MyPy issues and capture coverage for `aidd_runtime/stage_dispatch.py`, `aidd_runtime/command_runner.py`, and `aidd_runtime/ide_profiles.py`.
-  Current state: `scripts/test.sh` runs Black/Ruff/MyPy/Pytest with coverage output, but still uses warn-only behavior on failures and does not enforce per-module coverage targets for dispatch/runner/profile modules.
-- [ ] Add end-to-end tests that initialize a workspace, run the idea → research → plan pipeline, and assert generated artifacts (PRD, research pack, plan, tasklist).
-  Current state: orchestration integration tests already cover init + idea/research/plan/tasks and key artifacts (`tests/runtime/test_stage_orchestration_integration.py`), while fuller E2E parity (self-generated PRD/plan plus real command-path execution fidelity) remains open.
+- [x] Backfill critical pytest suites from `ai_driven_dev/tests` (active_state, gates, docio, loop, hooks) and adapt fixtures for the new stage-dispatch / IDE-profile runtime.
+  Result: added focused suites `tests/runtime/test_active_state_runtime.py`, `tests/runtime/test_gates_runtime.py`, `tests/runtime/test_docio_actions_validate.py`, `tests/runtime/test_loop_step_policy.py`, `tests/runtime/test_hooklib_runtime.py` and verified them together with existing dispatch/profile coverage.
+- [x] Tighten `scripts/test.sh` to fail on Black/Ruff/MyPy issues and capture coverage for `aidd_runtime/stage_dispatch.py`, `aidd_runtime/command_runner.py`, and `aidd_runtime/ide_profiles.py`.
+  Result: `scripts/test.sh` now runs in strict mode (`set -euo pipefail`), exits immediately on any lint/type/test failure, performs dependency preflight checks, and reports coverage with explicit `--cov` targets for dispatch/runner/profile modules.
+- [x] Add end-to-end tests that initialize a workspace, run the idea → research → plan pipeline, and assert generated artifacts (PRD, research pack, plan, tasklist).
+  Result: added `tests/runtime/test_phase6_e2e_pipeline.py` covering runtime-script-based pipeline execution and artifact assertions; `skills/plan-new/runtime/research_check.py` now scaffolds `docs/plan/<ticket>.md` from template to make plan artifact generation deterministic for E2E verification.
 
 ## Phase 7 – Documentation & Adoption (Week 10+)
 - [ ] Update `README.md`, `QUICKSTART.md`, and `docs/overview.md` with stage-dispatch runtime instructions, IDE profile configuration, and hook usage.

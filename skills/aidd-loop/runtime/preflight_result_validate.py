@@ -52,7 +52,9 @@ class ValidationError(ValueError):
     pass
 
 
-def _require_fields(obj: dict[str, Any], fields: Iterable[str], errors: list[str], *, prefix: str = "") -> None:
+def _require_fields(
+    obj: dict[str, Any], fields: Iterable[str], errors: list[str], *, prefix: str = ""
+) -> None:
     for field in fields:
         if field not in obj:
             errors.append(f"{prefix}missing field: {field}")
@@ -69,9 +71,7 @@ def validate_preflight_result_data(payload: dict[str, Any]) -> list[str]:
 
     schema = payload.get("schema")
     if schema not in SUPPORTED_SCHEMA_VERSIONS:
-        errors.append(
-            "schema must be one of: " + ", ".join(SUPPORTED_SCHEMA_VERSIONS)
-        )
+        errors.append("schema must be one of: " + ", ".join(SUPPORTED_SCHEMA_VERSIONS))
         return errors
 
     _require_fields(

@@ -76,7 +76,9 @@ def _apply_action(root: Path, ticket: str, action: dict[str, object]) -> tuple[s
     return f"unsupported action type: {action_type}", False, True
 
 
-def _apply_actions(root: Path, payload: dict[str, object], apply_log: Path) -> list[dict[str, object]]:
+def _apply_actions(
+    root: Path, payload: dict[str, object], apply_log: Path
+) -> list[dict[str, object]]:
     ticket = str(payload.get("ticket") or "")
     actions = payload.get("actions") or []
     if not isinstance(actions, list):

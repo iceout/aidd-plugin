@@ -72,9 +72,7 @@ def main(argv: list[str] | None = None) -> int:
         else project_root / "reports" / "research" / f"{ticket}-rlm.links.jsonl"
     )
     targets_path = (
-        runtime.resolve_path_for_target(Path(args.targets), project_root)
-        if args.targets
-        else None
+        runtime.resolve_path_for_target(Path(args.targets), project_root) if args.targets else None
     )
 
     if not nodes_path.exists() or nodes_path.stat().st_size == 0:

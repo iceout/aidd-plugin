@@ -32,14 +32,18 @@ def _json_path_for(pack_path: Path) -> Path:
     return pack_path.with_suffix(".json")
 
 
-def get_report_paths(root: Path, report_type: str, ticket: str, kind: str | None = None) -> ReportPaths:
+def get_report_paths(
+    root: Path, report_type: str, ticket: str, kind: str | None = None
+) -> ReportPaths:
     name = f"{ticket}-{kind}" if kind else ticket
     json_path = root / "reports" / report_type / f"{name}.json"
     pack_path = _pack_path_for(json_path)
     return ReportPaths(json_path=json_path, pack_path=pack_path)
 
 
-def load_report(json_path: Path, pack_path: Path, *, prefer_pack: bool = True) -> tuple[dict, str, Path]:
+def load_report(
+    json_path: Path, pack_path: Path, *, prefer_pack: bool = True
+) -> tuple[dict, str, Path]:
     if prefer_pack and pack_path.exists():
         payload = json.loads(pack_path.read_text(encoding="utf-8"))
         return payload, "pack", pack_path

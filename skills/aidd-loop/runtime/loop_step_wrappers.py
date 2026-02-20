@@ -110,7 +110,9 @@ def _runtime_env(plugin_root: Path) -> dict[str, str]:
     return env
 
 
-def _stage_wrapper_log_path(target: Path, stage: str, ticket: str, scope_key: str, kind: str) -> Path:
+def _stage_wrapper_log_path(
+    target: Path, stage: str, ticket: str, scope_key: str, kind: str
+) -> Path:
     ts = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
     log_dir = target / "reports" / "logs" / stage / ticket / scope_key
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -199,7 +201,9 @@ def run_stage_wrapper(
         commands: list[list[str]] = [
             [
                 sys.executable,
-                str(plugin_root / "skills" / "aidd-flow-state" / "runtime" / "set_active_feature.py"),
+                str(
+                    plugin_root / "skills" / "aidd-flow-state" / "runtime" / "set_active_feature.py"
+                ),
                 ticket,
             ],
             [
@@ -245,13 +249,25 @@ def run_stage_wrapper(
                 ],
                 [
                     sys.executable,
-                    str(plugin_root / "skills" / "aidd-docio" / "runtime" / "context_map_validate.py"),
+                    str(
+                        plugin_root
+                        / "skills"
+                        / "aidd-docio"
+                        / "runtime"
+                        / "context_map_validate.py"
+                    ),
                     "--map",
                     runtime.rel_path(paths["readmap_json"], target),
                 ],
                 [
                     sys.executable,
-                    str(plugin_root / "skills" / "aidd-docio" / "runtime" / "context_map_validate.py"),
+                    str(
+                        plugin_root
+                        / "skills"
+                        / "aidd-docio"
+                        / "runtime"
+                        / "context_map_validate.py"
+                    ),
                     "--map",
                     runtime.rel_path(paths["writemap_json"], target),
                 ],
@@ -263,7 +279,13 @@ def run_stage_wrapper(
                 ],
                 [
                     sys.executable,
-                    str(plugin_root / "skills" / "aidd-loop" / "runtime" / "preflight_result_validate.py"),
+                    str(
+                        plugin_root
+                        / "skills"
+                        / "aidd-loop"
+                        / "runtime"
+                        / "preflight_result_validate.py"
+                    ),
                     "--result",
                     runtime.rel_path(paths["preflight_result"], target),
                 ],
@@ -344,7 +366,9 @@ def run_stage_wrapper(
             commands.append(
                 [
                     sys.executable,
-                    str(plugin_root / "skills" / "aidd-core" / "runtime" / "diff_boundary_check.py"),
+                    str(
+                        plugin_root / "skills" / "aidd-core" / "runtime" / "diff_boundary_check.py"
+                    ),
                     "--ticket",
                     ticket,
                 ]
@@ -451,7 +475,11 @@ def validate_stage_wrapper_contract(
 
     if not missing:
         return True, "", ""
-    reason_code = "actions_missing" if any("actions" in item.lower() for item in missing) else "preflight_missing"
+    reason_code = (
+        "actions_missing"
+        if any("actions" in item.lower() for item in missing)
+        else "preflight_missing"
+    )
     message = "missing stage wrapper artifacts: " + ", ".join(missing)
     return False, message, reason_code
 

@@ -143,7 +143,9 @@ def verify_nodes(
         key_calls = node.get("key_calls") or []
         type_refs = node.get("type_refs") or []
         expected_symbols = [
-            sym for sym in list(public_symbols) + list(type_refs) + list(key_calls) if str(sym).strip()
+            sym
+            for sym in list(public_symbols) + list(type_refs) + list(key_calls)
+            if str(sym).strip()
         ]
         missing = _validate_symbols(text, expected_symbols)
         node["missing_tokens"] = missing

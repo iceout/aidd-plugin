@@ -197,7 +197,9 @@ class NormalizeResult:
 
 def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Validate tasklist readiness.")
-    parser.add_argument("--ticket", default=None, help="Feature ticket (defaults to docs/.active.json).")
+    parser.add_argument(
+        "--ticket", default=None, help="Feature ticket (defaults to docs/.active.json)."
+    )
     parser.add_argument("--slug-hint", default=None, help="Optional slug hint override.")
     parser.add_argument("--branch", default="", help="Current branch name for branch filters.")
     parser.add_argument(
@@ -312,7 +314,7 @@ def parse_sections(lines: list[str]) -> tuple[list[Section], dict[str, list[Sect
             sections[-1].end = idx
         sections.append(Section(title=title, start=idx, end=len(lines), lines=[]))
     for section in sections:
-        section.lines = lines[section.start:section.end]
+        section.lines = lines[section.start : section.end]
     mapped: dict[str, list[Section]] = {}
     for section in sections:
         mapped.setdefault(section.title, []).append(section)
@@ -545,9 +547,15 @@ def parse_iteration_items(section_lines: list[str]) -> list[IterationItem]:
                 title = title.lstrip("-").strip()
         title = re.sub(r"\(iteration_id\s*[:=].*?\)", "", title, flags=re.IGNORECASE).strip()
         if iteration_id:
-            title = re.sub(rf"^{re.escape(iteration_id)}\s*[:\-]\s*", "", title, flags=re.IGNORECASE).strip()
-        priority = (fields.get("priority") or extract_field_value(block, "Priority") or "").strip().lower()
-        blocking_raw = (fields.get("blocking") or extract_field_value(block, "Blocking") or "").strip().lower()
+            title = re.sub(
+                rf"^{re.escape(iteration_id)}\s*[:\-]\s*", "", title, flags=re.IGNORECASE
+            ).strip()
+        priority = (
+            (fields.get("priority") or extract_field_value(block, "Priority") or "").strip().lower()
+        )
+        blocking_raw = (
+            (fields.get("blocking") or extract_field_value(block, "Blocking") or "").strip().lower()
+        )
         blocking = blocking_raw == "true"
         deps = parse_inline_list(extract_field_value(block, "deps") or "")
         if not deps:
@@ -586,8 +594,12 @@ def parse_handoff_items(section_lines: list[str]) -> list[HandoffItem]:
         title = re.sub(r"\([^\)]*\)", "", title).strip()
         fields = parse_parenthetical_fields(header)
         item_id = fields.get("id") or extract_handoff_id(block) or ""
-        priority = (fields.get("priority") or extract_field_value(block, "Priority") or "").strip().lower()
-        blocking_raw = (fields.get("blocking") or extract_field_value(block, "Blocking") or "").strip().lower()
+        priority = (
+            (fields.get("priority") or extract_field_value(block, "Priority") or "").strip().lower()
+        )
+        blocking_raw = (
+            (fields.get("blocking") or extract_field_value(block, "Blocking") or "").strip().lower()
+        )
         blocking = blocking_raw == "true"
         source = normalize_source(extract_field_value(block, "source") or fields.get("source"))
         status = (extract_field_value(block, "Status") or "").strip().lower()
@@ -1009,7 +1021,9 @@ def normalize_progress_section(
 ) -> list[str]:
     from aidd_runtime import tasklist_normalize as _tasklist_normalize
 
-    return _tasklist_normalize.normalize_progress_section(lines, ticket, root, summary, dry_run=dry_run)
+    return _tasklist_normalize.normalize_progress_section(
+        lines, ticket, root, summary, dry_run=dry_run
+    )
 
 
 def normalize_qa_traceability(lines: list[str], summary: list[str]) -> list[str]:
@@ -1052,6 +1066,7 @@ def check_tasklist_text(
         normalize_fix_mode=normalize_fix_mode,
     )
 
+
 def check_tasklist(
     root: Path,
     ticket: str,
@@ -1085,11 +1100,15 @@ def run_check(args: argparse.Namespace) -> int:
     identifiers = resolve_identifiers(root, ticket=args.ticket, slug_hint=args.slug_hint)
     ticket = (identifiers.resolved_ticket or "").strip()
     if not ticket:
-        result = TasklistCheckResult(status="error", message="ticket not provided and docs/.active.json missing")
+        result = TasklistCheckResult(
+            status="error", message="ticket not provided and docs/.active.json missing"
+        )
     else:
         tasklist_path = tasklist_path_for(root, ticket)
         if not tasklist_path.exists():
-            result = TasklistCheckResult(status="error", message=f"tasklist not found: {tasklist_path}")
+            result = TasklistCheckResult(
+                status="error", message=f"tasklist not found: {tasklist_path}"
+            )
         else:
             tasklist_text = tasklist_path.read_text(encoding="utf-8")
             stage_value = runtime.read_active_stage(root)
@@ -1106,7 +1125,10 @@ def run_check(args: argparse.Namespace) -> int:
                     and cache_payload.get("config_hash") == config_hash
                 ):
                     if not args.quiet_ok:
-                        print("[tasklist-check] SKIP: cache hit (reason_code=cache_hit)", file=sys.stderr)
+                        print(
+                            "[tasklist-check] SKIP: cache hit (reason_code=cache_hit)",
+                            file=sys.stderr,
+                        )
                     return 0
 
             if args.fix:

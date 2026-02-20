@@ -8,7 +8,6 @@ import pytest
 
 from aidd_runtime import command_runner, ide_profiles
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 

@@ -133,7 +133,13 @@ def _collect_stage_result_candidates(root: Path, ticket: str, stage: str) -> lis
     return _stage_result._collect_stage_result_candidates(root, ticket, stage)
 
 
-def _in_window(path: Path, *, started_at: float | None, finished_at: float | None, tolerance_seconds: float = 5.0) -> bool:
+def _in_window(
+    path: Path,
+    *,
+    started_at: float | None,
+    finished_at: float | None,
+    tolerance_seconds: float = 5.0,
+) -> bool:
     from aidd_runtime import loop_step_stage_result as _stage_result
 
     return _stage_result._in_window(
@@ -409,7 +415,9 @@ def _runtime_env(plugin_root: Path) -> dict[str, str]:
     return _wrappers._runtime_env(plugin_root)
 
 
-def _stage_wrapper_log_path(target: Path, stage: str, ticket: str, scope_key: str, kind: str) -> Path:
+def _stage_wrapper_log_path(
+    target: Path, stage: str, ticket: str, scope_key: str, kind: str
+) -> Path:
     from aidd_runtime import loop_step_wrappers as _wrappers
 
     return _wrappers._stage_wrapper_log_path(target, stage, ticket, scope_key, kind)
@@ -566,7 +574,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Execute a single loop step (implement/review).")
     parser.add_argument("--ticket", help="Ticket identifier (defaults to docs/.active.json).")
     parser.add_argument("--runner", help="Runner command override (default: claude).")
-    parser.add_argument("--format", choices=("json", "yaml"), help="Emit structured output to stdout.")
+    parser.add_argument(
+        "--format", choices=("json", "yaml"), help="Emit structured output to stdout."
+    )
     parser.add_argument(
         "--from-qa",
         nargs="?",
@@ -582,7 +592,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         choices=("manual", "auto"),
         help=argparse.SUPPRESS,
     )
-    parser.add_argument("--work-item-key", help="Explicit work item key (iteration_id=... or id=...).")
+    parser.add_argument(
+        "--work-item-key", help="Explicit work item key (iteration_id=... or id=...)."
+    )
     parser.add_argument(
         "--select-qa-handoff",
         action="store_true",
@@ -606,14 +618,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    runner_hint = str(args.runner or os.environ.get("AIDD_LOOP_RUNNER") or "claude").strip() or "claude"
+    runner_hint = (
+        str(args.runner or os.environ.get("AIDD_LOOP_RUNNER") or "claude").strip() or "claude"
+    )
     os.environ["AIDD_LOOP_RUNNER_HINT"] = runner_hint
     workspace_root, target = runtime.require_workflow_root()
     context = runtime.resolve_feature_context(target, ticket=args.ticket, slug_hint=None)
     ticket = (context.resolved_ticket or "").strip()
     slug_hint = (context.slug_hint or ticket or "").strip()
     if not ticket:
-        raise ValueError("feature ticket is required; pass --ticket or set docs/.active.json via /feature-dev-aidd:idea-new.")
+        raise ValueError(
+            "feature ticket is required; pass --ticket or set docs/.active.json via /feature-dev-aidd:idea-new."
+        )
     plugin_root = runtime.require_plugin_root()
     wrapper_plugin_root = resolve_wrapper_plugin_root(plugin_root)
 
@@ -1028,7 +1044,9 @@ def main(argv: list[str] | None = None) -> int:
     if wrapper_skip_policy == "warn":
         wrapper_skip_message = f"{wrapper_skip_reason} (reason_code={wrapper_skip_code})"
         print(f"[loop-step] WARN: {wrapper_skip_message}", file=sys.stderr)
-        runner_notice = f"{runner_notice}; {wrapper_skip_message}" if runner_notice else wrapper_skip_message
+        runner_notice = (
+            f"{runner_notice}; {wrapper_skip_message}" if runner_notice else wrapper_skip_message
+        )
     if wrapper_enabled:
         ok_wrapper, preflight_payload, wrapper_error = run_stage_wrapper(
             plugin_root=wrapper_plugin_root,
@@ -1058,7 +1076,9 @@ def main(argv: list[str] | None = None) -> int:
 
     command = list(runner_tokens)
     if stream_mode:
-        command.extend(["--output-format", "stream-json", "--include-partial-messages", "--verbose"])
+        command.extend(
+            ["--output-format", "stream-json", "--include-partial-messages", "--verbose"]
+        )
     command.extend(build_command(next_stage, ticket))
     runner_effective = " ".join(command)
     run_stamp = dt.datetime.now(dt.UTC).strftime("%Y%m%d-%H%M%S")
@@ -1068,12 +1088,18 @@ def main(argv: list[str] | None = None) -> int:
     stream_jsonl_rel = ""
     run_started_at = dt.datetime.now(dt.UTC).timestamp()
     if stream_mode:
-        stream_log_path = target / "reports" / "loops" / ticket / f"cli.loop-step.{stamp}.stream.log"
-        stream_jsonl_path = target / "reports" / "loops" / ticket / f"cli.loop-step.{stamp}.stream.jsonl"
+        stream_log_path = (
+            target / "reports" / "loops" / ticket / f"cli.loop-step.{stamp}.stream.log"
+        )
+        stream_jsonl_path = (
+            target / "reports" / "loops" / ticket / f"cli.loop-step.{stamp}.stream.jsonl"
+        )
         stream_log_rel = runtime.rel_path(stream_log_path, target)
         stream_jsonl_rel = runtime.rel_path(stream_jsonl_path, target)
         active_work_item = runtime.read_active_work_item(target)
-        stream_scope_key = runtime.resolve_scope_key(active_work_item, ticket) if active_work_item else "n/a"
+        stream_scope_key = (
+            runtime.resolve_scope_key(active_work_item, ticket) if active_work_item else "n/a"
+        )
         header_lines = [
             f"==> loop-step: stage={next_stage} ticket={ticket} scope_key={stream_scope_key}",
             f"==> streaming enabled: writing stream={stream_jsonl_rel} log={stream_log_rel}",
@@ -1117,7 +1143,11 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     next_work_item_key, next_scope_key = resolve_stage_scope(target, ticket, next_stage)
-    if next_stage in {"implement", "review"} and next_work_item_key and not runtime.is_iteration_work_item_key(next_work_item_key):
+    if (
+        next_stage in {"implement", "review"}
+        and next_work_item_key
+        and not runtime.is_iteration_work_item_key(next_work_item_key)
+    ):
         reason = (
             f"invalid active work item key for loop stage: {next_work_item_key}; "
             "expected iteration_id=<id>. Update tasklist/active work item."
@@ -1312,7 +1342,9 @@ def main(argv: list[str] | None = None) -> int:
             cli_log_path=cli_log_path,
         )
     next_scope_key = str(payload.get("scope_key") or next_scope_key or "").strip() or next_scope_key
-    next_work_item_key = str(payload.get("work_item_key") or next_work_item_key or "").strip() or next_work_item_key
+    next_work_item_key = (
+        str(payload.get("work_item_key") or next_work_item_key or "").strip() or next_work_item_key
+    )
     result = str(payload.get("result") or "").strip().lower()
     reason = str(payload.get("reason") or "").strip()
     reason_code = str(payload.get("reason_code") or "").strip().lower()
@@ -1322,7 +1354,9 @@ def main(argv: list[str] | None = None) -> int:
     if isinstance(evidence_links, dict):
         tests_log_path = str(evidence_links.get("tests_log") or "").strip()
     if not actions_log_rel and next_stage in {"implement", "review", "qa"}:
-        default_actions = target / "reports" / "actions" / ticket / next_scope_key / f"{next_stage}.actions.json"
+        default_actions = (
+            target / "reports" / "actions" / ticket / next_scope_key / f"{next_stage}.actions.json"
+        )
         if default_actions.exists():
             actions_log_rel = runtime.rel_path(default_actions, target)
     artifact_scope_key = wrapper_scope_key or next_scope_key
@@ -1423,7 +1457,9 @@ def main(argv: list[str] | None = None) -> int:
         output_dir = target / "reports" / "loops" / ticket / next_scope_key
         output_dir.mkdir(parents=True, exist_ok=True)
         report_path = output_dir / "output.contract.json"
-        report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        report_path.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
         output_contract_path = runtime.rel_path(report_path, target)
     except Exception as exc:
         print(f"[loop-step] WARN: output contract check failed: {exc}", file=sys.stderr)
@@ -1468,7 +1504,10 @@ def main(argv: list[str] | None = None) -> int:
                 output_contract_path=output_contract_path,
                 output_contract_status=output_contract_status,
             )
-        print(f"[loop-step] WARN: {contract_reason} (reason_code={contract_reason_code})", file=sys.stderr)
+        print(
+            f"[loop-step] WARN: {contract_reason} (reason_code={contract_reason_code})",
+            file=sys.stderr,
+        )
         runner_notice = (
             f"{runner_notice}; {contract_reason} (reason_code={contract_reason_code})"
             if runner_notice
@@ -1564,7 +1603,9 @@ def emit_result(
     reason_code_value = str(reason_code or "").strip().lower()
     if status_value == "blocked":
         if not reason_code_value:
-            reason_code_value = "stage_result_blocked" if stage_result_input else "blocked_without_reason"
+            reason_code_value = (
+                "stage_result_blocked" if stage_result_input else "blocked_without_reason"
+            )
         if not reason_value:
             reason_value = f"{stage} blocked" if stage else "blocked"
 
@@ -1598,7 +1639,11 @@ def emit_result(
         "reason_code": reason_code_value,
     }
     if fmt:
-        output = json.dumps(payload, ensure_ascii=False, indent=2) if fmt == "json" else "\n".join(dump_yaml(payload))
+        output = (
+            json.dumps(payload, ensure_ascii=False, indent=2)
+            if fmt == "json"
+            else "\n".join(dump_yaml(payload))
+        )
         print(output)
         print(f"[loop-step] {status} stage={stage} log={log_value}", file=sys.stderr)
     else:

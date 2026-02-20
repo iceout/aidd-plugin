@@ -172,7 +172,9 @@ def run_gate(args: argparse.Namespace) -> int:
     ticket = args.ticket.strip()
     plan_path = root / "docs" / "plan" / f"{ticket}.md"
     if not plan_path.is_file():
-        print(f"BLOCK: missing plan (docs/plan/{ticket}.md) -> run /feature-dev-aidd:plan-new {ticket}")
+        print(
+            f"BLOCK: missing plan (docs/plan/{ticket}.md) -> run /feature-dev-aidd:plan-new {ticket}"
+        )
         return 1
 
     normalized = normalize_path(args.file_path, root)
@@ -186,24 +188,36 @@ def run_gate(args: argparse.Namespace) -> int:
     if not found:
         if allow_missing:
             return 0
-        print(f"BLOCK: missing section '## Plan Review' in docs/plan/{ticket}.md -> run /feature-dev-aidd:review-spec {ticket}")
+        print(
+            f"BLOCK: missing section '## Plan Review' in docs/plan/{ticket}.md -> run /feature-dev-aidd:review-spec {ticket}"
+        )
         return 1
 
-    approved: set[str] = {str(item).lower() for item in gate.get("approved_statuses", DEFAULT_APPROVED)}
-    blocking: set[str] = {str(item).lower() for item in gate.get("blocking_statuses", DEFAULT_BLOCKING)}
+    approved: set[str] = {
+        str(item).lower() for item in gate.get("approved_statuses", DEFAULT_APPROVED)
+    }
+    blocking: set[str] = {
+        str(item).lower() for item in gate.get("blocking_statuses", DEFAULT_BLOCKING)
+    }
 
     if status in blocking:
-        print(f"BLOCK: Plan Review is marked '{status.upper()}' -> resolve blockers via /feature-dev-aidd:review-spec {ticket}")
+        print(
+            f"BLOCK: Plan Review is marked '{status.upper()}' -> resolve blockers via /feature-dev-aidd:review-spec {ticket}"
+        )
         return 1
 
     if approved and status not in approved:
-        print(f"BLOCK: Plan Review is not READY (Status: {status.upper() or 'PENDING'}) -> run /feature-dev-aidd:review-spec {ticket}")
+        print(
+            f"BLOCK: Plan Review is not READY (Status: {status.upper() or 'PENDING'}) -> run /feature-dev-aidd:review-spec {ticket}"
+        )
         return 1
 
     if bool(gate.get("require_action_items_closed", True)):
         for item in action_items:
             if item.startswith("- [ ]"):
-                print(f"BLOCK: Plan Review still has open action items -> update docs/plan/{ticket}.md")
+                print(
+                    f"BLOCK: Plan Review still has open action items -> update docs/plan/{ticket}.md"
+                )
                 return 1
 
     return 0

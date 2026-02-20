@@ -126,14 +126,18 @@ def load_contract(path: Path) -> dict[str, Any]:
     return payload
 
 
-def _require_fields(obj: dict[str, Any], fields: Iterable[str], errors: list[str], *, prefix: str = "") -> None:
+def _require_fields(
+    obj: dict[str, Any], fields: Iterable[str], errors: list[str], *, prefix: str = ""
+) -> None:
     for field in fields:
         if field not in obj:
             errors.append(f"{prefix}missing field: {field}")
 
 
 def _validate_list_of_strings(value: Any, errors: list[str], *, field: str) -> None:
-    if not isinstance(value, list) or not all(isinstance(item, str) and item.strip() for item in value):
+    if not isinstance(value, list) or not all(
+        isinstance(item, str) and item.strip() for item in value
+    ):
         errors.append(f"field {field} must be list[str]")
 
 
@@ -193,7 +197,9 @@ def _collect_string_set(items: Any) -> set[str]:
     return values
 
 
-def validate_contract_data(payload: dict[str, Any], *, contract_path: Path | None = None) -> list[str]:
+def validate_contract_data(
+    payload: dict[str, Any], *, contract_path: Path | None = None
+) -> list[str]:
     errors: list[str] = []
     if not isinstance(payload, dict):
         return ["payload must be a JSON/YAML object"]
@@ -237,7 +243,9 @@ def validate_contract_data(payload: dict[str, Any], *, contract_path: Path | Non
         if not isinstance(via, dict):
             errors.append("field writes.via must be object")
         else:
-            _validate_list_of_strings(via.get("docops_only"), errors, field="writes.via.docops_only")
+            _validate_list_of_strings(
+                via.get("docops_only"), errors, field="writes.via.docops_only"
+            )
 
     _validate_list_of_strings(payload.get("outputs"), errors, field="outputs")
 
@@ -266,17 +274,23 @@ def validate_contract_data(payload: dict[str, Any], *, contract_path: Path | Non
             _validate_list_of_strings(allowed_types, errors, field="actions.allowed_types")
 
     if isinstance(stage, str) and stage in {"implement", "review", "qa"}:
-        required_paths = set(_collect_ref_paths((reads or {}).get("required") if isinstance(reads, dict) else []))
+        required_paths = set(
+            _collect_ref_paths((reads or {}).get("required") if isinstance(reads, dict) else [])
+        )
         if CANONICAL_READMAP_MD not in required_paths:
             errors.append(f"reads.required must include canonical path: {CANONICAL_READMAP_MD}")
 
-        write_files = _collect_string_set((writes or {}).get("files") if isinstance(writes, dict) else [])
+        write_files = _collect_string_set(
+            (writes or {}).get("files") if isinstance(writes, dict) else []
+        )
         for expected in CANONICAL_PREFLIGHT_FILES:
             if expected not in write_files:
                 errors.append(f"writes.files must include canonical preflight artifact: {expected}")
         for disallowed in DISALLOWED_PREFLIGHT_FILES:
             if disallowed in write_files:
-                errors.append(f"writes.files must not include deprecated preflight artifact: {disallowed}")
+                errors.append(
+                    f"writes.files must not include deprecated preflight artifact: {disallowed}"
+                )
 
     return errors
 

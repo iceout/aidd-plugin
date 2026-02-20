@@ -324,8 +324,6 @@ def _read_git_file(root: Path, relative: Path) -> str:
     return proc.stdout
 
 
-
-
 def _is_code_file(path: str, config: ProgressConfig) -> bool:
     normalized = path.replace("\\", "/")
     if normalized.startswith(str(TASKLIST_DIR)):
@@ -452,7 +450,9 @@ def _ordered_task_lines(content: str, *, checked: bool) -> list[tuple[str, str]]
             continue
         if not stripped.lower().startswith(marker):
             continue
-        normalized = _normalize_checkbox_line(stripped) if checked else " ".join(stripped.split()).lower()
+        normalized = (
+            _normalize_checkbox_line(stripped) if checked else " ".join(stripped.split()).lower()
+        )
         if normalized in seen:
             continue
         seen.add(normalized)
@@ -541,7 +541,11 @@ def check_progress(
         )
 
     detected_branch = branch or runtime.detect_branch(root)
-    if detected_branch and config.skip_branches and gates.matches(config.skip_branches, detected_branch):
+    if (
+        detected_branch
+        and config.skip_branches
+        and gates.matches(config.skip_branches, detected_branch)
+    ):
         return ProgressCheckResult(
             status="skip:branch",
             ticket=ticket,

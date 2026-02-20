@@ -62,7 +62,11 @@ def resolve_stage_tests_policy(config: dict, stage: str) -> str:
     stage_value = str(stage or "").strip().lower()
     if stage_value not in DEFAULT_TESTS_POLICY:
         return ""
-    raw_policy = config.get("tests_policy") or config.get("testsPolicy") if isinstance(config, dict) else None
+    raw_policy = (
+        config.get("tests_policy") or config.get("testsPolicy")
+        if isinstance(config, dict)
+        else None
+    )
     policy_value = ""
     if isinstance(raw_policy, dict):
         policy_value = _normalize_tests_policy_value(raw_policy.get(stage_value))
@@ -84,7 +88,9 @@ def matches(patterns: Iterable[str] | None, value: str) -> bool:
     return False
 
 
-def branch_enabled(branch: str | None, *, allow: Iterable[str] | None = None, skip: Iterable[str] | None = None) -> bool:
+def branch_enabled(
+    branch: str | None, *, allow: Iterable[str] | None = None, skip: Iterable[str] | None = None
+) -> bool:
     if not branch:
         return True
     if skip and matches(skip, branch):

@@ -46,7 +46,9 @@ def append_log(
     if not ticket:
         return
     stage_value = str(stage or "").strip().lower()
-    scope_value = runtime.sanitize_scope_key(scope_key) or runtime.sanitize_scope_key(ticket) or "ticket"
+    scope_value = (
+        runtime.sanitize_scope_key(scope_key) or runtime.sanitize_scope_key(ticket) or "ticket"
+    )
     status_value = str(status or "").strip().lower()
     if not status_value:
         if exit_code is None:
@@ -134,11 +136,15 @@ def read_log(
                 events.extend(_load_events(path))
 
     if stage_value:
-        events = [entry for entry in events if str(entry.get("stage") or "").strip().lower() == stage_value]
+        events = [
+            entry
+            for entry in events
+            if str(entry.get("stage") or "").strip().lower() == stage_value
+        ]
     if not events:
         return []
     events.sort(key=_entry_timestamp)
-    return events[-max(limit, 0):]
+    return events[-max(limit, 0) :]
 
 
 def latest_entry(
@@ -153,8 +159,14 @@ def latest_entry(
     events = _load_events(path)
     if not events:
         return None, path if path.exists() else None
-    stage_set = {str(stage or "").strip().lower() for stage in (stages or []) if str(stage or "").strip()}
-    status_set = {str(status or "").strip().lower() for status in (statuses or []) if str(status or "").strip()}
+    stage_set = {
+        str(stage or "").strip().lower() for stage in (stages or []) if str(stage or "").strip()
+    }
+    status_set = {
+        str(status or "").strip().lower()
+        for status in (statuses or [])
+        if str(status or "").strip()
+    }
     for entry in reversed(events):
         if stage_set:
             entry_stage = str(entry.get("stage") or "").strip().lower()

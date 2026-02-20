@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import os
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
 
 from aidd_runtime import command_runner, ide_profiles, readiness_gates, runtime
 from aidd_runtime.resources import DEFAULT_PROJECT_SUBDIR
@@ -115,7 +115,9 @@ LEGACY_COMMAND_ALIASES: dict[str, str] = {
 }
 
 
-def normalize_command_name(command: str, profile: str | ide_profiles.IdeProfile | None = None) -> str:
+def normalize_command_name(
+    command: str, profile: str | ide_profiles.IdeProfile | None = None
+) -> str:
     profile_cfg = _resolve_profile(command, profile)
     raw = ide_profiles.strip_host_prefix(command, profile_cfg)
     if not raw:
@@ -175,7 +177,8 @@ def dispatch_stage_command(
     effective_ticket = _resolve_ticket(project_root, ticket=ticket)
     if target.spec.ticket_required and not effective_ticket:
         raise ValueError(
-            f"ticket is required for '{target.resolved_command}'; pass ticket or set docs/.active.json first."
+            f"ticket is required for '{target.resolved_command}'; "
+            "pass ticket or set docs/.active.json first."
         )
 
     if target.spec.set_feature and effective_ticket:

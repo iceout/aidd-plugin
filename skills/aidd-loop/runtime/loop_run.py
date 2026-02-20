@@ -125,7 +125,9 @@ def select_next_work_item(target: Path, ticket: str, current_work_item: str) -> 
 def resolve_runner_label(raw: str | None) -> str:
     if raw:
         return raw.strip()
-    env_value = (os.environ.get("AIDD_LOOP_RUNNER_LABEL") or os.environ.get("AIDD_RUNNER") or "").strip()
+    env_value = (
+        os.environ.get("AIDD_LOOP_RUNNER_LABEL") or os.environ.get("AIDD_RUNNER") or ""
+    ).strip()
     if env_value:
         return env_value
     if os.environ.get("CI"):
@@ -174,18 +176,26 @@ def run_loop_step(
     env = os.environ.copy()
     env["AIDD_ROOT"] = str(plugin_root)
     if stream_mode:
-        return subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=None, cwd=workspace_root, env=env)
+        return subprocess.run(
+            cmd, text=True, stdout=subprocess.PIPE, stderr=None, cwd=workspace_root, env=env
+        )
     return subprocess.run(cmd, text=True, capture_output=True, cwd=workspace_root, env=env)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run loop-step until SHIP.")
     parser.add_argument("--ticket", help="Ticket identifier (defaults to docs/.active.json).")
-    parser.add_argument("--max-iterations", type=int, default=10, help="Maximum number of loop iterations.")
-    parser.add_argument("--sleep-seconds", type=float, default=0.0, help="Sleep between iterations.")
+    parser.add_argument(
+        "--max-iterations", type=int, default=10, help="Maximum number of loop iterations."
+    )
+    parser.add_argument(
+        "--sleep-seconds", type=float, default=0.0, help="Sleep between iterations."
+    )
     parser.add_argument("--runner", help="Runner command override.")
     parser.add_argument("--runner-label", help="Runner label for logs (claude_cli|ci|local).")
-    parser.add_argument("--format", choices=("json", "yaml"), help="Emit structured output to stdout.")
+    parser.add_argument(
+        "--format", choices=("json", "yaml"), help="Emit structured output to stdout."
+    )
     parser.add_argument(
         "--stream",
         nargs="?",
@@ -214,7 +224,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         choices=("manual", "auto"),
         help=argparse.SUPPRESS,
     )
-    parser.add_argument("--work-item-key", help="Explicit work item key for QA repair (iteration_id=... or id=...).")
+    parser.add_argument(
+        "--work-item-key", help="Explicit work item key for QA repair (iteration_id=... or id=...)."
+    )
     parser.add_argument(
         "--select-qa-handoff",
         action="store_true",
@@ -242,7 +254,9 @@ def main(argv: list[str] | None = None) -> int:
     context = runtime.resolve_feature_context(target, ticket=args.ticket, slug_hint=None)
     ticket = (context.resolved_ticket or "").strip()
     if not ticket:
-        raise ValueError("feature ticket is required; pass --ticket or set docs/.active.json via /feature-dev-aidd:idea-new.")
+        raise ValueError(
+            "feature ticket is required; pass --ticket or set docs/.active.json via /feature-dev-aidd:idea-new."
+        )
 
     plugin_root = runtime.require_plugin_root()
     log_path = target / "reports" / "loops" / ticket / "loop.run.log"
@@ -256,7 +270,9 @@ def main(argv: list[str] | None = None) -> int:
     stream_jsonl_path = None
     if stream_mode:
         stream_log_path = target / "reports" / "loops" / ticket / f"cli.loop-run.{stamp}.stream.log"
-        stream_jsonl_path = target / "reports" / "loops" / ticket / f"cli.loop-run.{stamp}.stream.jsonl"
+        stream_jsonl_path = (
+            target / "reports" / "loops" / ticket / f"cli.loop-run.{stamp}.stream.jsonl"
+        )
         stream_jsonl_path.parent.mkdir(parents=True, exist_ok=True)
         stream_jsonl_path.touch(exist_ok=True)
         append_log(
@@ -289,8 +305,12 @@ def main(argv: list[str] | None = None) -> int:
                 "log_path": runtime.rel_path(log_path, target),
                 "cli_log_path": runtime.rel_path(cli_log_path, target),
                 "runner_label": runner_label,
-                "stream_log_path": runtime.rel_path(stream_log_path, target) if stream_log_path else "",
-                "stream_jsonl_path": runtime.rel_path(stream_jsonl_path, target) if stream_jsonl_path else "",
+                "stream_log_path": (
+                    runtime.rel_path(stream_log_path, target) if stream_log_path else ""
+                ),
+                "stream_jsonl_path": (
+                    runtime.rel_path(stream_jsonl_path, target) if stream_jsonl_path else ""
+                ),
                 "reason": f"loop-step failed ({result.returncode})",
                 "updated_at": utc_timestamp(),
             }
@@ -333,7 +353,10 @@ def main(argv: list[str] | None = None) -> int:
         )
         runner_effective = step_payload.get("runner_effective") or ""
         if not str(runner_effective).strip():
-            runner_effective = str(args.runner or os.environ.get("AIDD_LOOP_RUNNER") or "claude").strip() or "claude"
+            runner_effective = (
+                str(args.runner or os.environ.get("AIDD_LOOP_RUNNER") or "claude").strip()
+                or "claude"
+            )
         step_stream_log = step_payload.get("stream_log_path") or ""
         step_stream_jsonl = step_payload.get("stream_jsonl_path") or ""
         step_status = step_payload.get("status")
@@ -342,16 +365,25 @@ def main(argv: list[str] | None = None) -> int:
             step_status = "done"
         elif step_exit_code == BLOCKED_CODE:
             step_status = "blocked"
-        elif step_exit_code == CONTINUE_CODE and str(step_status).strip().lower() not in {"continue", "blocked", "done"}:
+        elif step_exit_code == CONTINUE_CODE and str(step_status).strip().lower() not in {
+            "continue",
+            "blocked",
+            "done",
+        }:
             step_status = "continue"
-        if step_exit_code == CONTINUE_CODE and str(reason_code).strip().lower() == "user_approval_required":
+        if (
+            step_exit_code == CONTINUE_CODE
+            and str(reason_code).strip().lower() == "user_approval_required"
+        ):
             step_exit_code = BLOCKED_CODE
             step_status = "blocked"
             if not reason:
                 reason = "user approval required"
         log_reason_code = repair_code or reason_code
         if not str(log_reason_code).strip() and step_status == "blocked":
-            log_reason_code = "stage_result_blocked" if stage_result_path else "blocked_without_reason"
+            log_reason_code = (
+                "stage_result_blocked" if stage_result_path else "blocked_without_reason"
+            )
         if parse_error and not str(log_reason_code).strip():
             log_reason_code = "invalid_loop_step_payload"
         if not str(reason).strip() and step_status == "blocked":
@@ -367,7 +399,9 @@ def main(argv: list[str] | None = None) -> int:
             step_stage = str(step_payload.get("stage") or "").strip().lower()
             fallback_scope = str(chosen_scope or runtime.resolve_scope_key("", ticket)).strip()
             if step_stage:
-                stage_result_path = f"aidd/reports/loops/{ticket}/{fallback_scope}/stage.{step_stage}.result.json"
+                stage_result_path = (
+                    f"aidd/reports/loops/{ticket}/{fallback_scope}/stage.{step_stage}.result.json"
+                )
         if stream_mode and stream_log_path and step_stream_log:
             step_stream_log_path = runtime.resolve_path_for_target(Path(step_stream_log), target)
             append_stream_file(
@@ -390,7 +424,11 @@ def main(argv: list[str] | None = None) -> int:
                 f"runner_cmd={runner_effective} reason={reason}"
                 + (f" chosen_scope_key={chosen_scope}" if chosen_scope else "")
                 + (f" scope_key_mismatch_warn={mismatch_warn}" if mismatch_warn else "")
-                + (f" mismatch_from={mismatch_from} mismatch_to={mismatch_to}" if mismatch_to else "")
+                + (
+                    f" mismatch_from={mismatch_from} mismatch_to={mismatch_to}"
+                    if mismatch_to
+                    else ""
+                )
                 + (f" log_path={step_command_log}" if step_command_log else "")
                 + (f" step_cli_log_path={step_cli_log_path}" if step_cli_log_path else "")
                 + (f" tests_log_path={tests_log_path}" if tests_log_path else "")
@@ -413,7 +451,9 @@ def main(argv: list[str] | None = None) -> int:
             pending_count = 0
             if step_stage == "review":
                 current_work_item = runtime.read_active_work_item(target)
-                selected_next, pending_count = select_next_work_item(target, ticket, current_work_item)
+                selected_next, pending_count = select_next_work_item(
+                    target, ticket, current_work_item
+                )
                 append_log(
                     log_path,
                     (
@@ -454,8 +494,12 @@ def main(argv: list[str] | None = None) -> int:
                 "log_path": runtime.rel_path(log_path, target),
                 "cli_log_path": runtime.rel_path(cli_log_path, target),
                 "runner_label": runner_label,
-                "stream_log_path": runtime.rel_path(stream_log_path, target) if stream_log_path else "",
-                "stream_jsonl_path": runtime.rel_path(stream_jsonl_path, target) if stream_jsonl_path else "",
+                "stream_log_path": (
+                    runtime.rel_path(stream_log_path, target) if stream_log_path else ""
+                ),
+                "stream_jsonl_path": (
+                    runtime.rel_path(stream_jsonl_path, target) if stream_jsonl_path else ""
+                ),
                 "last_step": step_payload,
                 "updated_at": utc_timestamp(),
             }
@@ -471,8 +515,12 @@ def main(argv: list[str] | None = None) -> int:
                 "log_path": runtime.rel_path(log_path, target),
                 "cli_log_path": runtime.rel_path(cli_log_path, target),
                 "runner_label": runner_label,
-                "stream_log_path": runtime.rel_path(stream_log_path, target) if stream_log_path else "",
-                "stream_jsonl_path": runtime.rel_path(stream_jsonl_path, target) if stream_jsonl_path else "",
+                "stream_log_path": (
+                    runtime.rel_path(stream_log_path, target) if stream_log_path else ""
+                ),
+                "stream_jsonl_path": (
+                    runtime.rel_path(stream_jsonl_path, target) if stream_jsonl_path else ""
+                ),
                 "reason": reason,
                 "reason_code": log_reason_code,
                 "runner_cmd": runner_effective,
@@ -498,7 +546,9 @@ def main(argv: list[str] | None = None) -> int:
         "cli_log_path": runtime.rel_path(cli_log_path, target),
         "runner_label": runner_label,
         "stream_log_path": runtime.rel_path(stream_log_path, target) if stream_log_path else "",
-        "stream_jsonl_path": runtime.rel_path(stream_jsonl_path, target) if stream_jsonl_path else "",
+        "stream_jsonl_path": (
+            runtime.rel_path(stream_jsonl_path, target) if stream_jsonl_path else ""
+        ),
         "last_step": last_payload,
         "updated_at": utc_timestamp(),
     }

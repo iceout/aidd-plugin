@@ -55,12 +55,12 @@
   完成情况：`COMMANDS.md` 已新增 Hooks 命令与 Codex CI 用法；新增 `scripts/ci-gates.sh` 可在 CI 中串行执行 `gate-workflow`、`gate-tests`、`gate-qa`（支持 `--workspace`、`--skip-*` 与 QA 参数透传）。
 
 ## Phase 6 – Testing & QA Expansion (Weeks 8-9)
-- [ ] **T6.1** 回填 `/Users/xuanyizhang/code/ai_driven_dev/tests` 中关键 pytest（active_state, gates, docio, loop, hooks）并适配新的 stage dispatch / IDE profiles fixtures。
-  当前现状：已具备 active_state / stage-dispatch / hooks 方向的基础覆盖（`tests/test_runtime_basic.py`、`tests/runtime/test_stage_dispatch.py`、`tests/runtime/test_layout_migration_smoke.py`、`tests/runtime/test_readiness_gates.py`），但尚未系统回填 upstream 的 gates/docio/loop 测试矩阵与对应 fixture 迁移。
-- [ ] **T6.2** 加固 `scripts/test.sh`：Black/Ruff/MyPy 任一失败即退出，同时统计 `aidd_runtime/stage_dispatch.py`、`aidd_runtime/command_runner.py`、`aidd_runtime/ide_profiles.py` 的覆盖率。
-  当前现状：`scripts/test.sh` 已串联 Black/Ruff/MyPy/Pytest 与覆盖率输出，但仍为“软失败提示”模式（失败后仅告警不退出），且覆盖率仅按 `--cov=aidd_runtime` 汇总，尚未对 `stage_dispatch/command_runner/ide_profiles` 设定针对性覆盖门槛。
-- [ ] **T6.3** 编写端到端测试，执行 workspace init + idea→research→plan 流程并检查 PRD、research pack、plan、tasklist 产出。
-  当前现状：已有编排集成测试 `tests/runtime/test_stage_orchestration_integration.py` 覆盖 init + idea→research→plan→tasks 与核心工件/`.active.json` 校验；仍需补充“真实端到端”断言（尤其 PRD/plan 由流程自产生而非测试注入）与更接近实际命令路径的执行场景。
+- [x] **T6.1** 回填 `/Users/xuanyizhang/code/ai_driven_dev/tests` 中关键 pytest（active_state, gates, docio, loop, hooks）并适配新的 stage dispatch / IDE profiles fixtures。
+  完成情况：已补关键测试集 `tests/runtime/test_active_state_runtime.py`、`tests/runtime/test_gates_runtime.py`、`tests/runtime/test_docio_actions_validate.py`、`tests/runtime/test_loop_step_policy.py`、`tests/runtime/test_hooklib_runtime.py`，并与现有 `stage_dispatch/ide_profiles/readiness_gates` 测试共同通过。
+- [x] **T6.2** 加固 `scripts/test.sh`：Black/Ruff/MyPy 任一失败即退出，同时统计 `aidd_runtime/stage_dispatch.py`、`aidd_runtime/command_runner.py`、`aidd_runtime/ide_profiles.py` 的覆盖率。
+  完成情况：`scripts/test.sh` 已切换 strict 模式（`set -euo pipefail`），Black/Ruff/MyPy/Pytest 任一失败立即退出；覆盖率输出已显式纳入 `stage_dispatch.py`、`command_runner.py`、`ide_profiles.py`；并新增依赖预检（缺模块时给出明确安装提示）。
+- [x] **T6.3** 编写端到端测试，执行 workspace init + idea→research→plan 流程并检查 PRD、research pack、plan、tasklist 产出。
+  完成情况：新增 `tests/runtime/test_phase6_e2e_pipeline.py`，基于真实 runtime 脚本链路执行 `init -> idea -> research -> plan -> tasks`，校验 `PRD/research pack/plan/tasklist` 工件；同时 `skills/plan-new/runtime/research_check.py` 已补 plan 文档模板落盘逻辑，保证流水线计划产物可验证。
 
 ## Phase 7 – Documentation & Adoption (Week 10+)
 - [ ] **T7.1** 更新 `README.md`, `QUICKSTART.md`, `docs/overview.md`，覆盖 stage dispatch runtime 指南、IDE profiles 配置和 hook 用法。

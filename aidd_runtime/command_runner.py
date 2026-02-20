@@ -3,9 +3,9 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Mapping, Sequence
 
 from aidd_runtime import ide_profiles
 
@@ -72,8 +72,12 @@ def run_command(
 ) -> CommandResult:
     profile_cfg = ide_profiles.resolve_profile(profile)
     effective_timeout = timeout_sec if timeout_sec is not None else float(profile_cfg.timeout_sec)
-    stdout_limit = max_stdout_bytes if max_stdout_bytes is not None else profile_cfg.max_stdout_bytes
-    stderr_limit = max_stderr_bytes if max_stderr_bytes is not None else profile_cfg.max_stderr_bytes
+    stdout_limit = (
+        max_stdout_bytes if max_stdout_bytes is not None else profile_cfg.max_stdout_bytes
+    )
+    stderr_limit = (
+        max_stderr_bytes if max_stderr_bytes is not None else profile_cfg.max_stderr_bytes
+    )
 
     timed_out = False
     stdout_text = ""
@@ -85,8 +89,7 @@ def run_command(
             cwd=cwd,
             env=dict(env) if env is not None else None,
             text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             check=False,
             timeout=effective_timeout,
         )

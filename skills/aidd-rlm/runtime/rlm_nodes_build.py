@@ -113,7 +113,9 @@ def _split_values(raw: object | Iterable[str] | None) -> list[str]:
     return list(dict.fromkeys(values))
 
 
-def _normalize_worklist_paths(values: object | Iterable[str] | None, *, base_root: Path) -> list[str]:
+def _normalize_worklist_paths(
+    values: object | Iterable[str] | None, *, base_root: Path
+) -> list[str]:
     prefixes = rlm_targets.normalize_prefixes(_split_values(values))
     normalized: list[str] = []
     base_resolved = base_root.resolve()
@@ -244,11 +246,13 @@ def _compact_nodes(nodes: list[dict[str, object]]) -> list[dict[str, object]]:
         if not node_id:
             continue
         dedup[node_id] = node
+
     def sort_key(item: dict[str, object]) -> tuple:
         node_kind = str(item.get("node_kind") or "")
         path = str(item.get("path") or "")
         node_id = str(item.get("id") or item.get("file_id") or item.get("dir_id") or "")
         return (node_kind, path, node_id)
+
     return sorted(dedup.values(), key=sort_key)
 
 
@@ -325,7 +329,11 @@ def _summarize_dir_nodes(
     total = len(children_ids)
     children_ids = children_ids[:max_children] if max_children else children_ids
 
-    summaries = [str(node.get("summary") or "").strip() for node in sorted_children if str(node.get("summary") or "").strip()]
+    summaries = [
+        str(node.get("summary") or "").strip()
+        for node in sorted_children
+        if str(node.get("summary") or "").strip()
+    ]
     summaries = summaries[:3]
 
     symbols: list[str] = []
@@ -392,7 +400,9 @@ def build_dir_nodes(
     return dir_nodes
 
 
-def _build_worklist(entries: list[dict[str, object]], nodes_path: Path) -> tuple[list[dict[str, object]], dict[str, int]]:
+def _build_worklist(
+    entries: list[dict[str, object]], nodes_path: Path
+) -> tuple[list[dict[str, object]], dict[str, int]]:
     existing: dict[str, list[dict[str, object]]] = {}
     for node in _iter_nodes(nodes_path):
         if node.get("node_kind") != "file":
@@ -446,7 +456,9 @@ def _build_worklist(entries: list[dict[str, object]], nodes_path: Path) -> tuple
                     "reason": reason,
                 }
             )
-    worklist = sorted(worklist, key=lambda entry: (entry.get("path") or "", entry.get("file_id") or ""))
+    worklist = sorted(
+        worklist, key=lambda entry: (entry.get("path") or "", entry.get("file_id") or "")
+    )
     return worklist, stats
 
 
@@ -462,7 +474,9 @@ def build_worklist_pack(
     manifest = _load_manifest(manifest_path)
     settings = load_rlm_settings(target)
     raw_paths = worklist_paths if worklist_paths is not None else settings.get("worklist_paths")
-    raw_keywords = worklist_keywords if worklist_keywords is not None else settings.get("worklist_keywords")
+    raw_keywords = (
+        worklist_keywords if worklist_keywords is not None else settings.get("worklist_keywords")
+    )
     filtered_entries, worklist_scope = _filter_manifest_entries(
         target,
         manifest,
@@ -487,7 +501,9 @@ def build_worklist_pack(
         "kind": "pack",
         "ticket": ticket,
         "slug_hint": manifest.get("slug_hint"),
-        "generated_at": dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "generated_at": dt.datetime.now(dt.UTC)
+        .isoformat(timespec="seconds")
+        .replace("+00:00", "Z"),
         "status": status,
         "links": {
             "manifest": runtime.rel_path(manifest_path, target),
@@ -604,12 +620,16 @@ def main(argv: list[str] | None = None) -> int:
     if args.bootstrap:
         manifest = _load_manifest(manifest_path)
         new_nodes = _build_bootstrap_nodes(manifest)
-        existing_nodes = [] if args.force or not nodes_path.exists() else list(_iter_nodes(nodes_path))
+        existing_nodes = (
+            [] if args.force or not nodes_path.exists() else list(_iter_nodes(nodes_path))
+        )
         existing_ids = {
             str(node.get("id") or node.get("file_id") or node.get("dir_id") or "").strip()
             for node in existing_nodes
         }
-        added = [node for node in new_nodes if str(node.get("id") or "").strip() not in existing_ids]
+        added = [
+            node for node in new_nodes if str(node.get("id") or "").strip() not in existing_ids
+        ]
         if existing_nodes and not args.force:
             merged = _compact_nodes(new_nodes + existing_nodes)
         else:
@@ -629,10 +649,7 @@ def main(argv: list[str] | None = None) -> int:
     output = (
         runtime.resolve_path_for_target(Path(args.output), target)
         if args.output
-        else target
-        / "reports"
-        / "research"
-        / f"{ticket}-rlm.worklist{_pack_extension()}"
+        else target / "reports" / "research" / f"{ticket}-rlm.worklist{_pack_extension()}"
     )
     worklist_paths = args.worklist_paths
     worklist_keywords = args.worklist_keywords
@@ -649,7 +666,9 @@ def main(argv: list[str] | None = None) -> int:
         worklist_keywords=worklist_keywords,
     )
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(pack, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    output.write_text(
+        json.dumps(pack, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     rel_output = runtime.rel_path(output, target)
     print(f"[aidd] rlm worklist saved to {rel_output}.")
     return 0

@@ -50,7 +50,13 @@ def _collect_stage_result_candidates(root: Path, ticket: str, stage: str) -> lis
     )
 
 
-def _in_window(path: Path, *, started_at: float | None, finished_at: float | None, tolerance_seconds: float = 5.0) -> bool:
+def _in_window(
+    path: Path,
+    *,
+    started_at: float | None,
+    finished_at: float | None,
+    tolerance_seconds: float = 5.0,
+) -> bool:
     if started_at is None or finished_at is None:
         return True
     if not path.exists():
@@ -113,12 +119,21 @@ def load_stage_result(
         )
 
     selected_path, selected_payload = selected_pool[0]
-    selected_scope = str(selected_payload.get("scope_key") or "").strip() or selected_path.parent.name
+    selected_scope = (
+        str(selected_payload.get("scope_key") or "").strip() or selected_path.parent.name
+    )
     mismatch_from = scope_key or ""
     mismatch_to = ""
     if scope_key and selected_scope and selected_scope != scope_key:
         mismatch_to = selected_scope
-    return selected_payload, selected_path, "", mismatch_from, mismatch_to, _stage_result_diagnostics(diagnostics)
+    return (
+        selected_payload,
+        selected_path,
+        "",
+        mismatch_from,
+        mismatch_to,
+        _stage_result_diagnostics(diagnostics),
+    )
 
 
 def normalize_stage_result(result: str, reason_code: str) -> str:
@@ -217,7 +232,9 @@ def validate_review_pack(
                 "loop pack missing",
                 "review pack missing",
             }
-            code = "review_pack_missing" if reason in missing_reasons else "review_pack_regen_failed"
+            code = (
+                "review_pack_missing" if reason in missing_reasons else "review_pack_regen_failed"
+            )
             return False, reason, code
     lines = pack_path.read_text(encoding="utf-8").splitlines()
     front = parse_front_matter(lines)
@@ -241,7 +258,9 @@ def validate_review_pack(
         except json.JSONDecodeError:
             report = {}
         pack_updated = parse_timestamp(str(front.get("updated_at") or ""))
-        report_updated = parse_timestamp(str(report.get("updated_at") or report.get("generated_at") or ""))
+        report_updated = parse_timestamp(
+            str(report.get("updated_at") or report.get("generated_at") or "")
+        )
         if pack_updated and report_updated and pack_updated < report_updated:
             ok, regen_message = _maybe_regen_review_pack(
                 root,

@@ -53,4 +53,4 @@ def read_events(root: Path, ticket: str, *, limit: int = 5) -> list[dict[str, An
         return []
     if limit <= 0:
         return []
-    return events[-max(limit, 0):]
+    return events[-max(limit, 0) :]

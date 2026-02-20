@@ -13,7 +13,6 @@ from typing import Any, Dict, Iterable, Optional, Sequence
 
 from aidd_runtime import stage_lexicon
 
-
 DEFAULT_CONFIG: Dict[str, Any] = {
     "enabled": True,
     "mode": "light",
@@ -110,10 +109,7 @@ def require_plugin_root() -> Path:
 
 
 def _read_payload_text() -> str:
-    raw = (
-        os.environ.get("HOOK_PAYLOAD", "")
-        or os.environ.get("AIDD_HOOK_PAYLOAD", "")
-    )
+    raw = os.environ.get("HOOK_PAYLOAD", "") or os.environ.get("AIDD_HOOK_PAYLOAD", "")
     if not raw.strip():
         try:
             if sys.stdin is not None and not sys.stdin.closed and not sys.stdin.isatty():
@@ -188,7 +184,9 @@ def _resolve_cwd_value(cwd: str | None) -> Path:
     return Path.cwd().resolve()
 
 
-def resolve_project_root(ctx: HookContext | None = None, *, cwd: str | None = None) -> tuple[Path, bool]:
+def resolve_project_root(
+    ctx: HookContext | None = None, *, cwd: str | None = None
+) -> tuple[Path, bool]:
     if cwd:
         base = _resolve_cwd_value(cwd)
     elif ctx:

@@ -43,7 +43,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Ensure tasklist exists for active ticket and run tasklist validation.",
     )
-    parser.add_argument("--ticket", dest="ticket", help="Ticket id (defaults to docs/.active.json).")
+    parser.add_argument(
+        "--ticket", dest="ticket", help="Ticket id (defaults to docs/.active.json)."
+    )
     parser.add_argument("--slug-hint", dest="slug_hint", help="Optional slug hint override.")
     parser.add_argument("--tasklist", dest="tasklist_path", help="Optional tasklist path override.")
     parser.add_argument(

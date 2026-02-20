@@ -212,8 +212,6 @@ def _filter_research_handoff_blocks(blocks: Sequence[list[str]]) -> list[list[st
     return [block for block in blocks if _is_actionable_research_block(block)]
 
 
-
-
 def _format_task_suffix(report_label: str, task_id: str | None = None) -> str:
     parts = [f"source: {report_label}"]
     if task_id:
@@ -292,7 +290,9 @@ def _derive_tasks_from_tests(payload: dict, report_label: str) -> list[list[str]
     executed = _inflate_columnar(raw_executed) if isinstance(raw_executed, dict) else raw_executed
     source = "qa"
     if summary == "fail":
-        task_id = _canonical_task_id(source, f"qa-tests:{_stable_task_id('qa-tests', 'summary', summary)}")
+        task_id = _canonical_task_id(
+            source, f"qa-tests:{_stable_task_id('qa-tests', 'summary', summary)}"
+        )
         spec = TaskSpec(
             source=source,
             task_id=task_id,
@@ -351,7 +351,9 @@ def _derive_tasks_from_tests(payload: dict, report_label: str) -> list[list[str]
         )
         blocks.append(_task_block(spec))
     if summary == "fail" and not blocks:
-        task_id = _canonical_task_id(source, f"qa-tests:{_stable_task_id('qa-tests', 'fail', 'summary')}")
+        task_id = _canonical_task_id(
+            source, f"qa-tests:{_stable_task_id('qa-tests', 'fail', 'summary')}"
+        )
         spec = TaskSpec(
             source=source,
             task_id=task_id,
@@ -501,7 +503,9 @@ def _derive_tasks_from_rlm_pack(payload: dict, report_label: str) -> list[list[s
 
 def _derive_handoff_placeholder(source: str, ticket: str, report_label: str) -> list[list[str]]:
     canonical = _canonical_source(source)
-    task_id = _canonical_task_id(canonical, f"{canonical}-report-{_stable_task_id(canonical, report_label, ticket)}")
+    task_id = _canonical_task_id(
+        canonical, f"{canonical}-report-{_stable_task_id(canonical, report_label, ticket)}"
+    )
     title = "Research: update context before next iteration"
     if canonical == "qa":
         title = "QA report: confirm no blockers"
@@ -769,7 +773,9 @@ def _apply_status_to_block(block: Sequence[str], checkbox: str, status: str) -> 
     return updated
 
 
-def _merge_handoff_tasks(existing: Sequence[str], new_tasks: Sequence[str], *, append: bool) -> list[str]:
+def _merge_handoff_tasks(
+    existing: Sequence[str], new_tasks: Sequence[str], *, append: bool
+) -> list[str]:
     if not append:
         return list(new_tasks)
 
@@ -808,7 +814,9 @@ def _merge_handoff_tasks(existing: Sequence[str], new_tasks: Sequence[str], *, a
             existing_status = _block_status_value(existing_block)
             desired_status = existing_status or ("done" if existing_checkbox == "done" else "open")
             desired_checkbox = "done" if existing_status == "done" else existing_checkbox
-            merged = _apply_status_to_block(block, desired_checkbox or "open", desired_status or "open")
+            merged = _apply_status_to_block(
+                block, desired_checkbox or "open", desired_status or "open"
+            )
             merged = _merge_block_fields(existing_block, merged)
             merged_blocks[idx] = merged
 
@@ -951,7 +959,9 @@ def main(argv: list[str] | None = None) -> int:
     ticket = (context.resolved_ticket or "").strip()
     slug_hint = (context.slug_hint or ticket or "").strip()
     if not ticket:
-        raise ValueError("feature ticket is required; pass --ticket or set docs/.active.json via /feature-dev-aidd:idea-new.")
+        raise ValueError(
+            "feature ticket is required; pass --ticket or set docs/.active.json via /feature-dev-aidd:idea-new."
+        )
     work_item_key = runtime.read_active_work_item(target)
     scope_key = runtime.resolve_scope_key(work_item_key, ticket)
 
@@ -978,12 +988,16 @@ def main(argv: list[str] | None = None) -> int:
     def _env_truthy(value: str | None) -> bool:
         return str(value or "").strip().lower() in {"1", "true", "yes", "y"}
 
-    prefer_pack = bool(getattr(args, "prefer_pack", False) or _env_truthy(os.getenv("AIDD_PACK_FIRST")))
+    prefer_pack = bool(
+        getattr(args, "prefer_pack", False) or _env_truthy(os.getenv("AIDD_PACK_FIRST"))
+    )
 
     def _load_with_pack(path: Path, *, prefer_pack_first: bool) -> tuple[dict, str]:
         from aidd_runtime.reports.loader import load_report_for_path
 
-        payload, source_kind, report_paths = load_report_for_path(path, prefer_pack=prefer_pack_first)
+        payload, source_kind, report_paths = load_report_for_path(
+            path, prefer_pack=prefer_pack_first
+        )
         label_path = report_paths.pack_path if source_kind == "pack" else report_paths.json_path
         return payload, runtime.rel_path(label_path, target)
 
@@ -1012,7 +1026,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"[aidd] no actionable research tasks found in {report_label}.")
     else:
         if not derived_blocks:
-            derived_blocks = _dedupe_task_blocks(_derive_handoff_placeholder(source, ticket, report_label))
+            derived_blocks = _dedupe_task_blocks(
+                _derive_handoff_placeholder(source, ticket, report_label)
+            )
         if not derived_blocks:
             print(f"[aidd] no tasks found in {source} report ({report_label}).")
             return 0

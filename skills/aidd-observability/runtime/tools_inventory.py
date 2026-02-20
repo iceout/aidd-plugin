@@ -74,9 +74,7 @@ SCRIPT_REF_RE = re.compile(
 PYTHON_CALL_RE = re.compile(
     r"\bpython(?:3)?\s+(?:\"|')?\$\{AIDD_ROOT\}/([A-Za-z0-9_./-]+\.py)(?:\"|')?"
 )
-AIDD_RUN_PY_MODULE_RE = re.compile(
-    r'aidd_run_python_module\s+"[^"]+"\s+"[^"]+"\s+"([^"]+\.py)"'
-)
+AIDD_RUN_PY_MODULE_RE = re.compile(r'aidd_run_python_module\s+"[^"]+"\s+"[^"]+"\s+"([^"]+\.py)"')
 
 DEFERRED_CORE_APIS: set[str] = set()
 SHARED_SKILL_PREFIXES = ("skills/aidd-",)
@@ -119,11 +117,17 @@ def _collect_tool_entrypoints(repo_root: Path) -> list[str]:
     tools_dir = repo_root / "tools"
     if not tools_dir.exists():
         return []
-    return sorted(path.name for path in tools_dir.glob("*") if path.is_file() and path.suffix in {".sh", ".py"})
+    return sorted(
+        path.name
+        for path in tools_dir.glob("*")
+        if path.is_file() and path.suffix in {".sh", ".py"}
+    )
 
 
 def _collect_skill_runtime(repo_root: Path) -> list[str]:
-    return sorted(path.relative_to(repo_root).as_posix() for path in repo_root.glob("skills/**/*.py"))
+    return sorted(
+        path.relative_to(repo_root).as_posix() for path in repo_root.glob("skills/**/*.py")
+    )
 
 
 def _collect_hook_scripts(repo_root: Path) -> list[str]:
@@ -197,19 +201,26 @@ def _consumer_type(rel_path: str) -> str:
         return "hook"
     if rel_path.startswith("tests/"):
         return "test"
-    if rel_path.startswith("templates/") or rel_path.startswith("docs/") or rel_path in {
-        "AGENTS.md",
-        "README.md",
-        "README.en.md",
-        "CONTRIBUTING.md",
-    }:
+    if (
+        rel_path.startswith("templates/")
+        or rel_path.startswith("docs/")
+        or rel_path
+        in {
+            "AGENTS.md",
+            "README.md",
+            "README.en.md",
+            "CONTRIBUTING.md",
+        }
+    ):
         return "docs"
     if rel_path.startswith("tools/"):
         return "redirect_wrapper" if rel_path.endswith(".sh") else "tool"
     return "other"
 
 
-def _classify_entrypoint(rel_path: str, canonical_replacement_path: str | None) -> tuple[str, bool, bool]:
+def _classify_entrypoint(
+    rel_path: str, canonical_replacement_path: str | None
+) -> tuple[str, bool, bool]:
     if rel_path in DEFERRED_CORE_APIS:
         return "core_api_deferred", True, True
     if rel_path.startswith("skills/"):
@@ -345,13 +356,17 @@ def _build_payload(repo_root: Path) -> dict[str, object]:
         canonical_replacement_path = None
         if rel_path.startswith("tools/"):
             canonical_replacement_path = _extract_canonical_replacement(abs_path)
-        classification, core_api, migration_deferred = _classify_entrypoint(rel_path, canonical_replacement_path)
+        classification, core_api, migration_deferred = _classify_entrypoint(
+            rel_path, canonical_replacement_path
+        )
         consumers = usage.get(rel_path, [])
         grouped = _group_consumers(consumers)
 
         entry_meta = meta.get(rel_path) or {}
         direct_shell_targets = list(entry_meta.get("direct_shell_targets") or [])
-        unresolved_shell_targets = sorted(target for target in direct_shell_targets if target not in meta)
+        unresolved_shell_targets = sorted(
+            target for target in direct_shell_targets if target not in meta
+        )
         owners = sorted(_resolve_python_owners(rel_path, meta, resolved_cache, set()))
         runtime_classification = _runtime_classification(
             rel_path,
@@ -371,7 +386,9 @@ def _build_payload(repo_root: Path) -> dict[str, object]:
                 "python_owner_path": primary_owner,
                 "python_owner_paths": owners,
                 "python_owner_count": len(owners),
-                "python_owner_resolution": "none" if not owners else ("single" if len(owners) == 1 else "multiple"),
+                "python_owner_resolution": (
+                    "none" if not owners else ("single" if len(owners) == 1 else "multiple")
+                ),
                 "direct_python_targets": list(entry_meta.get("direct_python_targets") or []),
                 "shell_targets": direct_shell_targets,
                 "unresolved_shell_targets": unresolved_shell_targets,
@@ -477,11 +494,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.output_json:
         output_json = Path(args.output_json)
     else:
-        output_json = (workflow_root or (repo_root / "aidd")) / "reports" / "tools" / "tools-inventory.json"
+        output_json = (
+            (workflow_root or (repo_root / "aidd")) / "reports" / "tools" / "tools-inventory.json"
+        )
     if args.output_md:
         output_md = Path(args.output_md)
     else:
-        output_md = (workflow_root or (repo_root / "aidd")) / "reports" / "tools" / "tools-inventory.md"
+        output_md = (
+            (workflow_root or (repo_root / "aidd")) / "reports" / "tools" / "tools-inventory.md"
+        )
 
     output_json.parent.mkdir(parents=True, exist_ok=True)
     output_md.parent.mkdir(parents=True, exist_ok=True)

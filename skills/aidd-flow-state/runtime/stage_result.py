@@ -128,18 +128,34 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--result", required=True, choices=("blocked", "continue", "done"))
     parser.add_argument("--scope-key", help="Optional scope key override.")
     parser.add_argument("--work-item-key", help="Optional work item key override.")
-    parser.add_argument("--allow-missing-work-item", action="store_true", help="Allow missing work_item_key on early BLOCKED results.")
+    parser.add_argument(
+        "--allow-missing-work-item",
+        action="store_true",
+        help="Allow missing work_item_key on early BLOCKED results.",
+    )
     parser.add_argument("--reason", default="", help="Optional human-readable reason.")
     parser.add_argument("--reason-code", default="", help="Optional machine-readable reason code.")
-    parser.add_argument("--verdict", default="", help="Optional verdict for review stage (SHIP|REVISE|BLOCKED).")
+    parser.add_argument(
+        "--verdict", default="", help="Optional verdict for review stage (SHIP|REVISE|BLOCKED)."
+    )
     parser.add_argument("--error", action="append", help="Error string (repeatable).")
     parser.add_argument("--errors", action="append", help="Errors list (comma/space separated).")
     parser.add_argument("--artifact", action="append", help="Artifact path (repeatable).")
-    parser.add_argument("--artifacts", action="append", help="Artifacts list (comma/space separated).")
-    parser.add_argument("--evidence-link", action="append", help="Evidence link (repeatable, supports key=path).")
-    parser.add_argument("--evidence-links", action="append", help="Evidence links list (comma/space separated, supports key=path).")
+    parser.add_argument(
+        "--artifacts", action="append", help="Artifacts list (comma/space separated)."
+    )
+    parser.add_argument(
+        "--evidence-link", action="append", help="Evidence link (repeatable, supports key=path)."
+    )
+    parser.add_argument(
+        "--evidence-links",
+        action="append",
+        help="Evidence links list (comma/space separated, supports key=path).",
+    )
     parser.add_argument("--producer", default="command", help="Producer label (default: command).")
-    parser.add_argument("--format", choices=("json", "yaml"), help="Emit structured output to stdout.")
+    parser.add_argument(
+        "--format", choices=("json", "yaml"), help="Emit structured output to stdout."
+    )
     return parser.parse_args(argv)
 
 
@@ -156,10 +172,7 @@ def _reviewer_requirements(
         reviewer_cfg = {}
     if reviewer_cfg.get("enabled") is False:
         return False, False, False, ""
-    marker_template = str(
-        reviewer_cfg.get("tests_marker")
-        or DEFAULT_REVIEWER_MARKER
-    )
+    marker_template = str(reviewer_cfg.get("tests_marker") or DEFAULT_REVIEWER_MARKER)
     marker_path = runtime.reviewer_marker_path(
         target,
         marker_template,
@@ -173,19 +186,20 @@ def _reviewer_requirements(
         payload = json.loads(marker_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return False, False, False, runtime.rel_path(marker_path, target)
-    field_name = str(
-        reviewer_cfg.get("tests_field")
-        or "tests"
-    )
+    field_name = str(reviewer_cfg.get("tests_field") or "tests")
     marker_value = str(payload.get(field_name) or "").strip().lower()
     required_values = reviewer_cfg.get("required_values") or ["required"]
     if not isinstance(required_values, list):
         required_values = [required_values]
-    required_values = [str(value).strip().lower() for value in required_values if str(value).strip()]
+    required_values = [
+        str(value).strip().lower() for value in required_values if str(value).strip()
+    ]
     optional_values = reviewer_cfg.get("optional_values") or ["optional", "skipped", "not-required"]
     if not isinstance(optional_values, list):
         optional_values = [optional_values]
-    optional_values = [str(value).strip().lower() for value in optional_values if str(value).strip()]
+    optional_values = [
+        str(value).strip().lower() for value in optional_values if str(value).strip()
+    ]
     optional_overrides = set(optional_values + ["not-required", "not_required", "none"])
     if marker_value and marker_value in required_values:
         return True, True, False, runtime.rel_path(marker_path, target)
@@ -203,11 +217,17 @@ def _tests_policy(
     stage: str,
 ) -> tuple[bool, bool, str]:
     config = runtime.load_gates_config(target)
-    mode = str(config.get("tests_required", "disabled") if isinstance(config, dict) else "disabled").strip().lower()
+    mode = (
+        str(config.get("tests_required", "disabled") if isinstance(config, dict) else "disabled")
+        .strip()
+        .lower()
+    )
     require = mode in {"soft", "hard"}
     block = mode == "hard"
 
-    stage_policy = gates.resolve_stage_tests_policy(config if isinstance(config, dict) else {}, stage)
+    stage_policy = gates.resolve_stage_tests_policy(
+        config if isinstance(config, dict) else {}, stage
+    )
     if stage_policy == "none":
         return False, False, ""
     if stage_policy == "full":
@@ -216,11 +236,13 @@ def _tests_policy(
     elif stage_policy == "targeted":
         require = True
 
-    reviewer_required, reviewer_block, reviewer_not_required, marker_source = _reviewer_requirements(
-        target,
-        ticket=ticket,
-        slug_hint=slug_hint,
-        scope_key=scope_key,
+    reviewer_required, reviewer_block, reviewer_not_required, marker_source = (
+        _reviewer_requirements(
+            target,
+            ticket=ticket,
+            slug_hint=slug_hint,
+            scope_key=scope_key,
+        )
     )
     if reviewer_not_required:
         return False, False, marker_source
@@ -330,20 +352,26 @@ def main(argv: list[str] | None = None) -> int:
 
     if stage in {"implement", "review"}:
         if work_item_key and not runtime.is_valid_work_item_key(work_item_key):
-            raise ValueError("work_item_key must match iteration_id=<id> or id=<id> (no composite keys)")
+            raise ValueError(
+                "work_item_key must match iteration_id=<id> or id=<id> (no composite keys)"
+            )
         if not work_item_key and not args.allow_missing_work_item:
             raise ValueError("work_item_key is required for implement/review stage results")
 
     artifacts = _dedupe(_split_items(args.artifact) + _split_items(args.artifacts))
     errors = _dedupe(_split_items(args.error) + _split_items(args.errors))
-    evidence_links = _parse_evidence_links(_split_items(args.evidence_link) + _split_items(args.evidence_links))
+    evidence_links = _parse_evidence_links(
+        _split_items(args.evidence_link) + _split_items(args.evidence_links)
+    )
     producer = (args.producer or "command").strip()
     result = (args.result or "").strip().lower()
     requested_result = result
     reason = (args.reason or "").strip()
     reason_code = (args.reason_code or "").strip().lower()
     verdict = (args.verdict or "").strip().upper()
-    explicit_blocked_review = stage == "review" and (requested_result == "blocked" or verdict == "BLOCKED")
+    explicit_blocked_review = stage == "review" and (
+        requested_result == "blocked" or verdict == "BLOCKED"
+    )
 
     tests_required, tests_block, marker_source = _tests_policy(
         target,
@@ -399,7 +427,9 @@ def main(argv: list[str] | None = None) -> int:
                 source="stage-result",
                 cwd=str(target),
             )
-            tests_link = runtime.rel_path(_tests_log.tests_log_path(target, ticket, scope_key), target)
+            tests_link = runtime.rel_path(
+                _tests_log.tests_log_path(target, ticket, scope_key), target
+            )
             evidence_links.setdefault("tests_log", tests_link)
         except Exception:
             pass
@@ -413,7 +443,9 @@ def main(argv: list[str] | None = None) -> int:
             tests_failed = True
     if tests_entry and not tests_evidence:
         if tests_entry_status in {"skipped", "not-run", "skip"}:
-            skip_reason_code = str(tests_entry.get("reason_code") or "").strip().lower() or "tests_skipped"
+            skip_reason_code = (
+                str(tests_entry.get("reason_code") or "").strip().lower() or "tests_skipped"
+            )
             skip_reason = str(tests_entry.get("reason") or "").strip()
             if not skip_reason:
                 details = tests_entry.get("details")
@@ -589,11 +621,17 @@ def main(argv: list[str] | None = None) -> int:
     output_dir = target / "reports" / "loops" / ticket / scope_key
     output_dir.mkdir(parents=True, exist_ok=True)
     result_path = output_dir / f"stage.{stage}.result.json"
-    result_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    result_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
 
     rel_path = runtime.rel_path(result_path, target)
     if args.format:
-        output = json.dumps(payload, ensure_ascii=False, indent=2) if args.format == "json" else "\n".join(dump_yaml(payload))
+        output = (
+            json.dumps(payload, ensure_ascii=False, indent=2)
+            if args.format == "json"
+            else "\n".join(dump_yaml(payload))
+        )
         print(output)
         print(f"[stage-result] saved {rel_path}", file=sys.stderr)
         return 0

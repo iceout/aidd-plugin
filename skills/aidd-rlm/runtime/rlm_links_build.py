@@ -159,7 +159,9 @@ def _filter_type_refs(
         if include_prefixes:
             if not any(lowered.startswith(prefix.lower()) for prefix in include_prefixes):
                 continue
-        if exclude_prefixes and any(lowered.startswith(prefix.lower()) for prefix in exclude_prefixes):
+        if exclude_prefixes and any(
+            lowered.startswith(prefix.lower()) for prefix in exclude_prefixes
+        ):
             continue
         filtered.append(symbol)
     return filtered
@@ -203,15 +205,25 @@ def _apply_worklist_scope(
     ignore_dirs: set[str],
 ) -> tuple[list[str], list[str], dict[str, object]]:
     scope_paths = _normalize_prefixes(scope.get("paths") or [])
-    scope_keywords = [str(item).strip() for item in scope.get("keywords") or [] if str(item).strip()]
+    scope_keywords = [
+        str(item).strip() for item in scope.get("keywords") or [] if str(item).strip()
+    ]
     if not scope_paths and not scope_keywords:
-        return target_files, keyword_hits, {
-            "target_files_scope": "targets",
-            "target_files_scope_total": len(target_files),
-        }
+        return (
+            target_files,
+            keyword_hits,
+            {
+                "target_files_scope": "targets",
+                "target_files_scope_total": len(target_files),
+            },
+        )
 
-    filtered_targets = _filter_paths_by_prefix(target_files, scope_paths) if scope_paths else list(target_files)
-    filtered_keyword_hits = _filter_paths_by_prefix(keyword_hits, scope_paths) if scope_paths else list(keyword_hits)
+    filtered_targets = (
+        _filter_paths_by_prefix(target_files, scope_paths) if scope_paths else list(target_files)
+    )
+    filtered_keyword_hits = (
+        _filter_paths_by_prefix(keyword_hits, scope_paths) if scope_paths else list(keyword_hits)
+    )
 
     scope_stats: dict[str, object] = {
         "target_files_scope": "worklist",
@@ -494,11 +506,15 @@ def _build_links(
         except OSError:
             continue
         missing = set(str(item).strip() for item in node.get("missing_tokens") or [])
-        raw_key_calls = [str(item).strip() for item in node.get("key_calls") or [] if str(item).strip()]
+        raw_key_calls = [
+            str(item).strip() for item in node.get("key_calls") or [] if str(item).strip()
+        ]
         raw_public_symbols = [
             str(item).strip() for item in node.get("public_symbols") or [] if str(item).strip()
         ]
-        raw_type_refs = [str(item).strip() for item in node.get("type_refs") or [] if str(item).strip()]
+        raw_type_refs = [
+            str(item).strip() for item in node.get("type_refs") or [] if str(item).strip()
+        ]
         raw_type_refs = _filter_type_refs(
             raw_type_refs,
             include_prefixes=type_refs_include_prefixes,
@@ -546,7 +562,9 @@ def _build_links(
                 _add_symbol(item, "type_refs")
         elif type_refs_mode == "additive" and raw_type_refs:
             if type_refs_priority == "prefer" and fallback_symbols:
-                symbols = [sym for sym in symbols if symbol_sources.get(sym) != "fallback_public_symbols"]
+                symbols = [
+                    sym for sym in symbols if symbol_sources.get(sym) != "fallback_public_symbols"
+                ]
                 symbol_sources = {
                     sym: source
                     for sym, source in symbol_sources.items()
@@ -562,20 +580,16 @@ def _build_links(
         if max_symbols_per_file:
             if len(symbols_to_scan) > max_symbols_per_file:
                 stats["symbols_truncated"] += len(symbols_to_scan) - max_symbols_per_file
-                symbols_to_scan = symbols_to_scan[: max_symbols_per_file]
+                symbols_to_scan = symbols_to_scan[:max_symbols_per_file]
 
         fallback_symbols_used = [
-            sym
-            for sym in symbols_to_scan
-            if symbol_sources.get(sym) == "fallback_public_symbols"
+            sym for sym in symbols_to_scan if symbol_sources.get(sym) == "fallback_public_symbols"
         ]
         if fallback_symbols_used:
             stats["fallback_nodes"] += 1
             stats["fallback_symbols"] += len(fallback_symbols_used)
 
-        type_refs_used = [
-            sym for sym in symbols_to_scan if symbol_sources.get(sym) == "type_refs"
-        ]
+        type_refs_used = [sym for sym in symbols_to_scan if symbol_sources.get(sym) == "type_refs"]
         stats["type_refs_used"] += len(type_refs_used)
         for sym in symbols_to_scan:
             source = symbol_sources.get(sym)
@@ -601,7 +615,7 @@ def _build_links(
             if max_definition_hits_per_symbol:
                 if len(candidates) > max_definition_hits_per_symbol:
                     stats["candidate_truncated"] += len(candidates) - max_definition_hits_per_symbol
-                    candidates = candidates[: max_definition_hits_per_symbol]
+                    candidates = candidates[:max_definition_hits_per_symbol]
             for target_node in candidates:
                 dst_file_id = str(target_node.get("file_id") or target_node.get("id") or "").strip()
                 dst_path = str(target_node.get("path") or "").strip()
@@ -759,7 +773,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     targets_payload = _load_targets(targets_path)
     target_files = [str(item) for item in targets_payload.get("files") or [] if str(item).strip()]
-    keyword_hits = [str(item) for item in targets_payload.get("keyword_hits") or [] if str(item).strip()]
+    keyword_hits = [
+        str(item) for item in targets_payload.get("keyword_hits") or [] if str(item).strip()
+    ]
     paths_base = targets_payload.get("paths_base")
     base_root = base_root_for_label(project_root, paths_base)
 
@@ -774,7 +790,9 @@ def main(argv: list[str] | None = None) -> int:
     rg_verify_mode = str(settings.get("link_rg_verify") or "auto").strip().lower()
     if rg_verify_mode not in {"auto", "never"}:
         rg_verify_mode = "auto"
-    type_refs_include_prefixes = _normalize_symbol_prefixes(settings.get("type_refs_include_prefixes"))
+    type_refs_include_prefixes = _normalize_symbol_prefixes(
+        settings.get("type_refs_include_prefixes")
+    )
     raw_excludes = settings.get("type_refs_exclude_prefixes")
     type_refs_exclude_prefixes = (
         _normalize_symbol_prefixes(raw_excludes)
@@ -813,7 +831,12 @@ def main(argv: list[str] | None = None) -> int:
             "target_files_scope": "targets",
             "target_files_scope_total": len(target_files),
         }
-    if target_files and link_target_threshold and len(target_files) >= link_target_threshold and keyword_hits:
+    if (
+        target_files
+        and link_target_threshold
+        and len(target_files) >= link_target_threshold
+        and keyword_hits
+    ):
         target_files = keyword_hits
         target_files_source = "keyword_hits"
     if target_files and max_files and len(target_files) > max_files and keyword_hits:
@@ -842,6 +865,7 @@ def main(argv: list[str] | None = None) -> int:
         if node.get("node_kind") == "file"
     }
     symbol_index = _build_symbol_index(nodes)
+
     def _resolve(raw_path: str) -> Path:
         return resolve_source_path(
             Path(raw_path),
@@ -891,7 +915,9 @@ def main(argv: list[str] | None = None) -> int:
         "schema": "aidd.rlm_links_stats.v1",
         "schema_version": "v1",
         "ticket": ticket,
-        "generated_at": dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "generated_at": dt.datetime.now(dt.UTC)
+        .isoformat(timespec="seconds")
+        .replace("+00:00", "Z"),
         "links_total": len(links),
         "links_truncated": truncated,
         "target_files_source": target_files_source,

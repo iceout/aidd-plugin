@@ -73,7 +73,6 @@ REVIEW_HEADER = "## PRD Review"
 DIALOG_HEADER = "## Dialog analyst"
 
 
-
 def feature_label(ticket: str, slug_hint: str | None = None) -> str:
     ticket_value = ticket.strip()
     hint = (slug_hint or "").strip()
@@ -207,7 +206,9 @@ def _inflate_columnar(section: object) -> list[dict]:
     for row in rows:
         if not isinstance(row, list):
             continue
-        inflated.append({str(col): row[idx] if idx < len(row) else None for idx, col in enumerate(cols)})
+        inflated.append(
+            {str(col): row[idx] if idx < len(row) else None for idx, col in enumerate(cols)}
+        )
     return inflated
 
 
@@ -221,17 +222,11 @@ def format_message(
     label = feature_label(ticket, slug_hint)
     human_status = (status or "PENDING").upper()
     if kind == "missing_section":
-        return (
-            f"BLOCK: missing section '## PRD Review' in aidd/docs/prd/{ticket}.prd.md -> run /feature-dev-aidd:review-spec {label} after review-plan"
-        )
+        return f"BLOCK: missing section '## PRD Review' in aidd/docs/prd/{ticket}.prd.md -> run /feature-dev-aidd:review-spec {label} after review-plan"
     if kind == "missing_prd":
-        return (
-            f"BLOCK: PRD is missing or incomplete -> open docs/prd/{ticket}.prd.md, complete the dialog, and finish /feature-dev-aidd:review-spec {label or ticket}."
-        )
+        return f"BLOCK: PRD is missing or incomplete -> open docs/prd/{ticket}.prd.md, complete the dialog, and finish /feature-dev-aidd:review-spec {label or ticket}."
     if kind == "blocking_status":
-        return (
-            f"BLOCK: PRD Review is marked '{human_status}' -> resolve blockers and update status via /feature-dev-aidd:review-spec {label or ticket}"
-        )
+        return f"BLOCK: PRD Review is marked '{human_status}' -> resolve blockers and update status via /feature-dev-aidd:review-spec {label or ticket}"
     if kind == "status_mismatch":
         report_label = (report_status or "PENDING").upper()
         return (
@@ -241,21 +236,15 @@ def format_message(
     if kind == "not_approved":
         return f"BLOCK: PRD Review is not READY (Status: {human_status}) -> run /feature-dev-aidd:review-spec {label or ticket}"
     if kind == "open_actions":
-        return (
-            f"BLOCK: PRD Review still has open action items -> move them to docs/tasklist/{ticket}.md and track completion."
-        )
+        return f"BLOCK: PRD Review still has open action items -> move them to docs/tasklist/{ticket}.md and track completion."
     if kind == "missing_report":
         return f"BLOCK: missing PRD Review report (aidd/reports/prd/{ticket}.json) -> rerun /feature-dev-aidd:review-spec {label or ticket}"
     if kind == "report_corrupted":
         return f"BLOCK: PRD Review report is corrupted -> regenerate via /feature-dev-aidd:review-spec {label or ticket}"
     if kind == "blocking_finding":
-        return (
-            f"BLOCK: PRD Review report contains critical findings -> address them and update report for {label or ticket}."
-        )
+        return f"BLOCK: PRD Review report contains critical findings -> address them and update report for {label or ticket}."
     if kind == "draft_dialog":
-        return (
-            f"BLOCK: PRD status is draft -> complete section '{DIALOG_HEADER}', set Status: READY, then run /feature-dev-aidd:review-spec {label or ticket}."
-        )
+        return f"BLOCK: PRD status is draft -> complete section '{DIALOG_HEADER}', set Status: READY, then run /feature-dev-aidd:review-spec {label or ticket}."
     return f"BLOCK: PRD Review is not ready -> run /feature-dev-aidd:review-spec {label or ticket}"
 
 
@@ -301,7 +290,9 @@ def run_gate(args: argparse.Namespace) -> int:
     if branches and not gates.matches(branches, args.branch):
         return 0
 
-    code_prefixes = tuple(_normalize_items(gate.get("code_prefixes"), suffix="/") or DEFAULT_CODE_PREFIXES)
+    code_prefixes = tuple(
+        _normalize_items(gate.get("code_prefixes"), suffix="/") or DEFAULT_CODE_PREFIXES
+    )
     code_globs = tuple(_normalize_items(gate.get("code_globs")))
     normalized = _normalize_file_path(args.file_path, root)
     target_suffix = f"docs/prd/{ticket}.prd.md"
@@ -320,8 +311,12 @@ def run_gate(args: argparse.Namespace) -> int:
 
     allow_missing = bool(gate.get("allow_missing_section", False))
     require_closed = bool(gate.get("require_action_items_closed", True))
-    approved: set[str] = {str(item).lower() for item in gate.get("approved_statuses", DEFAULT_APPROVED)}
-    blocking: set[str] = {str(item).lower() for item in gate.get("blocking_statuses", DEFAULT_BLOCKING)}
+    approved: set[str] = {
+        str(item).lower() for item in gate.get("approved_statuses", DEFAULT_APPROVED)
+    }
+    blocking: set[str] = {
+        str(item).lower() for item in gate.get("blocking_statuses", DEFAULT_BLOCKING)
+    }
 
     content = prd_path.read_text(encoding="utf-8")
     dialog_status = extract_dialog_status(content)
@@ -352,7 +347,9 @@ def run_gate(args: argparse.Namespace) -> int:
 
     allow_missing_report = bool(gate.get("allow_missing_report", False))
     report_template = gate.get("report_path") or "aidd/reports/prd/{ticket}.json"
-    resolved_report = report_template.replace("{ticket}", ticket).replace("{slug}", slug_hint or ticket)
+    resolved_report = report_template.replace("{ticket}", ticket).replace(
+        "{slug}", slug_hint or ticket
+    )
     report_path = _resolve_report_path(root, resolved_report)
 
     report_data = None
@@ -384,9 +381,12 @@ def run_gate(args: argparse.Namespace) -> int:
 
     if report_data is not None:
         raw_findings = report_data.get("findings") or []
-        findings = _inflate_columnar(raw_findings) if isinstance(raw_findings, dict) else raw_findings
+        findings = (
+            _inflate_columnar(raw_findings) if isinstance(raw_findings, dict) else raw_findings
+        )
         blocking_severities: set[str] = {
-            str(item).lower() for item in gate.get("blocking_severities", DEFAULT_BLOCKING_SEVERITIES)
+            str(item).lower()
+            for item in gate.get("blocking_severities", DEFAULT_BLOCKING_SEVERITIES)
         }
         if blocking_severities:
             for finding in findings:

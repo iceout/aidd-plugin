@@ -30,14 +30,14 @@ def dump_yaml(data: object, indent: int = 0) -> list[str]:
     prefix = " " * indent
     if isinstance(data, dict):
         for key, value in data.items():
-            if isinstance(value, (dict, list)):
+            if isinstance(value, dict | list):
                 lines.append(f"{prefix}{key}:")
                 lines.extend(dump_yaml(value, indent + 2))
             else:
                 lines.append(f"{prefix}{key}: {json.dumps(value)}")
     elif isinstance(data, list):
         for item in data:
-            if isinstance(item, (dict, list)):
+            if isinstance(item, dict | list):
                 lines.append(f"{prefix}-")
                 lines.extend(dump_yaml(item, indent + 2))
             else:

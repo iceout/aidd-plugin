@@ -268,7 +268,9 @@ def _load_review_pack_meta(pack_path: Path, ticket: str) -> ReviewPackMeta | Non
         return None
     verdict = (front.get("verdict") or "").strip().upper()
     work_item_key = (front.get("work_item_key") or "").strip()
-    scope_key = (front.get("scope_key") or "").strip() or runtime.resolve_scope_key(work_item_key, ticket)
+    scope_key = (front.get("scope_key") or "").strip() or runtime.resolve_scope_key(
+        work_item_key, ticket
+    )
     handoff_ids = parse_review_pack_handoff_ids(lines)
     return ReviewPackMeta(verdict, work_item_key, scope_key, handoff_ids, schema)
 
@@ -475,7 +477,11 @@ def build_excerpt(block: list[str], max_lines: int = 30) -> tuple[str, ...]:
                     lines.append(line)
                 continue
 
-        if lower.startswith("- expected paths") or lower.startswith("- size budget") or lower.startswith("- tests"):
+        if (
+            lower.startswith("- expected paths")
+            or lower.startswith("- size budget")
+            or lower.startswith("- tests")
+        ):
             lines.append(line)
             capture_block = True
             capture_indent = len(raw) - len(raw.lstrip(" "))
@@ -621,7 +627,9 @@ def is_open_item(item: WorkItem) -> bool:
     return item.state != "done"
 
 
-def select_first_matching(refs: Iterable[WorkItemRef], items: Iterable[WorkItem]) -> WorkItem | None:
+def select_first_matching(
+    refs: Iterable[WorkItemRef], items: Iterable[WorkItem]
+) -> WorkItem | None:
     for ref in refs:
         candidate = find_work_item(items, ref.scope_key)
         if candidate:
@@ -653,7 +661,9 @@ def is_review_handoff_id(value: str) -> bool:
     return raw.startswith("review:") or raw.startswith("reviewer:")
 
 
-def select_first_open_handoff(handoff_ids: Iterable[str], handoffs: Iterable[WorkItem]) -> WorkItem | None:
+def select_first_open_handoff(
+    handoff_ids: Iterable[str], handoffs: Iterable[WorkItem]
+) -> WorkItem | None:
     for item_id in handoff_ids:
         for candidate_id in normalize_review_handoff_id(item_id):
             ref = WorkItemRef("id", candidate_id)
@@ -745,7 +755,9 @@ def build_pack(
     lines.append(f"- goal: {work_item.goal}")
     lines.append("")
     lines.append("## Read order")
-    lines.append("- Prefer excerpt; read full tasklist/PRD/Plan/Research/Spec only if excerpt misses Goal/DoD/Boundaries/Expected paths/Size budget/Tests/Acceptance or REVISE needs context.")
+    lines.append(
+        "- Prefer excerpt; read full tasklist/PRD/Plan/Research/Spec only if excerpt misses Goal/DoD/Boundaries/Expected paths/Size budget/Tests/Acceptance or REVISE needs context."
+    )
     lines.append("- Large logs/diffs: keep only links to reports")
     lines.append("")
     lines.append("## Boundaries")
@@ -803,7 +815,9 @@ def write_pack_for_item(
         reason_code = "no_boundaries_defined_warn"
     if work_item.expected_paths:
         missing_expected = [
-            path for path in work_item.expected_paths if path and path not in boundaries["allowed_paths"]
+            path
+            for path in work_item.expected_paths
+            if path and path not in boundaries["allowed_paths"]
         ]
         if missing_expected:
             boundaries["allowed_paths"].extend(missing_expected)
@@ -843,7 +857,9 @@ def write_pack_for_item(
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate loop pack for a single work item.")
-    parser.add_argument("--ticket", help="Ticket identifier to use (defaults to docs/.active.json).")
+    parser.add_argument(
+        "--ticket", help="Ticket identifier to use (defaults to docs/.active.json)."
+    )
     parser.add_argument("--slug-hint", help="Optional slug hint override.")
     parser.add_argument(
         "--stage",
@@ -874,7 +890,9 @@ def main(argv: list[str] | None = None) -> int:
     context = runtime.resolve_feature_context(target, ticket=args.ticket, slug_hint=args.slug_hint)
     ticket = (context.resolved_ticket or "").strip()
     if not ticket:
-        raise ValueError("feature ticket is required; pass --ticket or set docs/.active.json via /feature-dev-aidd:idea-new.")
+        raise ValueError(
+            "feature ticket is required; pass --ticket or set docs/.active.json via /feature-dev-aidd:idea-new."
+        )
 
     tasklist_path = target / "docs" / "tasklist" / f"{ticket}.md"
     if not tasklist_path.exists():
@@ -896,8 +914,12 @@ def main(argv: list[str] | None = None) -> int:
         if args.stage == "implement"
         else ReviewPackMeta("", "", "", tuple())
     )
-    open_handoffs = [item for item in handoffs if is_open_item(item) and is_review_handoff_id(item.item_id)]
-    revise_mode = args.stage == "implement" and review_meta.verdict == "REVISE" and not args.pick_next
+    open_handoffs = [
+        item for item in handoffs if is_open_item(item) and is_review_handoff_id(item.item_id)
+    ]
+    revise_mode = (
+        args.stage == "implement" and review_meta.verdict == "REVISE" and not args.pick_next
+    )
 
     if args.stage == "review" and not args.work_item:
         if active_ticket and active_ticket != ticket:
@@ -911,7 +933,11 @@ def main(argv: list[str] | None = None) -> int:
                     "stage": args.stage,
                     "reason": reason,
                 }
-                output = json.dumps(payload, ensure_ascii=False, indent=2) if args.format == "json" else "\n".join(dump_yaml(payload))
+                output = (
+                    json.dumps(payload, ensure_ascii=False, indent=2)
+                    if args.format == "json"
+                    else "\n".join(dump_yaml(payload))
+                )
                 print(output)
             else:
                 print(message)
@@ -927,13 +953,21 @@ def main(argv: list[str] | None = None) -> int:
                     "stage": args.stage,
                     "reason": reason,
                 }
-                output = json.dumps(payload, ensure_ascii=False, indent=2) if args.format == "json" else "\n".join(dump_yaml(payload))
+                output = (
+                    json.dumps(payload, ensure_ascii=False, indent=2)
+                    if args.format == "json"
+                    else "\n".join(dump_yaml(payload))
+                )
                 print(output)
             else:
                 print(message)
             return 2
 
-    if args.stage == "implement" and review_meta.schema == "aidd.review_pack.v1" and review_pack_v2_required(target):
+    if (
+        args.stage == "implement"
+        and review_meta.schema == "aidd.review_pack.v1"
+        and review_pack_v2_required(target)
+    ):
         message = "BLOCKED: review pack v2 required"
         reason = "review_pack_v2_required"
         if args.format:
@@ -944,7 +978,11 @@ def main(argv: list[str] | None = None) -> int:
                 "stage": args.stage,
                 "reason": reason,
             }
-            output = json.dumps(payload, ensure_ascii=False, indent=2) if args.format == "json" else "\n".join(dump_yaml(payload))
+            output = (
+                json.dumps(payload, ensure_ascii=False, indent=2)
+                if args.format == "json"
+                else "\n".join(dump_yaml(payload))
+            )
             print(output)
         else:
             print(message)
@@ -980,7 +1018,11 @@ def main(argv: list[str] | None = None) -> int:
                             "stage": args.stage,
                             "reason": reason,
                         }
-                        output = json.dumps(payload, ensure_ascii=False, indent=2) if args.format == "json" else "\n".join(dump_yaml(payload))
+                        output = (
+                            json.dumps(payload, ensure_ascii=False, indent=2)
+                            if args.format == "json"
+                            else "\n".join(dump_yaml(payload))
+                        )
                         print(output)
                     else:
                         print(message)
@@ -996,7 +1038,11 @@ def main(argv: list[str] | None = None) -> int:
                             "stage": args.stage,
                             "reason": reason,
                         }
-                        output = json.dumps(payload, ensure_ascii=False, indent=2) if args.format == "json" else "\n".join(dump_yaml(payload))
+                        output = (
+                            json.dumps(payload, ensure_ascii=False, indent=2)
+                            if args.format == "json"
+                            else "\n".join(dump_yaml(payload))
+                        )
                         print(output)
                     else:
                         print(message)
@@ -1012,7 +1058,11 @@ def main(argv: list[str] | None = None) -> int:
                         "stage": args.stage,
                         "reason": reason,
                     }
-                    output = json.dumps(payload, ensure_ascii=False, indent=2) if args.format == "json" else "\n".join(dump_yaml(payload))
+                    output = (
+                        json.dumps(payload, ensure_ascii=False, indent=2)
+                        if args.format == "json"
+                        else "\n".join(dump_yaml(payload))
+                    )
                     print(output)
                 else:
                     print(message)
@@ -1027,8 +1077,15 @@ def main(argv: list[str] | None = None) -> int:
                 selected_item = select_first_open_handoff(review_meta.handoff_ids, handoffs)
                 if selected_item:
                     selection_reason = "review-handoff"
-            if not selected_item and active_ticket == ticket and active_work_item and not args.pick_next:
-                selected_item = find_work_item(all_items, runtime.sanitize_scope_key(active_work_item))
+            if (
+                not selected_item
+                and active_ticket == ticket
+                and active_work_item
+                and not args.pick_next
+            ):
+                selected_item = find_work_item(
+                    all_items, runtime.sanitize_scope_key(active_work_item)
+                )
                 if selected_item:
                     if is_open_item(selected_item):
                         selection_reason = "active"
@@ -1052,7 +1109,9 @@ def main(argv: list[str] | None = None) -> int:
                     selection_reason = "next3"
         if not selected_item:
             if active_ticket == ticket and active_work_item:
-                selected_item = find_work_item(all_items, runtime.sanitize_scope_key(active_work_item))
+                selected_item = find_work_item(
+                    all_items, runtime.sanitize_scope_key(active_work_item)
+                )
                 if selected_item:
                     selection_reason = "active"
         if not selected_item:
@@ -1076,7 +1135,11 @@ def main(argv: list[str] | None = None) -> int:
                 "stage": args.stage,
                 "reason": reason,
             }
-            output = json.dumps(payload, ensure_ascii=False, indent=2) if args.format == "json" else "\n".join(dump_yaml(payload))
+            output = (
+                json.dumps(payload, ensure_ascii=False, indent=2)
+                if args.format == "json"
+                else "\n".join(dump_yaml(payload))
+            )
             print(output)
         else:
             print(message)
@@ -1095,7 +1158,11 @@ def main(argv: list[str] | None = None) -> int:
                     "stage": args.stage,
                     "reason": reason,
                 }
-                output = json.dumps(payload, ensure_ascii=False, indent=2) if args.format == "json" else "\n".join(dump_yaml(payload))
+                output = (
+                    json.dumps(payload, ensure_ascii=False, indent=2)
+                    if args.format == "json"
+                    else "\n".join(dump_yaml(payload))
+                )
                 print(output)
             else:
                 print(message)
@@ -1125,12 +1192,14 @@ def main(argv: list[str] | None = None) -> int:
 
     selected_reason_code = ""
     for item in prewarm_map.values():
-        pack_path, item_boundaries, item_commands, item_tests, item_updated_at, item_reason_code = write_pack_for_item(
-            root=target,
-            output_dir=output_dir,
-            ticket=ticket,
-            work_item=item,
-            context_allowed_paths=context_allowed_paths,
+        pack_path, item_boundaries, item_commands, item_tests, item_updated_at, item_reason_code = (
+            write_pack_for_item(
+                root=target,
+                output_dir=output_dir,
+                ticket=ticket,
+                work_item=item,
+                context_allowed_paths=context_allowed_paths,
+            )
         )
         if item.scope_key == selected_item.scope_key:
             selected_pack_path = pack_path
@@ -1164,7 +1233,11 @@ def main(argv: list[str] | None = None) -> int:
         payload["reason_code"] = selected_reason_code
 
     if args.format:
-        output = json.dumps(payload, ensure_ascii=False, indent=2) if args.format == "json" else "\n".join(dump_yaml(payload))
+        output = (
+            json.dumps(payload, ensure_ascii=False, indent=2)
+            if args.format == "json"
+            else "\n".join(dump_yaml(payload))
+        )
         print(output)
         print(f"[loop-pack] saved {rel_path} ({selected_item.work_item_key})", file=sys.stderr)
         return 0

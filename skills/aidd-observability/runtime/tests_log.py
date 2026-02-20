@@ -144,7 +144,11 @@ def main(argv: list[str] | None = None) -> int:
         slug_hint=getattr(args, "slug_hint", None),
     )
     ticket_guess = ""
-    if not getattr(args, "ticket", None) and not runtime.read_active_ticket(target) and context.slug_hint:
+    if (
+        not getattr(args, "ticket", None)
+        and not runtime.read_active_ticket(target)
+        and context.slug_hint
+    ):
         ticket_guess = context.slug_hint
     details: dict = {}
     if args.summary:

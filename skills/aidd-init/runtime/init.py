@@ -51,7 +51,10 @@ SKILL_TEMPLATE_SEEDS: tuple[tuple[str, str], ...] = (
     ("templates/aidd/docs/spec/template.spec.yaml", "docs/spec/template.spec.yaml"),
     ("templates/aidd/docs/tasklist/template.md", "docs/tasklist/template.md"),
     ("templates/aidd/docs/loops/template.loop-pack.md", "docs/loops/template.loop-pack.md"),
-    ("templates/aidd/reports/context/template.context-pack.md", "reports/context/template.context-pack.md"),
+    (
+        "templates/aidd/reports/context/template.context-pack.md",
+        "reports/context/template.context-pack.md",
+    ),
 )
 _SEED_TARGETS = {target for _, target in SKILL_TEMPLATE_SEEDS}
 _SEED_DIRECTORIES = {str(Path(target).parent.as_posix()) for target in _SEED_TARGETS}
@@ -135,7 +138,9 @@ def _write_test_settings(workspace_root: Path, *, force: bool) -> None:
     if updated:
         tools_label = ", ".join(sorted(detected)) or "default"
         settings_path.parent.mkdir(parents=True, exist_ok=True)
-        settings_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        settings_path.write_text(
+            json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
         print(f"[aidd:init] updated .aidd/settings.json (build tools: {tools_label})")
     else:
         print("[aidd:init] .aidd/settings.json already contains automation.tests defaults")

@@ -45,7 +45,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Summarize stage result status for a ticket.")
     parser.add_argument("--ticket", help="Ticket identifier (defaults to docs/.active.json).")
     parser.add_argument("--slug-hint", help="Optional slug hint override.")
-    parser.add_argument("--stage", choices=("implement", "review", "qa"), help="Stage name to summarize.")
+    parser.add_argument(
+        "--stage", choices=("implement", "review", "qa"), help="Stage name to summarize."
+    )
     parser.add_argument("--scope-key", help="Optional scope key override.")
     parser.add_argument("--work-item-key", help="Optional work item key override.")
     parser.add_argument("--format", choices=("json",), help="Emit structured output to stdout.")

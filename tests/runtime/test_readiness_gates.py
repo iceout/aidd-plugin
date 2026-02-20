@@ -9,7 +9,6 @@ import pytest
 
 from aidd_runtime import readiness_gates, stage_dispatch
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 INIT_SCRIPT = PROJECT_ROOT / "skills" / "aidd-init" / "runtime" / "init.py"
 
@@ -32,7 +31,9 @@ def workflow_workspace(tmp_path: Path) -> Path:
     return workspace
 
 
-def test_run_stage_preflight_stops_on_first_failure(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_run_stage_preflight_stops_on_first_failure(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     calls: list[str] = []
 
     def _ok(name: str):

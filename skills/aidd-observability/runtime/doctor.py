@@ -117,7 +117,6 @@ def main(argv: list[str] | None = None) -> int:
             if not ok:
                 errors.append(f"Missing critical artifact: {target}")
 
-
     print("AIDD Doctor")
     for name, ok, detail in rows:
         print(f"- {name}: {_format_status(ok)} ({detail})")

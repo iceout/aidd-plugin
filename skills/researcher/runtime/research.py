@@ -309,7 +309,9 @@ def run(args: argparse.Namespace) -> int:
 
     targets_path = target / "reports" / "research" / f"{ticket}-rlm-targets.json"
     targets_path.parent.mkdir(parents=True, exist_ok=True)
-    targets_path.write_text(json.dumps(targets_payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    targets_path.write_text(
+        json.dumps(targets_payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     print(f"[aidd] rlm targets saved to {runtime.rel_path(targets_path, target)}.")
 
     manifest_payload = rlm_manifest.build_manifest(
@@ -319,7 +321,9 @@ def run(args: argparse.Namespace) -> int:
         targets_path=targets_path,
     )
     manifest_path = target / "reports" / "research" / f"{ticket}-rlm-manifest.json"
-    manifest_path.write_text(json.dumps(manifest_payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(manifest_payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     print(f"[aidd] rlm manifest saved to {runtime.rel_path(manifest_path, target)}.")
 
     nodes_path = target / "reports" / "research" / f"{ticket}-rlm.nodes.jsonl"
@@ -339,7 +343,12 @@ def run(args: argparse.Namespace) -> int:
     links_path = target / "reports" / "research" / f"{ticket}-rlm.links.jsonl"
     rlm_pack_rel = f"reports/research/{ticket}-rlm{_pack_extension()}"
     rlm_pack_path = target / rlm_pack_rel
-    if nodes_path.exists() and links_path.exists() and nodes_path.stat().st_size > 0 and links_path.stat().st_size > 0:
+    if (
+        nodes_path.exists()
+        and links_path.exists()
+        and nodes_path.stat().st_size > 0
+        and links_path.stat().st_size > 0
+    ):
         try:
             from aidd_runtime import reports_pack as _reports_pack
 
@@ -386,7 +395,9 @@ def run(args: argparse.Namespace) -> int:
             rlm_status = "ready"
 
     if args.targets_only:
-        runtime.maybe_sync_index(target, ticket, feature_context.slug_hint, reason="research-targets")
+        runtime.maybe_sync_index(
+            target, ticket, feature_context.slug_hint, reason="research-targets"
+        )
         return 0
 
     if not args.no_template:
@@ -394,10 +405,13 @@ def run(args: argparse.Namespace) -> int:
             "{{prd_overrides}}": overrides_block,
             "{{paths}}": ",".join(targets_payload.get("paths") or []) or "TBD",
             "{{keywords}}": ",".join(targets_payload.get("keywords") or []) or "TBD",
-            "{{paths_discovered}}": ", ".join(targets_payload.get("paths_discovered") or []) or "none",
+            "{{paths_discovered}}": ", ".join(targets_payload.get("paths_discovered") or [])
+            or "none",
             "{{invalid_paths}}": "none",
             "{{rlm_status}}": rlm_status,
-            "{{rlm_pack_path}}": runtime.rel_path(rlm_pack_path, target) if pack_exists else rlm_pack_rel,
+            "{{rlm_pack_path}}": (
+                runtime.rel_path(rlm_pack_path, target) if pack_exists else rlm_pack_rel
+            ),
             "{{rlm_pack_status}}": "found" if pack_exists else "missing",
             "{{rlm_pack_bytes}}": str(rlm_pack_path.stat().st_size) if pack_exists else "0",
             "{{rlm_pack_updated_at}}": (
@@ -448,7 +462,9 @@ def run(args: argparse.Namespace) -> int:
                 "rlm_status": rlm_status,
                 "worklist_entries": len(worklist_pack.get("entries") or []),
             },
-            report_path=Path(runtime.rel_path(rlm_pack_path if pack_exists else worklist_path, target)),
+            report_path=Path(
+                runtime.rel_path(rlm_pack_path if pack_exists else worklist_path, target)
+            ),
             source="aidd research",
         )
     except Exception:

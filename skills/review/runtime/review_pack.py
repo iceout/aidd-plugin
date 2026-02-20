@@ -144,7 +144,9 @@ def dedupe_findings(findings: list[dict[str, object]]) -> list[dict[str, object]
         signature = entry_id or normalize_text(
             "|".join(
                 [
-                    normalize_text(entry.get("title") or entry.get("summary") or entry.get("message") or ""),
+                    normalize_text(
+                        entry.get("title") or entry.get("summary") or entry.get("message") or ""
+                    ),
                     normalize_text(entry.get("scope") or ""),
                     normalize_text(entry.get("details") or entry.get("recommendation") or ""),
                 ]
@@ -196,10 +198,7 @@ def _reviewer_requirements(
         reviewer_cfg = {}
     if reviewer_cfg.get("enabled") is False:
         return False, False
-    marker_template = str(
-        reviewer_cfg.get("tests_marker")
-        or DEFAULT_REVIEWER_MARKER
-    )
+    marker_template = str(reviewer_cfg.get("tests_marker") or DEFAULT_REVIEWER_MARKER)
     marker_path = runtime.reviewer_marker_path(
         target,
         marker_template,
@@ -213,15 +212,14 @@ def _reviewer_requirements(
         payload = json.loads(marker_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return False, False
-    field_name = str(
-        reviewer_cfg.get("tests_field")
-        or "tests"
-    )
+    field_name = str(reviewer_cfg.get("tests_field") or "tests")
     marker_value = str(payload.get(field_name) or "").strip().lower()
     required_values = reviewer_cfg.get("required_values") or ["required"]
     if not isinstance(required_values, list):
         required_values = [required_values]
-    required_values = [str(value).strip().lower() for value in required_values if str(value).strip()]
+    required_values = [
+        str(value).strip().lower() for value in required_values if str(value).strip()
+    ]
     if marker_value and marker_value in required_values:
         return True, True
     return False, False
@@ -235,7 +233,11 @@ def _tests_policy(
     scope_key: str,
 ) -> tuple[bool, bool]:
     config = runtime.load_gates_config(target)
-    mode = str(config.get("tests_required", "disabled") if isinstance(config, dict) else "disabled").strip().lower()
+    mode = (
+        str(config.get("tests_required", "disabled") if isinstance(config, dict) else "disabled")
+        .strip()
+        .lower()
+    )
     require = mode in {"soft", "hard"}
     block = mode == "hard"
     reviewer_required, reviewer_block = _reviewer_requirements(
@@ -320,13 +322,19 @@ def normalize_fix_plan(
     commands = _normalize_list(plan.get("commands"))
     tests = _normalize_list(plan.get("tests"))
     expected_paths = _normalize_list(plan.get("expected_paths") or plan.get("expectedPaths"))
-    acceptance_check = str(plan.get("acceptance_check") or plan.get("acceptanceCheck") or "").strip()
+    acceptance_check = str(
+        plan.get("acceptance_check") or plan.get("acceptanceCheck") or ""
+    ).strip()
     links = _normalize_list(plan.get("links"))
     fixes = _normalize_list(plan.get("fixes"))
 
-    blocking_ids = [str(entry.get("id") or "").strip() for entry in findings if entry.get("blocking")]
+    blocking_ids = [
+        str(entry.get("id") or "").strip() for entry in findings if entry.get("blocking")
+    ]
     blocking_ids = [item for item in blocking_ids if item]
-    priority_ids = blocking_ids or [str(entry.get("id") or "").strip() for entry in findings if entry.get("id")]
+    priority_ids = blocking_ids or [
+        str(entry.get("id") or "").strip() for entry in findings if entry.get("id")
+    ]
     priority_ids = [item for item in priority_ids if item]
     for finding_id in blocking_ids:
         if finding_id not in fixes:
@@ -532,9 +540,13 @@ def render_pack(
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate review pack from reviewer report.")
-    parser.add_argument("--ticket", help="Ticket identifier to use (defaults to docs/.active.json).")
+    parser.add_argument(
+        "--ticket", help="Ticket identifier to use (defaults to docs/.active.json)."
+    )
     parser.add_argument("--slug-hint", help="Optional slug hint override.")
-    parser.add_argument("--format", choices=("json", "yaml"), help="Emit structured output to stdout.")
+    parser.add_argument(
+        "--format", choices=("json", "yaml"), help="Emit structured output to stdout."
+    )
     return parser.parse_args(argv)
 
 
@@ -544,11 +556,15 @@ def main(argv: list[str] | None = None) -> int:
     context = runtime.resolve_feature_context(target, ticket=args.ticket, slug_hint=args.slug_hint)
     ticket = (context.resolved_ticket or "").strip()
     if not ticket:
-        raise ValueError("feature ticket is required; pass --ticket or set docs/.active.json via /feature-dev-aidd:idea-new.")
+        raise ValueError(
+            "feature ticket is required; pass --ticket or set docs/.active.json via /feature-dev-aidd:idea-new."
+        )
 
     work_item_id, work_item_key, scope_key = load_loop_pack_meta(target, ticket)
     if not work_item_id or not work_item_key:
-        raise FileNotFoundError("loop pack metadata not found (run loop-pack and ensure active work_item is set)")
+        raise FileNotFoundError(
+            "loop pack metadata not found (run loop-pack and ensure active work_item is set)"
+        )
     if not scope_key:
         scope_key = runtime.resolve_scope_key(work_item_key, ticket)
 
@@ -562,7 +578,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     report_path = runtime.resolve_path_for_target(Path(report_text), target)
     if not report_path.exists():
-        raise FileNotFoundError(f"review report not found at {runtime.rel_path(report_path, target)}")
+        raise FileNotFoundError(
+            f"review report not found at {runtime.rel_path(report_path, target)}"
+        )
 
     payload = json.loads(report_path.read_text(encoding="utf-8"))
     report_updated_at = str(payload.get("updated_at") or payload.get("generated_at") or "")
@@ -610,7 +628,13 @@ def main(argv: list[str] | None = None) -> int:
 
     next_actions: list[str] = []
     for entry in findings_raw:
-        action = entry.get("recommendation") or entry.get("title") or entry.get("summary") or entry.get("message") or entry.get("details")
+        action = (
+            entry.get("recommendation")
+            or entry.get("title")
+            or entry.get("summary")
+            or entry.get("message")
+            or entry.get("details")
+        )
         if action:
             next_actions.append(" ".join(str(action).split()))
     next_actions = list(dict.fromkeys(next_actions))[:5]
@@ -709,7 +733,9 @@ def main(argv: list[str] | None = None) -> int:
             "scope_key": scope_key,
             "fix_plan": fix_plan,
         }
-        fix_plan_path.write_text(json.dumps(fix_plan_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        fix_plan_path.write_text(
+            json.dumps(fix_plan_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
 
     structured = {
         "schema": "aidd.review_pack.v2",
@@ -737,7 +763,11 @@ def main(argv: list[str] | None = None) -> int:
     }
 
     if args.format:
-        output = json.dumps(structured, ensure_ascii=False, indent=2) if args.format == "json" else "\n".join(dump_yaml(structured))
+        output = (
+            json.dumps(structured, ensure_ascii=False, indent=2)
+            if args.format == "json"
+            else "\n".join(dump_yaml(structured))
+        )
         print(output)
         print(f"[review-pack] saved {rel_path} (verdict={verdict})", file=sys.stderr)
         return 0

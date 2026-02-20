@@ -101,7 +101,9 @@ def _parse_ref(ref: str) -> tuple[str, str]:
     return raw, ""
 
 
-def _contract_entries(items: Any, context: dict[str, str], *, required: bool) -> list[dict[str, Any]]:
+def _contract_entries(
+    items: Any, context: dict[str, str], *, required: bool
+) -> list[dict[str, Any]]:
     entries: list[dict[str, Any]] = []
     if not isinstance(items, list):
         return entries
@@ -238,7 +240,9 @@ def _render_writemap_md(writemap: dict[str, Any]) -> str:
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
 
 def _write_text(path: Path, text: str) -> None:
@@ -279,11 +283,15 @@ def _run_loop_pack(target: Path, *, ticket: str, stage: str, work_item_key: str)
 
     if proc.returncode != 0:
         reason_code = str(payload.get("reason") or "loop_pack_failed").strip() or "loop_pack_failed"
-        reason = str(payload.get("message") or payload.get("reason") or proc.stderr or proc.stdout).strip()
+        reason = str(
+            payload.get("message") or payload.get("reason") or proc.stderr or proc.stdout
+        ).strip()
         raise PreflightBlocked(reason_code, reason or "loop-pack failed")
 
     if payload.get("status") == "blocked":
-        reason_code = str(payload.get("reason") or "loop_pack_blocked").strip() or "loop_pack_blocked"
+        reason_code = (
+            str(payload.get("reason") or "loop_pack_blocked").strip() or "loop_pack_blocked"
+        )
         reason = str(payload.get("message") or reason_code).strip()
         raise PreflightBlocked(reason_code, reason)
 
@@ -307,7 +315,9 @@ def _build_readmap(
     required_entries = _contract_entries((reads or {}).get("required"), context, required=True)
     optional_entries = _contract_entries((reads or {}).get("optional"), context, required=False)
 
-    if loop_pack_rel and loop_pack_rel not in [entry["path"] for entry in required_entries + optional_entries]:
+    if loop_pack_rel and loop_pack_rel not in [
+        entry["path"] for entry in required_entries + optional_entries
+    ]:
         required_entries.insert(
             0,
             {
@@ -319,7 +329,9 @@ def _build_readmap(
             },
         )
 
-    if review_pack_rel and review_pack_rel not in [entry["path"] for entry in required_entries + optional_entries]:
+    if review_pack_rel and review_pack_rel not in [
+        entry["path"] for entry in required_entries + optional_entries
+    ]:
         optional_entries.append(
             {
                 "ref": review_pack_rel,
@@ -367,7 +379,9 @@ def _build_writemap(
 
     write_blocks = _render_items((writes or {}).get("blocks") or [], context)
 
-    allowed_paths = _dedupe_str(files + patterns + rendered_outputs + list(loop_allowed_paths) + ALWAYS_ALLOW_REPORTS)
+    allowed_paths = _dedupe_str(
+        files + patterns + rendered_outputs + list(loop_allowed_paths) + ALWAYS_ALLOW_REPORTS
+    )
     writemap = {
         "schema": "aidd.writemap.v1",
         "ticket": context["ticket"],
@@ -486,16 +500,22 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         if not context["work_item_key"]:
-            raise PreflightBlocked("work_item_key_missing", "work_item_key is required for loop-stage preflight")
+            raise PreflightBlocked(
+                "work_item_key_missing", "work_item_key is required for loop-stage preflight"
+            )
 
         if not contract_path.exists():
-            raise PreflightBlocked("contract_missing", f"contract not found: {context['contract_rel']}")
+            raise PreflightBlocked(
+                "contract_missing", f"contract not found: {context['contract_rel']}"
+            )
 
         try:
             contract = skill_contract_validate.load_contract(contract_path)
         except Exception as exc:
             raise PreflightBlocked("contract_invalid", str(exc))
-        contract_errors = skill_contract_validate.validate_contract_data(contract, contract_path=contract_path)
+        contract_errors = skill_contract_validate.validate_contract_data(
+            contract, contract_path=contract_path
+        )
         if contract_errors:
             raise PreflightBlocked("contract_invalid", "; ".join(contract_errors))
 
@@ -518,8 +538,17 @@ def main(argv: list[str] | None = None) -> int:
         artifacts["loop_pack"] = loop_pack_rel
         loop_pack_path = runtime.resolve_path_for_target(Path(loop_pack_rel), target)
 
-        review_pack_path = target / "reports" / "loops" / context["ticket"] / context["scope_key"] / "review.latest.pack.md"
-        review_pack_rel = runtime.rel_path(review_pack_path, target) if review_pack_path.exists() else ""
+        review_pack_path = (
+            target
+            / "reports"
+            / "loops"
+            / context["ticket"]
+            / context["scope_key"]
+            / "review.latest.pack.md"
+        )
+        review_pack_rel = (
+            runtime.rel_path(review_pack_path, target) if review_pack_path.exists() else ""
+        )
         if review_pack_rel:
             artifacts["review_pack"] = review_pack_rel
 

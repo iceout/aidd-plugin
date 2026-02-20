@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
-from typing import Type
+from types import TracebackType
 
 _DEBUG_FLAGS = {"1", "true", "yes", "on", "debug"}
 
@@ -41,7 +41,11 @@ def _format_exception_message(exc: BaseException) -> str:
     return " ".join(chunk.strip() for chunk in text.splitlines() if chunk.strip())
 
 
-def _aidd_excepthook(exc_type: type[BaseException], exc: BaseException, tb) -> None:
+def _aidd_excepthook(
+    exc_type: type[BaseException],
+    exc: BaseException,
+    tb: TracebackType | None,
+) -> None:
     if _debug_enabled():
         sys.__excepthook__(exc_type, exc, tb)
         return

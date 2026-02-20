@@ -101,9 +101,7 @@ def main(argv: list[str] | None = None) -> int:
 
     reviewer_cfg = runtime.reviewer_gate_config(target)
     marker_template = str(
-        reviewer_cfg.get("marker")
-        or reviewer_cfg.get("tests_marker")
-        or DEFAULT_REVIEWER_MARKER
+        reviewer_cfg.get("marker") or reviewer_cfg.get("tests_marker") or DEFAULT_REVIEWER_MARKER
     )
     work_item_key = (args.work_item_key or runtime.read_active_work_item(target)).strip()
     scope_key = (args.scope_key or runtime.resolve_scope_key(work_item_key, ticket)).strip()
@@ -115,9 +113,13 @@ def main(argv: list[str] | None = None) -> int:
         scope_key=scope_key,
     )
     rel_marker = marker_path.relative_to(target).as_posix()
-    fallback_markers: list[Path] = [runtime.resolve_path_for_target(Path(f"aidd/reports/reviewer/{ticket}.json"), target)]
+    fallback_markers: list[Path] = [
+        runtime.resolve_path_for_target(Path(f"aidd/reports/reviewer/{ticket}.json"), target)
+    ]
     if marker_path.name.endswith(".tests.json"):
-        fallback_markers.append(marker_path.with_name(marker_path.name.replace(".tests.json", ".json")))
+        fallback_markers.append(
+            marker_path.with_name(marker_path.name.replace(".tests.json", ".json"))
+        )
     deduped_fallback = [item for item in dict.fromkeys(fallback_markers) if item != marker_path]
 
     if args.clear:
@@ -158,9 +160,7 @@ def main(argv: list[str] | None = None) -> int:
         raise ValueError(f"status must be one of: {choices}")
 
     field_name = str(
-        reviewer_cfg.get("tests_field")
-        or reviewer_cfg.get("field")
-        or DEFAULT_REVIEWER_FIELD
+        reviewer_cfg.get("tests_field") or reviewer_cfg.get("field") or DEFAULT_REVIEWER_FIELD
     )
 
     requested_by = args.requested_by or os.getenv("GIT_AUTHOR_NAME") or os.getenv("USER") or ""

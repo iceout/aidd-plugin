@@ -46,11 +46,13 @@ def _compact_nodes(nodes: list[dict[str, object]]) -> list[dict[str, object]]:
         if not node_id:
             continue
         dedup[node_id] = node
+
     def sort_key(item: dict[str, object]) -> tuple:
         node_kind = str(item.get("node_kind") or "")
         path = str(item.get("path") or "")
         node_id = str(item.get("id") or item.get("file_id") or item.get("dir_id") or "")
         return (node_kind, path, node_id)
+
     return sorted(dedup.values(), key=sort_key)
 
 
@@ -61,6 +63,7 @@ def _compact_links(links: list[dict[str, object]]) -> list[dict[str, object]]:
         if not link_id:
             continue
         dedup[link_id] = link
+
     def sort_key(item: dict[str, object]) -> tuple:
         evidence = item.get("evidence_ref") or {}
         match_hash = evidence.get("match_hash") or ""
@@ -70,6 +73,7 @@ def _compact_links(links: list[dict[str, object]]) -> list[dict[str, object]]:
             str(item.get("dst_file_id") or ""),
             str(match_hash),
         )
+
     return sorted(dedup.values(), key=sort_key)
 
 

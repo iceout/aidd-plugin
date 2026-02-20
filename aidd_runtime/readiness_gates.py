@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import io
+from collections.abc import Callable, Sequence
 from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
 
 from aidd_runtime import command_runner, runtime
 
@@ -27,7 +27,11 @@ def run_analyst_gate(
     ticket: str,
     branch: str | None = None,
 ) -> GateResult:
-    from aidd_runtime.analyst_guard import AnalystValidationError, load_settings, validate_prd
+    from aidd_runtime.analyst_guard import (  # type: ignore[import-not-found]
+        AnalystValidationError,
+        load_settings,
+        validate_prd,
+    )
 
     settings = load_settings(root)
     try:
@@ -54,7 +58,11 @@ def run_research_gate(
     ticket: str,
     branch: str | None = None,
 ) -> GateResult:
-    from aidd_runtime.research_guard import ResearchValidationError, load_settings, validate_research
+    from aidd_runtime.research_guard import (  # type: ignore[import-not-found]
+        ResearchValidationError,
+        load_settings,
+        validate_research,
+    )
 
     settings = load_settings(root)
     try:
@@ -95,14 +103,16 @@ def run_tasklist_check(
     slug_hint: str = "",
     branch: str | None = None,
 ) -> GateResult:
-    from aidd_runtime import tasklist_check
+    from aidd_runtime import tasklist_check  # type: ignore[attr-defined]
 
     args = ["--ticket", ticket, "--quiet-ok"]
     if slug_hint:
         args.extend(["--slug-hint", slug_hint])
     if branch:
         args.extend(["--branch", branch])
-    status, output = _run_with_capture(lambda: tasklist_check.run_check(tasklist_check.parse_args(args)))
+    status, output = _run_with_capture(
+        lambda: tasklist_check.run_check(tasklist_check.parse_args(args))
+    )
     return GateResult(name="tasklist_check", returncode=status, output=output)
 
 
@@ -113,14 +123,16 @@ def run_plan_review_gate(
     file_path: str = "",
     branch: str | None = None,
 ) -> GateResult:
-    from aidd_runtime import plan_review_gate
+    from aidd_runtime import plan_review_gate  # type: ignore[attr-defined]
 
     args = ["--ticket", ticket, "--skip-on-plan-edit"]
     if file_path:
         args.extend(["--file-path", file_path])
     if branch:
         args.extend(["--branch", branch])
-    status, output = _run_with_capture(lambda: plan_review_gate.run_gate(plan_review_gate.parse_args(args)))
+    status, output = _run_with_capture(
+        lambda: plan_review_gate.run_gate(plan_review_gate.parse_args(args))
+    )
     return GateResult(name="plan_review_gate", returncode=status, output=output)
 
 
@@ -132,7 +144,7 @@ def run_prd_review_gate(
     file_path: str = "",
     branch: str | None = None,
 ) -> GateResult:
-    from aidd_runtime import prd_review_gate
+    from aidd_runtime import prd_review_gate  # type: ignore[attr-defined]
 
     args = ["--ticket", ticket, "--skip-on-prd-edit"]
     if slug_hint:
@@ -141,7 +153,9 @@ def run_prd_review_gate(
         args.extend(["--file-path", file_path])
     if branch:
         args.extend(["--branch", branch])
-    status, output = _run_with_capture(lambda: prd_review_gate.run_gate(prd_review_gate.parse_args(args)))
+    status, output = _run_with_capture(
+        lambda: prd_review_gate.run_gate(prd_review_gate.parse_args(args))
+    )
     return GateResult(name="prd_review_gate", returncode=status, output=output)
 
 
@@ -151,7 +165,7 @@ def run_diff_boundary_check(
     ticket: str,
     allowed: str | None = None,
 ) -> GateResult:
-    from aidd_runtime import diff_boundary_check
+    from aidd_runtime import diff_boundary_check  # type: ignore[attr-defined]
 
     work_item_key = runtime.read_active_work_item(root)
     if not work_item_key:
@@ -255,7 +269,7 @@ def run_stage_preflight(
     return GateResult(name="preflight", returncode=0, output="preflight gates passed.")
 
 
-def _run_with_capture(invoke) -> tuple[int, str]:
+def _run_with_capture(invoke: Callable[[], int]) -> tuple[int, str]:
     stdout_buf = io.StringIO()
     stderr_buf = io.StringIO()
     try:

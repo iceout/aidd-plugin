@@ -103,7 +103,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     match = STATUS_RE.search(text)
     if not match:
-        raise SystemExit("BLOCK: PRD does not contain `Status:` -> set Status: READY before plan-new.")
+        raise SystemExit(
+            "BLOCK: PRD does not contain `Status:` -> set Status: READY before plan-new."
+        )
 
     status = match.group(1).strip().upper()
     if status != "READY":

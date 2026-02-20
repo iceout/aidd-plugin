@@ -10,7 +10,6 @@ import pytest
 
 from aidd_runtime import stage_dispatch
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 INIT_SCRIPT = PROJECT_ROOT / "skills" / "aidd-init" / "runtime" / "init.py"
 
@@ -54,7 +53,9 @@ def _configure_relaxed_gates(workspace: Path) -> None:
         "require_links": False,
         "required_for_langs": [],
     }
-    gates_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    gates_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
 
 
 def _write_prd_with_research_hints(workspace: Path, ticket: str) -> None:

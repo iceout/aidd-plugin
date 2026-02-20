@@ -20,7 +20,8 @@ def resolve_project_root(target: Path, subdir: str = DEFAULT_PROJECT_SUBDIR) -> 
 
     - If ``target`` is inside an existing ``<subdir>`` directory, use that as workflow root.
     - If ``target`` is the workflow root itself, workspace is its parent.
-    - Otherwise treat ``target`` as the workspace root and place workflow under ``<workspace>/<subdir>``.
+    - Otherwise treat ``target`` as the workspace root and place workflow under
+      ``<workspace>/<subdir>``.
     """
     target = target.resolve()
     boundary = _find_workspace_boundary(target)

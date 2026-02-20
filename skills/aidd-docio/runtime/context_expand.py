@@ -80,7 +80,9 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
 
 def _render_readmap_md(readmap: dict[str, Any]) -> str:
@@ -195,7 +197,9 @@ def _append_read_entry(readmap: dict[str, Any], *, ref: str, reason_code: str, r
     allowed = readmap.get("allowed_paths")
     if not isinstance(allowed, list):
         allowed = []
-    readmap["allowed_paths"] = _dedupe_str([str(item) for item in allowed] + [path] + ALWAYS_ALLOW_REPORTS)
+    readmap["allowed_paths"] = _dedupe_str(
+        [str(item) for item in allowed] + [path] + ALWAYS_ALLOW_REPORTS
+    )
     loop_allowed = readmap.get("loop_allowed_paths")
     if not isinstance(loop_allowed, list):
         readmap["loop_allowed_paths"] = []
@@ -203,14 +207,18 @@ def _append_read_entry(readmap: dict[str, Any], *, ref: str, reason_code: str, r
     readmap["generated_at"] = utc_timestamp()
 
 
-def _append_write_entry(writemap: dict[str, Any], *, ref: str, reason_code: str, reason: str) -> None:
+def _append_write_entry(
+    writemap: dict[str, Any], *, ref: str, reason_code: str, reason: str
+) -> None:
     path, _selector = _parse_ref(ref)
     if not path:
         return
     allowed = writemap.get("allowed_paths")
     if not isinstance(allowed, list):
         allowed = []
-    writemap["allowed_paths"] = _dedupe_str([str(item) for item in allowed] + [path] + ALWAYS_ALLOW_REPORTS)
+    writemap["allowed_paths"] = _dedupe_str(
+        [str(item) for item in allowed] + [path] + ALWAYS_ALLOW_REPORTS
+    )
     loop_allowed = writemap.get("loop_allowed_paths")
     if not isinstance(loop_allowed, list):
         writemap["loop_allowed_paths"] = []
@@ -229,7 +237,9 @@ def _append_write_entry(writemap: dict[str, Any], *, ref: str, reason_code: str,
     writemap["generated_at"] = utc_timestamp()
 
 
-def _regenerate_loop_pack(target: Path, *, ticket: str, stage: str, work_item_key: str) -> tuple[bool, str]:
+def _regenerate_loop_pack(
+    target: Path, *, ticket: str, stage: str, work_item_key: str
+) -> tuple[bool, str]:
     if stage == "review":
         loop_stage = "review"
     else:
@@ -254,15 +264,23 @@ def _regenerate_loop_pack(target: Path, *, ticket: str, stage: str, work_item_ke
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Expand readmap/writemap with audit trail.")
-    parser.add_argument("--path", required=True, help="Path or block ref to add (path[#AIDD:..]|path@handoff:..)")
+    parser.add_argument(
+        "--path", required=True, help="Path or block ref to add (path[#AIDD:..]|path@handoff:..)"
+    )
     parser.add_argument("--reason-code", required=True)
     parser.add_argument("--reason", required=True)
     parser.add_argument("--ticket", help="Ticket override")
     parser.add_argument("--scope-key", help="Scope key override")
     parser.add_argument("--work-item-key", help="Work item key override")
     parser.add_argument("--stage", help="Stage override")
-    parser.add_argument("--expand-write", action="store_true", help="Also expand writemap (explicit boundary expansion).")
-    parser.add_argument("--no-regenerate-pack", action="store_true", help="Skip loop-pack regeneration.")
+    parser.add_argument(
+        "--expand-write",
+        action="store_true",
+        help="Also expand writemap (explicit boundary expansion).",
+    )
+    parser.add_argument(
+        "--no-regenerate-pack", action="store_true", help="Skip loop-pack regeneration."
+    )
     parser.add_argument("--format", choices=("text", "json"), default="text")
     return parser.parse_args(argv)
 
@@ -273,7 +291,10 @@ def main(argv: list[str] | None = None) -> int:
 
     ticket = (args.ticket or runtime.read_active_ticket(target) or "").strip()
     if not ticket:
-        print("[context-expand] ERROR: ticket is required (set docs/.active.json or pass --ticket)", file=sys.stderr)
+        print(
+            "[context-expand] ERROR: ticket is required (set docs/.active.json or pass --ticket)",
+            file=sys.stderr,
+        )
         return 2
 
     work_item_key = (args.work_item_key or runtime.read_active_work_item(target) or "").strip()
@@ -287,18 +308,27 @@ def main(argv: list[str] | None = None) -> int:
     writemap_md = map_paths["writemap_md"]
 
     if not readmap_json.exists():
-        print(f"[context-expand] ERROR: missing readmap: {runtime.rel_path(readmap_json, target)}", file=sys.stderr)
+        print(
+            f"[context-expand] ERROR: missing readmap: {runtime.rel_path(readmap_json, target)}",
+            file=sys.stderr,
+        )
         return 2
 
     readmap = _load_json(readmap_json)
     if not isinstance(readmap, dict):
-        print(f"[context-expand] ERROR: invalid readmap payload: {runtime.rel_path(readmap_json, target)}", file=sys.stderr)
+        print(
+            f"[context-expand] ERROR: invalid readmap payload: {runtime.rel_path(readmap_json, target)}",
+            file=sys.stderr,
+        )
         return 2
 
     _append_read_entry(readmap, ref=args.path, reason_code=args.reason_code, reason=args.reason)
     readmap_errors = context_map_validate.validate_context_map_data(readmap)
     if readmap_errors:
-        print(f"[context-expand] ERROR: invalid readmap after update: {'; '.join(readmap_errors)}", file=sys.stderr)
+        print(
+            f"[context-expand] ERROR: invalid readmap after update: {'; '.join(readmap_errors)}",
+            file=sys.stderr,
+        )
         return 2
     _write_json(readmap_json, readmap)
     readmap_md.parent.mkdir(parents=True, exist_ok=True)
@@ -307,16 +337,27 @@ def main(argv: list[str] | None = None) -> int:
     writemap_updated = False
     if args.expand_write:
         if not writemap_json.exists():
-            print(f"[context-expand] ERROR: missing writemap: {runtime.rel_path(writemap_json, target)}", file=sys.stderr)
+            print(
+                f"[context-expand] ERROR: missing writemap: {runtime.rel_path(writemap_json, target)}",
+                file=sys.stderr,
+            )
             return 2
         writemap = _load_json(writemap_json)
         if not isinstance(writemap, dict):
-            print(f"[context-expand] ERROR: invalid writemap payload: {runtime.rel_path(writemap_json, target)}", file=sys.stderr)
+            print(
+                f"[context-expand] ERROR: invalid writemap payload: {runtime.rel_path(writemap_json, target)}",
+                file=sys.stderr,
+            )
             return 2
-        _append_write_entry(writemap, ref=args.path, reason_code=args.reason_code, reason=args.reason)
+        _append_write_entry(
+            writemap, ref=args.path, reason_code=args.reason_code, reason=args.reason
+        )
         writemap_errors = context_map_validate.validate_context_map_data(writemap)
         if writemap_errors:
-            print(f"[context-expand] ERROR: invalid writemap after update: {'; '.join(writemap_errors)}", file=sys.stderr)
+            print(
+                f"[context-expand] ERROR: invalid writemap after update: {'; '.join(writemap_errors)}",
+                file=sys.stderr,
+            )
             return 2
         _write_json(writemap_json, writemap)
         writemap_md.parent.mkdir(parents=True, exist_ok=True)

@@ -19,12 +19,16 @@ def deps_satisfied(
         if not dep_id:
             continue
         if dep_id in iteration_map:
-            open_state, _ = core.pick_open_state(iteration_map[dep_id].checkbox, iteration_map[dep_id].state)
+            open_state, _ = core.pick_open_state(
+                iteration_map[dep_id].checkbox, iteration_map[dep_id].state
+            )
             if open_state is None or open_state:
                 return False
             continue
         if dep_id in handoff_map:
-            open_state, _ = core.handoff_open_state(handoff_map[dep_id].checkbox, handoff_map[dep_id].status)
+            open_state, _ = core.handoff_open_state(
+                handoff_map[dep_id].checkbox, handoff_map[dep_id].status
+            )
             if open_state is None or open_state:
                 return False
             continue
@@ -43,12 +47,16 @@ def unmet_deps(
         if not dep_id:
             continue
         if dep_id in iteration_map:
-            open_state, _ = core.pick_open_state(iteration_map[dep_id].checkbox, iteration_map[dep_id].state)
+            open_state, _ = core.pick_open_state(
+                iteration_map[dep_id].checkbox, iteration_map[dep_id].state
+            )
             if open_state is None or open_state:
                 unmet.append(dep_id)
             continue
         if dep_id in handoff_map:
-            open_state, _ = core.handoff_open_state(handoff_map[dep_id].checkbox, handoff_map[dep_id].status)
+            open_state, _ = core.handoff_open_state(
+                handoff_map[dep_id].checkbox, handoff_map[dep_id].status
+            )
             if open_state is None or open_state:
                 unmet.append(dep_id)
             continue
@@ -126,7 +134,9 @@ def build_open_items(
     return items, iteration_map, handoff_map
 
 
-def build_next3_lines(open_items: list[core.WorkItem], preamble: list[str] | None = None) -> list[str]:
+def build_next3_lines(
+    open_items: list[core.WorkItem], preamble: list[str] | None = None
+) -> list[str]:
     lines = ["## AIDD:NEXT_3"]
     if preamble:
         lines.extend(preamble)
@@ -307,7 +317,11 @@ def normalize_handoff_section(sections: list[core.Section], summary: list[str]) 
             injected.append(line)
         manual_block = injected
     else:
-        manual_block = ["<!-- handoff:manual start -->", *manual_tasks, "<!-- handoff:manual end -->"]
+        manual_block = [
+            "<!-- handoff:manual start -->",
+            *manual_tasks,
+            "<!-- handoff:manual end -->",
+        ]
 
     def clean_blocks(raw_lines: list[str], *, source: str) -> list[str]:
         task_blocks = core.split_checkbox_blocks(raw_lines)
@@ -398,7 +412,7 @@ def normalize_tasklist(
         if section.title in processed_titles:
             continue
         processed_titles.add(section.title)
-        new_lines.extend(lines[consumed:section.start])
+        new_lines.extend(lines[consumed : section.start])
         section_group = section_map.get(section.title, [section])
         replacement = section_replacement(section, section_group)
         new_lines.extend(replacement)
@@ -416,7 +430,9 @@ def normalize_tasklist(
 
     if iter_section:
         iter_items = core.parse_iteration_items(core.section_body(iter_section[0]))
-        handoff_items = core.parse_handoff_items(core.section_body(handoff_section[0]) if handoff_section else [])
+        handoff_items = core.parse_handoff_items(
+            core.section_body(handoff_section[0]) if handoff_section else []
+        )
         plan_ids = core.parse_plan_iteration_ids(root, core.resolve_plan_path(root, front, ticket))
         open_items, _, _ = build_open_items(iter_items, handoff_items, plan_ids)
         open_ref_tokens: set[str] = set()
@@ -432,7 +448,11 @@ def normalize_tasklist(
                 kind, ref_id, _ = core.extract_ref_id(block)
                 if not ref_id:
                     continue
-                token = f"(ref: iteration_id={ref_id})" if kind == "iteration" else f"(ref: id={ref_id})"
+                token = (
+                    f"(ref: iteration_id={ref_id})"
+                    if kind == "iteration"
+                    else f"(ref: id={ref_id})"
+                )
                 if token in open_ref_tokens or token in seen_archived_refs:
                     continue
                 seen_archived_refs.add(token)
@@ -453,7 +473,7 @@ def normalize_tasklist(
         consumed = 0
         inserted = False
         for section in sections:
-            new_lines.extend(lines[consumed:section.start])
+            new_lines.extend(lines[consumed : section.start])
             if section.title == "AIDD:NEXT_3":
                 new_lines.extend(next3_lines)
                 inserted = True
@@ -471,4 +491,6 @@ def normalize_tasklist(
             normalized_text += "\n"
         summary.append("rebuilt AIDD:NEXT_3")
 
-    return core.NormalizeResult(updated_text=normalized_text, summary=summary, changed=normalized_text != text)
+    return core.NormalizeResult(
+        updated_text=normalized_text, summary=summary, changed=normalized_text != text
+    )

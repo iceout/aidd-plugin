@@ -63,11 +63,11 @@ def resolve_context(
     _, root = runtime.require_workflow_root(target)
     resolved_ticket, _context = runtime.require_ticket(root, ticket=ticket)
     resolved_work_item = (work_item_key or runtime.read_active_work_item(root) or "").strip()
-    resolved_scope = (scope_key or runtime.resolve_scope_key(resolved_work_item, resolved_ticket)).strip()
+    resolved_scope = (
+        scope_key or runtime.resolve_scope_key(resolved_work_item, resolved_ticket)
+    ).strip()
     resolved_stage = (
-        (stage or "").strip()
-        or (default_stage or "").strip()
-        or runtime.read_active_stage(root)
+        (stage or "").strip() or (default_stage or "").strip() or runtime.read_active_stage(root)
     )
     return LaunchContext(
         root=root,
@@ -140,7 +140,9 @@ def run_guarded(
             result = runner()
         wrapped_exit_code = int(result or 0)
     except SystemExit as exc:
-        wrapped_exit_code = int(exc.code or 0) if isinstance(exc.code, int) else RUNTIME_FAILURE_EXIT_CODE
+        wrapped_exit_code = (
+            int(exc.code or 0) if isinstance(exc.code, int) else RUNTIME_FAILURE_EXIT_CODE
+        )
     except Exception as exc:  # pragma: no cover - defensive fallback
         wrapped_exit_code = RUNTIME_FAILURE_EXIT_CODE
         err_buf.write(f"[aidd] ERROR: {exc}\n")

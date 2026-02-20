@@ -109,11 +109,15 @@ def main(argv: list[str] | None = None) -> int:
         ref = parse_ref(args.ref)
         source_path = runtime.resolve_path_for_target(Path(ref.source), target)
         if not source_path.exists():
-            raise FileNotFoundError(f"source markdown not found: {runtime.rel_path(source_path, target)}")
+            raise FileNotFoundError(
+                f"source markdown not found: {runtime.rel_path(source_path, target)}"
+            )
 
         content_path = runtime.resolve_path_for_target(Path(args.content), target)
         if not content_path.exists():
-            raise FileNotFoundError(f"content file not found: {runtime.rel_path(content_path, target)}")
+            raise FileNotFoundError(
+                f"content file not found: {runtime.rel_path(content_path, target)}"
+            )
 
         lines = source_path.read_text(encoding="utf-8").splitlines()
         content_lines = _extract_content(content_path)

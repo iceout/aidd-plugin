@@ -118,14 +118,18 @@ def load_settings(root: Path) -> ResearchSettings:
             try:
                 settings.freshness_days = int(raw["freshness_days"])
             except (ValueError, TypeError):
-                raise ResearchValidationError("config/gates.json: researcher.freshness_days must be a number")
+                raise ResearchValidationError(
+                    "config/gates.json: researcher.freshness_days must be a number"
+                )
         if "allow_missing" in raw:
             settings.allow_missing = bool(raw["allow_missing"])
         if "minimum_paths" in raw:
             try:
                 settings.minimum_paths = max(int(raw["minimum_paths"]), 0)
             except (ValueError, TypeError):
-                raise ResearchValidationError("config/gates.json: researcher.minimum_paths must be a number")
+                raise ResearchValidationError(
+                    "config/gates.json: researcher.minimum_paths must be a number"
+                )
         if "allow_pending_baseline" in raw:
             settings.allow_pending_baseline = bool(raw["allow_pending_baseline"])
         if "baseline_phrase" in raw and isinstance(raw["baseline_phrase"], str):
@@ -207,7 +211,9 @@ def _detect_langs_from_files(files: Iterable[str], required_langs: Iterable[str]
     return found
 
 
-def _detect_langs_from_paths(root: Path, paths: Iterable[str], required_langs: Iterable[str]) -> set[str]:
+def _detect_langs_from_paths(
+    root: Path, paths: Iterable[str], required_langs: Iterable[str]
+) -> set[str]:
     exts_by_lang = {
         "kt": {".kt"},
         "kts": {".kts"},
@@ -350,7 +356,9 @@ def _validate_rlm_evidence(
     )
     rlm_nodes_path = root / "reports" / "research" / f"{ticket}-rlm.nodes.jsonl"
     rlm_links_path = root / "reports" / "research" / f"{ticket}-rlm.links.jsonl"
-    rlm_pack_path = _find_pack_variant(root, f"{ticket}-rlm") or (root / "reports" / "research" / f"{ticket}-rlm.pack.json")
+    rlm_pack_path = _find_pack_variant(root, f"{ticket}-rlm") or (
+        root / "reports" / "research" / f"{ticket}-rlm.pack.json"
+    )
     rlm_links_stats_path = root / "reports" / "research" / f"{ticket}-rlm.links.stats.json"
 
     if not rlm_targets_path.exists():
@@ -377,7 +385,9 @@ def _validate_rlm_evidence(
     except Exception:
         rlm_targets = {}
 
-    if not _should_require_rlm(root, settings=settings, rlm_targets=rlm_targets if isinstance(rlm_targets, dict) else {}):
+    if not _should_require_rlm(
+        root, settings=settings, rlm_targets=rlm_targets if isinstance(rlm_targets, dict) else {}
+    ):
         return
 
     worklist_status = None
@@ -412,11 +422,18 @@ def _validate_rlm_evidence(
 
     rlm_status = None
     if isinstance(pack_payload, dict):
-        raw_status = str(pack_payload.get("rlm_status") or pack_payload.get("status") or "").strip().lower()
+        raw_status = (
+            str(pack_payload.get("rlm_status") or pack_payload.get("status") or "").strip().lower()
+        )
         if raw_status in {"ready", "pending", "warn", "warning"}:
             rlm_status = "warn" if raw_status == "warning" else raw_status
     if worklist_status is not None:
-        if worklist_status == "ready" and (worklist_entries or 0) == 0 and nodes_total > 0 and not links_empty:
+        if (
+            worklist_status == "ready"
+            and (worklist_entries or 0) == 0
+            and nodes_total > 0
+            and not links_empty
+        ):
             rlm_status = "ready"
         elif rlm_status != "warn":
             rlm_status = "pending"
@@ -439,7 +456,9 @@ def _validate_rlm_evidence(
             )
         if links_warn:
             message = "rlm links empty (reason_code=rlm_links_empty_warn)"
-            raise ResearchValidationError(f"BLOCK: {message}. Hint: run `{_rlm_links_cmd_hint(ticket)}`.")
+            raise ResearchValidationError(
+                f"BLOCK: {message}. Hint: run `{_rlm_links_cmd_hint(ticket)}`."
+            )
         if settings.rlm_require_pack and not pack_exists:
             raise ResearchValidationError(
                 "BLOCK: current stage requires an RLM pack, but it is missing. "
@@ -512,7 +531,9 @@ def validate_research(
     required_statuses = [item for item in required_statuses if item]
     if required_statuses:
         if not status:
-            raise ResearchValidationError(f"BLOCK: docs/research/{ticket}.md has no `Status:` line or it is empty.")
+            raise ResearchValidationError(
+                f"BLOCK: docs/research/{ticket}.md has no `Status:` line or it is empty."
+            )
         if status not in required_statuses:
             if status == "pending" and settings.allow_pending_baseline:
                 baseline_phrase = settings.baseline_phrase.strip().lower()
@@ -582,7 +603,13 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Validate the Researcher report status for the active feature.",
     )
-    parser.add_argument("--ticket", "--slug", dest="ticket", required=True, help="Feature ticket to validate (alias: --slug).")
+    parser.add_argument(
+        "--ticket",
+        "--slug",
+        dest="ticket",
+        required=True,
+        help="Feature ticket to validate (alias: --slug).",
+    )
     parser.add_argument(
         "--branch",
         help="Current Git branch (used to evaluate branch/skip rules in config/gates.json).",

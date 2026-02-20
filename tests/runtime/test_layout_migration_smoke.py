@@ -1,4 +1,5 @@
 """Smoke tests for the post-migration runtime layout."""
+
 from __future__ import annotations
 
 import os
@@ -91,4 +92,3 @@ def test_hook_smoke_runs_with_new_layout(smoke_workspace: Path) -> None:
     output = f"{proc.stdout}\n{proc.stderr}"
     assert proc.returncode == 0, output
     assert "cannot import name" not in output
-

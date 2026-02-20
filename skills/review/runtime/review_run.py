@@ -70,7 +70,9 @@ def _resolve_actions_path(raw: str, root: Path) -> Path:
     return runtime.resolve_path_for_target(candidate, root)
 
 
-def _write_default_actions(path: Path, *, stage: str, ticket: str, scope_key: str, work_item_key: str) -> None:
+def _write_default_actions(
+    path: Path, *, stage: str, ticket: str, scope_key: str, work_item_key: str
+) -> None:
     payload = {
         "schema_version": "aidd.actions.v1",
         "stage": stage,
@@ -126,7 +128,9 @@ def main(argv: list[str] | None = None) -> int:
         stage=args.stage,
         default_stage=DEFAULT_STAGE,
     )
-    log_path = launcher.log_path(context.root, context.stage, context.ticket, context.scope_key, "run")
+    log_path = launcher.log_path(
+        context.root, context.stage, context.ticket, context.scope_key, "run"
+    )
     result = launcher.run_guarded(
         lambda: _run(args, context=context, log_path=log_path),
         log_path_value=log_path,

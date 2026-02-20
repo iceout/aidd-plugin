@@ -110,7 +110,8 @@ def require_ticket(
     resolved = (context.resolved_ticket or "").strip()
     if not resolved:
         raise ValueError(
-            "feature ticket is required; pass --ticket or set docs/.active.json via /feature-dev-aidd:idea-new."
+            "feature ticket is required; pass --ticket or set docs/.active.json "
+            "via /feature-dev-aidd:idea-new."
         )
     return resolved, context
 
@@ -219,7 +220,8 @@ def read_active_slug(target: Path) -> str:
 
 def load_json_file(path: Path) -> dict:
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        return payload if isinstance(payload, dict) else {}
     except json.JSONDecodeError as exc:
         raise ValueError(f"failed to parse {path}: {exc}") from exc
 
@@ -240,7 +242,8 @@ def load_settings_json(target: Path) -> dict:
     if not settings_file.exists():
         return {}
     try:
-        return json.loads(settings_file.read_text(encoding="utf-8"))
+        payload = json.loads(settings_file.read_text(encoding="utf-8"))
+        return payload if isinstance(payload, dict) else {}
     except json.JSONDecodeError as exc:
         raise RuntimeError(f"cannot parse {settings_file}: {exc}") from exc
 
@@ -255,10 +258,12 @@ def load_tests_settings(target: Path) -> dict:
 def normalize_checkpoint_triggers(value: object) -> list[str]:
     if value is None:
         return ["progress"]
-    if isinstance(value, (list, tuple)):
+    if isinstance(value, list | tuple):
         items = [str(item).strip().lower() for item in value if str(item).strip()]
     else:
-        items = [item.strip().lower() for item in str(value).replace(",", " ").split() if item.strip()]
+        items = [
+            item.strip().lower() for item in str(value).replace(",", " ").split() if item.strip()
+        ]
     return items or ["progress"]
 
 
@@ -288,7 +293,9 @@ def maybe_write_test_checkpoint(
         "source": source,
         "ts": dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
     }
-    checkpoint_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    checkpoint_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
 
 
 def maybe_sync_index(
@@ -322,7 +329,8 @@ def maybe_sync_index(
 def load_gates_config(target: Path) -> dict:
     config_path = target / "config" / "gates.json"
     try:
-        return json.loads(config_path.read_text(encoding="utf-8"))
+        payload = json.loads(config_path.read_text(encoding="utf-8"))
+        return payload if isinstance(payload, dict) else {}
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
 
@@ -339,9 +347,7 @@ def review_report_template(target: Path) -> str:
     if not isinstance(reviewer_cfg, dict):
         reviewer_cfg = {}
     template = str(
-        reviewer_cfg.get("review_report")
-        or reviewer_cfg.get("report")
-        or DEFAULT_REVIEW_REPORT
+        reviewer_cfg.get("review_report") or reviewer_cfg.get("report") or DEFAULT_REVIEW_REPORT
     )
     if "{scope_key}" not in template:
         return DEFAULT_REVIEW_REPORT
@@ -373,9 +379,7 @@ def reviewer_marker_path(
     marker_path = resolve_path_for_target(Path(rel_text), target)
     target_root = target.resolve()
     if not is_relative_to(marker_path, target_root):
-        raise ValueError(
-            f"reviewer marker path {marker_path} escapes project root {target_root}"
-        )
+        raise ValueError(f"reviewer marker path {marker_path} escapes project root {target_root}")
     ensure_reviewer_marker_migrated(marker_path)
     return marker_path
 
@@ -387,9 +391,7 @@ def _looks_like_review_report(payload: dict[str, Any]) -> bool:
     stage = str(payload.get("stage") or "").strip().lower()
     if kind == "review" or stage == "review":
         return True
-    if "findings" in payload or "blocking_findings_count" in payload:
-        return True
-    return False
+    return bool("findings" in payload or "blocking_findings_count" in payload)
 
 
 def ensure_reviewer_marker_migrated(marker_path: Path) -> bool:
@@ -407,7 +409,9 @@ def ensure_reviewer_marker_migrated(marker_path: Path) -> bool:
     if _looks_like_review_report(payload):
         return False
     marker_path.parent.mkdir(parents=True, exist_ok=True)
-    marker_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    marker_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     try:
         old_path.unlink()
     except OSError:

@@ -59,6 +59,8 @@ from aidd_runtime.feature_ids import resolve_aidd_root, resolve_identifiers
 def detect_project_root(target: Path | None = None) -> Path:
     base = target or Path.cwd()
     return resolve_aidd_root(base)
+
+
 DEFAULT_STATUS = "pending"
 APPROVED_STATUSES = {"ready"}
 BLOCKING_TOKENS = {"blocked", "reject"}
@@ -131,9 +133,7 @@ class Report:
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Perform lightweight PRD review heuristics."
-    )
+    parser = argparse.ArgumentParser(description="Perform lightweight PRD review heuristics.")
     parser.add_argument(
         "--ticket",
         help="Feature ticket to analyse (defaults to docs/.active.json).",
@@ -279,9 +279,7 @@ def analyse_prd(slug: str, prd_path: Path, *, ticket: str | None = None) -> Repo
     elif status not in APPROVED_STATUSES:
         recomputed_status = status or DEFAULT_STATUS
 
-    generated_at = (
-        dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
-    )
+    generated_at = dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
     return Report(
         ticket=ticket or slug,
@@ -309,7 +307,9 @@ def print_text_report(report: Report) -> None:
 
 def run(args: argparse.Namespace) -> int:
     root = detect_project_root()
-    ticket, slug_hint = detect_feature(root, getattr(args, "ticket", None), getattr(args, "slug_hint", None))
+    ticket, slug_hint = detect_feature(
+        root, getattr(args, "ticket", None), getattr(args, "slug_hint", None)
+    )
     if not ticket:
         print(
             "[prd-review] Cannot determine feature ticket. "
@@ -336,7 +336,9 @@ def run(args: argparse.Namespace) -> int:
     if print_text:
         print_text_report(report)
 
-    should_emit_json = (args.stdout_format in ("json", "auto") and not print_text) or args.stdout_format == "json"
+    should_emit_json = (
+        args.stdout_format in ("json", "auto") and not print_text
+    ) or args.stdout_format == "json"
     if should_emit_json:
         print(json.dumps(report.to_dict(), ensure_ascii=False, indent=2))
 
@@ -352,7 +354,9 @@ def run(args: argparse.Namespace) -> int:
         except Exception:
             previous_payload = None
 
-    output_path.write_text(json.dumps(report.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
+    output_path.write_text(
+        json.dumps(report.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     rel = _rel_path(root, output_path)
     print(f"[prd-review] report saved to {rel}", file=sys.stderr)
     try:

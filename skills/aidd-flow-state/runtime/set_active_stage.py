@@ -69,7 +69,9 @@ def main(argv: list[str] | None = None) -> int:
     write_active_state(root, stage=stage)
     print(f"active stage: {stage}")
     context = runtime.resolve_feature_context(root)
-    runtime.maybe_sync_index(root, context.resolved_ticket, context.slug_hint, reason="set-active-stage")
+    runtime.maybe_sync_index(
+        root, context.resolved_ticket, context.slug_hint, reason="set-active-stage"
+    )
     return 0
 
 

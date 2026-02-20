@@ -280,7 +280,9 @@ def _drop_field(payload: dict[str, Any], key: str) -> bool:
     return True
 
 
-def _auto_trim_research_pack(payload: dict[str, Any], max_chars: int, max_lines: int) -> tuple[str, list[str], list[str]]:
+def _auto_trim_research_pack(
+    payload: dict[str, Any], max_chars: int, max_lines: int
+) -> tuple[str, list[str], list[str]]:
     text = _serialize_pack(payload)
     errors = check_budget(text, max_chars=max_chars, max_lines=max_lines, label="research")
     if not errors:
@@ -302,7 +304,10 @@ def _auto_trim_research_pack(payload: dict[str, Any], max_chars: int, max_lines:
         ("keywords_raw", lambda: _trim_list_field(payload, "keywords_raw")),
         ("keywords", lambda: _trim_list_field(payload, "keywords")),
         ("profile.tests_evidence", lambda: _trim_profile_list(payload, "tests_evidence")),
-        ("profile.suggested_test_tasks", lambda: _trim_profile_list(payload, "suggested_test_tasks")),
+        (
+            "profile.suggested_test_tasks",
+            lambda: _trim_profile_list(payload, "suggested_test_tasks"),
+        ),
         ("profile.logging_artifacts", lambda: _trim_profile_list(payload, "logging_artifacts")),
         ("drop.matches", lambda: _drop_columnar_if_empty(payload, "matches")),
         ("drop.reuse_candidates", lambda: _drop_columnar_if_empty(payload, "reuse_candidates")),
@@ -341,7 +346,9 @@ def _auto_trim_research_pack(payload: dict[str, Any], max_chars: int, max_lines:
         errors = check_budget(text, max_chars=max_chars, max_lines=max_lines, label="research")
         if errors and "pack_trim_stats" in payload:
             payload.pop("pack_trim_stats", None)
-            trimmed_counts["drop.pack_trim_stats"] = trimmed_counts.get("drop.pack_trim_stats", 0) + 1
+            trimmed_counts["drop.pack_trim_stats"] = (
+                trimmed_counts.get("drop.pack_trim_stats", 0) + 1
+            )
             text = _serialize_pack(payload)
             errors = check_budget(text, max_chars=max_chars, max_lines=max_lines, label="research")
 
@@ -353,7 +360,9 @@ def _max_snippet_len(payload: dict[str, Any]) -> int | None:
     links = payload.get("links")
     if not isinstance(links, list) or not links:
         return None
-    lengths = [len(str(link.get("evidence_snippet") or "")) for link in links if isinstance(link, dict)]
+    lengths = [
+        len(str(link.get("evidence_snippet") or "")) for link in links if isinstance(link, dict)
+    ]
     return max(lengths, default=0)
 
 
@@ -436,7 +445,9 @@ def _auto_trim_rlm_pack(
                     trimmed_steps.append("evidence_snippet_chars")
                     progress = True
                     text = _serialize_pack(payload)
-                    errors = check_budget(text, max_chars=max_chars, max_lines=max_lines, label="rlm")
+                    errors = check_budget(
+                        text, max_chars=max_chars, max_lines=max_lines, label="rlm"
+                    )
                     continue
 
             if not progress:
@@ -468,7 +479,9 @@ def _auto_trim_rlm_pack(
         errors = check_budget(text, max_chars=max_chars, max_lines=max_lines, label="rlm")
         if errors:
             payload.pop("pack_trim_stats", None)
-            trimmed_counts["drop.pack_trim_stats"] = trimmed_counts.get("drop.pack_trim_stats", 0) + 1
+            trimmed_counts["drop.pack_trim_stats"] = (
+                trimmed_counts.get("drop.pack_trim_stats", 0) + 1
+            )
             text = _serialize_pack(payload)
             errors = check_budget(text, max_chars=max_chars, max_lines=max_lines, label="rlm")
 
@@ -600,7 +613,11 @@ def _apply_field_filters(payload: dict[str, Any]) -> dict[str, Any]:
 
     filtered = payload
     if allow_fields:
-        filtered = {key: value for key, value in payload.items() if key in allow_fields or key in _ESSENTIAL_FIELDS}
+        filtered = {
+            key: value
+            for key, value in payload.items()
+            if key in allow_fields or key in _ESSENTIAL_FIELDS
+        }
     if strip_fields:
         filtered = dict(filtered)
         for key in strip_fields:
@@ -771,8 +788,6 @@ def _load_jsonl(path: Path) -> list[dict[str, Any]]:
     return items
 
 
-
-
 def write_rlm_pack(
     nodes_path: Path,
     links_path: Path,
@@ -788,7 +803,9 @@ def write_rlm_pack(
     links = _load_jsonl(links_path)
     rlm_limits: dict[str, int] = {}
     rlm_settings = load_rlm_settings(target)
-    pack_budget_cfg = rlm_settings.get("pack_budget") if isinstance(rlm_settings.get("pack_budget"), dict) else {}
+    pack_budget_cfg = (
+        rlm_settings.get("pack_budget") if isinstance(rlm_settings.get("pack_budget"), dict) else {}
+    )
     enforce_budget = bool(pack_budget_cfg.get("enforce"))
     enforce_flag = enforce_budget or _enforce_budget()
     trim_priority = None
@@ -919,9 +936,13 @@ def write_qa_pack(
     findings = payload.get("findings") or []
     tests_executed = payload.get("tests_executed") or []
     errors: list[str] = []
-    errors.extend(_check_count_budget("qa", field="findings", actual=len(findings), limit=lim["findings"]))
     errors.extend(
-        _check_count_budget("qa", field="tests_executed", actual=len(tests_executed), limit=lim["tests_executed"])
+        _check_count_budget("qa", field="findings", actual=len(findings), limit=lim["findings"])
+    )
+    errors.extend(
+        _check_count_budget(
+            "qa", field="tests_executed", actual=len(tests_executed), limit=lim["tests_executed"]
+        )
     )
     if errors:
         for error in errors:
@@ -957,8 +978,14 @@ def write_prd_pack(
     findings = payload.get("findings") or []
     action_items = payload.get("action_items") or []
     errors: list[str] = []
-    errors.extend(_check_count_budget("prd", field="findings", actual=len(findings), limit=lim["findings"]))
-    errors.extend(_check_count_budget("prd", field="action_items", actual=len(action_items), limit=lim["action_items"]))
+    errors.extend(
+        _check_count_budget("prd", field="findings", actual=len(findings), limit=lim["findings"])
+    )
+    errors.extend(
+        _check_count_budget(
+            "prd", field="action_items", actual=len(action_items), limit=lim["action_items"]
+        )
+    )
     if errors:
         for error in errors:
             print(f"[pack-budget] {error}", file=sys.stderr)

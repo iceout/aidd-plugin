@@ -99,7 +99,9 @@ def load_settings(root: Path) -> AnalystSettings:
             try:
                 settings.min_questions = max(int(raw["min_questions"]), 0)
             except (ValueError, TypeError):
-                raise AnalystValidationError("config/gates.json: analyst.min_questions must be a number")
+                raise AnalystValidationError(
+                    "config/gates.json: analyst.min_questions must be a number"
+                )
         if "require_ready" in raw:
             settings.require_ready = bool(raw["require_ready"])
         if "allow_blocked" in raw:
@@ -185,12 +187,16 @@ def validate_prd(
     allow_blocked_override: bool | None = None,
     min_questions_override: int | None = None,
 ) -> AnalystCheckSummary:
-    if not settings.enabled or not gates.branch_enabled(branch, allow=settings.branches, skip=settings.skip_branches):
+    if not settings.enabled or not gates.branch_enabled(
+        branch, allow=settings.branches, skip=settings.skip_branches
+    ):
         return AnalystCheckSummary(status=None, question_count=0, answered_count=0)
 
     prd_path = root / "docs" / "prd" / f"{ticket}.prd.md"
     if not prd_path.exists():
-        raise AnalystValidationError(f"BLOCK: missing PRD -> run /feature-dev-aidd:idea-new {ticket}")
+        raise AnalystValidationError(
+            f"BLOCK: missing PRD -> run /feature-dev-aidd:idea-new {ticket}"
+        )
 
     text = prd_path.read_text(encoding="utf-8")
     dialog_section = _extract_section(text, DIALOG_HEADING)
@@ -312,7 +318,9 @@ def validate_prd(
                 f"BLOCK: PRD is marked Status: {status}. Resolve open questions and move the cycle to READY."
             )
         if status == "PENDING":
-            raise AnalystValidationError("BLOCK: status is PENDING. Close open questions and set Status: READY.")
+            raise AnalystValidationError(
+                "BLOCK: status is PENDING. Close open questions and set Status: READY."
+            )
 
     research_ref = RESEARCH_REF_TEMPLATE.format(ticket=ticket)
     if research_ref not in text:
@@ -320,14 +328,22 @@ def validate_prd(
             f"BLOCK: PRD must reference `{research_ref}` in section `{DIALOG_HEADING}` -> add the Researcher report link."
         )
 
-    return AnalystCheckSummary(status=status, question_count=len(set(questions)), answered_count=len(set(answers)))
+    return AnalystCheckSummary(
+        status=status, question_count=len(set(questions)), answered_count=len(set(answers))
+    )
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Validate analyst dialog state for the active feature PRD.",
     )
-    parser.add_argument("--ticket", "--slug", dest="ticket", required=True, help="Feature ticket to validate (alias: --slug).")
+    parser.add_argument(
+        "--ticket",
+        "--slug",
+        dest="ticket",
+        required=True,
+        help="Feature ticket to validate (alias: --slug).",
+    )
     parser.add_argument(
         "--branch",
         help="Current Git branch (used to evaluate branch/skip rules in config/gates.json).",
@@ -370,9 +386,7 @@ def main(argv: list[str] | None = None) -> int:
     if summary.status is None:
         print("analyst gate disabled - nothing to validate.")
     else:
-        print(
-            f"analyst dialog OK (status: {summary.status}, questions: {summary.question_count})"
-        )
+        print(f"analyst dialog OK (status: {summary.status}, questions: {summary.question_count})")
     return 0
 
 

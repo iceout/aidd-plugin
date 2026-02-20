@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Mapping, Sequence
 
 
 @dataclass(frozen=True)
@@ -81,7 +81,7 @@ def resolve_profile(profile: str | IdeProfile | None = None) -> IdeProfile:
 
 
 def profile_env_overrides(profile: IdeProfile) -> dict[str, str]:
-    return {key: value for key, value in profile.env_overrides}
+    return dict(profile.env_overrides)
 
 
 def profile_skills_dirs(profile: IdeProfile) -> tuple[Path, ...]:
@@ -168,7 +168,7 @@ def strip_host_prefix(command: str, profile: IdeProfile) -> str:
     stripped = raw
     for leader in profile.command_leaders:
         if stripped.startswith(leader):
-            stripped = stripped[len(leader):].strip()
+            stripped = stripped[len(leader) :].strip()
             break
 
     if ":" in stripped:

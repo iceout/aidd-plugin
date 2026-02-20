@@ -133,7 +133,14 @@ def _extract_tool_stop(event: Any) -> tuple[str, str, str] | None:
     event_type = str(event.get("type") or "")
     if event_type != "tool_result":
         return None
-    name = event.get("name") or event.get("tool_name") or event.get("tool") or event.get("tool_use_id") or event.get("id") or "unknown"
+    name = (
+        event.get("name")
+        or event.get("tool_name")
+        or event.get("tool")
+        or event.get("tool_use_id")
+        or event.get("id")
+        or "unknown"
+    )
     exit_code = event.get("exit_code") or event.get("code") or ""
     status = str(event.get("status") or "")
     if not status:

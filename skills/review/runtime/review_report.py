@@ -210,7 +210,9 @@ def main(argv: list[str] | None = None) -> int:
     ticket = (context.resolved_ticket or "").strip()
     slug_hint = (context.slug_hint or ticket or "").strip()
     if not ticket:
-        raise ValueError("feature ticket is required; pass --ticket or set docs/.active.json via /feature-dev-aidd:idea-new.")
+        raise ValueError(
+            "feature ticket is required; pass --ticket or set docs/.active.json via /feature-dev-aidd:idea-new."
+        )
 
     branch = args.branch or runtime.detect_branch(target)
     work_item_key = (args.work_item_key or runtime.read_active_work_item(target)).strip()
@@ -263,7 +265,10 @@ def main(argv: list[str] | None = None) -> int:
         if isinstance(raw, dict) and raw.get("cols") and raw.get("rows"):
             raw = _inflate_columnar(raw)
         if isinstance(raw, dict):
-            if any(key in raw for key in ("title", "severity", "details", "recommendation", "scope", "id")):
+            if any(
+                key in raw
+                for key in ("title", "severity", "details", "recommendation", "scope", "id")
+            ):
                 raw = [raw]
             else:
                 return []
@@ -296,7 +301,12 @@ def main(argv: list[str] | None = None) -> int:
         return " ".join(str(value or "").strip().split()).lower()
 
     def _extract_title(entry: dict, fallback: dict[str, Any] | None = None) -> str:
-        title = entry.get("title") or entry.get("summary") or entry.get("message") or entry.get("details")
+        title = (
+            entry.get("title")
+            or entry.get("summary")
+            or entry.get("message")
+            or entry.get("details")
+        )
         if not title and fallback:
             title = fallback.get("title")
         return str(title or "").strip() or "issue"
@@ -311,19 +321,21 @@ def main(argv: list[str] | None = None) -> int:
         parts = [
             _normalize_signature_text(_extract_title(entry, fallback)),
             _normalize_signature_text(_extract_scope(entry, fallback)),
-            _normalize_signature_text(entry.get("details") or entry.get("recommendation") or entry.get("message") or ""),
+            _normalize_signature_text(
+                entry.get("details") or entry.get("recommendation") or entry.get("message") or ""
+            ),
         ]
         return "|".join(parts)
 
     def _stable_id(entry: dict, fallback: dict[str, Any] | None = None) -> str:
-        return _stable_finding_id("review", _extract_title(entry, fallback), _extract_scope(entry, fallback))
+        return _stable_finding_id(
+            "review", _extract_title(entry, fallback), _extract_scope(entry, fallback)
+        )
 
     def _merge_findings(existing: list[dict], incoming: list[dict]) -> list[dict]:
         merged: list[dict] = []
         by_signature = {
-            _normalize_signature(item): item
-            for item in existing
-            if isinstance(item, dict)
+            _normalize_signature(item): item for item in existing if isinstance(item, dict)
         }
         for entry in incoming:
             if not isinstance(entry, dict):
@@ -426,7 +438,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if "findings" in record:
         record["blocking_findings_count"] = sum(
-            1 for entry in record.get("findings") or [] if isinstance(entry, dict) and entry.get("blocking")
+            1
+            for entry in record.get("findings") or []
+            if isinstance(entry, dict) and entry.get("blocking")
         )
 
     record.pop("updated_at", None)
@@ -440,7 +454,9 @@ def main(argv: list[str] | None = None) -> int:
         record["updated_at"] = now
         report_path.parent.mkdir(parents=True, exist_ok=True)
         try:
-            report_path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            report_path.write_text(
+                json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+            )
         except OSError as exc:
             raise RuntimeError("BLOCKED: review_report_write_failed") from exc
     else:
@@ -472,12 +488,12 @@ def main(argv: list[str] | None = None) -> int:
         )
         if marker_path.exists():
             return
-        field_name = str(
-            reviewer_cfg.get("tests_field")
-            or reviewer_cfg.get("field")
-            or "tests"
-        )
-        optional_values = reviewer_cfg.get("optional_values") or ["optional", "skipped", "not-required"]
+        field_name = str(reviewer_cfg.get("tests_field") or reviewer_cfg.get("field") or "tests")
+        optional_values = reviewer_cfg.get("optional_values") or [
+            "optional",
+            "skipped",
+            "not-required",
+        ]
         if not isinstance(optional_values, list):
             optional_values = [optional_values]
         status_value = str(optional_values[0]) if optional_values else "optional"
@@ -488,7 +504,9 @@ def main(argv: list[str] | None = None) -> int:
             "updated_at": now,
         }
         marker_path.parent.mkdir(parents=True, exist_ok=True)
-        marker_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        marker_path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
 
     _ensure_reviewer_marker()
 

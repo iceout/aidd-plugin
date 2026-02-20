@@ -126,8 +126,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run heuristic QA checks for the current Claude workflow project."
     )
-    parser.add_argument("--ticket", "--slug", dest="ticket", help="Active feature ticket (alias: --slug).")
-    parser.add_argument("--slug-hint", dest="slug_hint", help="Optional slug hint used for messaging.")
+    parser.add_argument(
+        "--ticket", "--slug", dest="ticket", help="Active feature ticket (alias: --slug)."
+    )
+    parser.add_argument(
+        "--slug-hint", dest="slug_hint", help="Optional slug hint used for messaging."
+    )
     parser.add_argument("--branch", help="Current branch name. Autodetected when omitted.")
     parser.add_argument(
         "--format",
@@ -183,7 +187,9 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def detect_feature(ticket_arg: str | None, slug_hint_arg: str | None) -> tuple[str | None, str | None]:
+def detect_feature(
+    ticket_arg: str | None, slug_hint_arg: str | None
+) -> tuple[str | None, str | None]:
     identifiers = resolve_identifiers(ROOT_DIR, ticket=ticket_arg, slug_hint=slug_hint_arg)
     return identifiers.resolved_ticket, identifiers.slug_hint
 
@@ -242,7 +248,21 @@ def analyse_code_tokens(files: Iterable[str]) -> list[Finding]:
         if not path.is_file():
             continue
         # Limit scanning to source files and tests.
-        if not any(part in relative for part in ("src/", "tests/", ".kt", ".java", ".py", ".js", ".ts", ".tsx", ".json", ".yaml")):
+        if not any(
+            part in relative
+            for part in (
+                "src/",
+                "tests/",
+                ".kt",
+                ".java",
+                ".py",
+                ".js",
+                ".ts",
+                ".tsx",
+                ".json",
+                ".yaml",
+            )
+        ):
             continue
         try:
             content = path.read_text(encoding="utf-8")
@@ -325,7 +345,9 @@ def analyse_tasklist(ticket: str | None, slug_hint: str | None) -> tuple[list[Fi
             if in_qa_checklist:
                 is_manual = any(marker in stripped.lower() for marker in MANUAL_MARKERS)
                 if is_manual:
-                    manual_required.append(f"{tasklist_path.relative_to(ROOT_DIR)}:{idx} → {stripped}")
+                    manual_required.append(
+                        f"{tasklist_path.relative_to(ROOT_DIR)}:{idx} → {stripped}"
+                    )
                 rel_path = tasklist_path.relative_to(ROOT_DIR)
                 checklist_id = _stable_id("qa-checklist", str(rel_path), stripped)
                 findings.append(
@@ -541,9 +563,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         warnings_set=warnings_set,
     )
     label = feature_label(ticket, slug_hint)
-    generated_at = (
-        dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
-    )
+    generated_at = dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
     payload = {
         "generated_at": generated_at,

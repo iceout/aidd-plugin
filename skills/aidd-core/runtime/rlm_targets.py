@@ -400,7 +400,9 @@ def build_targets(
         files_touched = _include_prefixes(files_touched, paths)
     if settings.get("exclude_path_prefixes"):
         paths = _filter_prefixes(paths, settings.get("exclude_path_prefixes") or [])
-        paths_discovered = _filter_prefixes(paths_discovered, settings.get("exclude_path_prefixes") or [])
+        paths_discovered = _filter_prefixes(
+            paths_discovered, settings.get("exclude_path_prefixes") or []
+        )
         files_touched = _filter_prefixes(files_touched, settings.get("exclude_path_prefixes") or [])
     roots = _resolve_roots(target, paths + paths_discovered, base_root=base_root)
     touched_roots = _resolve_roots(target, files_touched, base_root=base_root)
@@ -432,7 +434,9 @@ def build_targets(
         "ticket": ticket,
         "slug": slug_hint or ticket,
         "slug_hint": slug_hint,
-        "generated_at": dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "generated_at": dt.datetime.now(dt.UTC)
+        .isoformat(timespec="seconds")
+        .replace("+00:00", "Z"),
         "config_source": config_source,
         "targets_mode": targets_mode,
         "paths_base": base_label(target, base_root),

@@ -42,7 +42,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Ensure spec artifact exists for active ticket and sync template placeholders.",
     )
-    parser.add_argument("--ticket", dest="ticket", help="Ticket id (defaults to docs/.active.json).")
+    parser.add_argument(
+        "--ticket", dest="ticket", help="Ticket id (defaults to docs/.active.json)."
+    )
     parser.add_argument("--slug-hint", dest="slug_hint", help="Optional slug hint override.")
     parser.add_argument("--spec", dest="spec_path", help="Optional spec path override.")
     return parser.parse_args(argv)

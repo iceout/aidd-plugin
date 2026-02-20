@@ -125,7 +125,7 @@ def _extract_test_commands(text: str) -> list[str]:
             match = re.search(pattern, candidate, re.IGNORECASE)
             if not match:
                 continue
-            cmd = candidate[match.start():].strip().rstrip("`")
+            cmd = candidate[match.start() :].strip().rstrip("`")
             if cmd:
                 commands.append(cmd)
             break
@@ -158,10 +158,11 @@ def _load_tasklist_test_execution(root: Path, ticket: str) -> dict:
 def _has_tasklist_execution(data: dict) -> bool:
     if not data:
         return False
-    return any(
-        bool(str(data.get(key) or "").strip())
-        for key in ("profile", "when", "reason")
-    ) or bool(data.get("tasks")) or bool(data.get("filters"))
+    return (
+        any(bool(str(data.get(key) or "").strip()) for key in ("profile", "when", "reason"))
+        or bool(data.get("tasks"))
+        or bool(data.get("filters"))
+    )
 
 
 def _commands_from_tasks(tasks: list[str]) -> list[list[str]]:
@@ -323,7 +324,13 @@ def _command_execution_plans(
     if normalized in {"./gradlew", "gradlew"}:
         root_gradlew = workspace_root / "gradlew"
         if root_gradlew.exists():
-            return [([ "./gradlew", *command_tail], workspace_root, " ".join(["./gradlew", *command_tail]).strip())]
+            return [
+                (
+                    ["./gradlew", *command_tail],
+                    workspace_root,
+                    " ".join(["./gradlew", *command_tail]).strip(),
+                )
+            ]
         wrappers = _discover_gradle_wrappers(workspace_root)
         if wrappers:
             plans: list[tuple[list[str], Path, str]] = []
@@ -393,7 +400,9 @@ def _load_qa_tests_config(root: Path) -> tuple[list[list[str]], bool]:
                 commands.append(parts)
 
     if not commands and source in {"readme-ci", "readme", "ci"}:
-        commands = _discover_test_commands(root, max_files=max_files, max_bytes=max_bytes, allow_paths=allow_paths)
+        commands = _discover_test_commands(
+            root, max_files=max_files, max_bytes=max_bytes, allow_paths=allow_paths
+        )
         return commands, allow_skip
 
     if not commands:
@@ -450,7 +459,11 @@ def _run_qa_tests(
             status = "fail"
             exit_code: int | None = None
             output = ""
-            if plan_cmd and plan_cmd[0] in {"./gradlew", "gradlew"} and not (plan_cwd / "gradlew").exists():
+            if (
+                plan_cmd
+                and plan_cmd[0] in {"./gradlew", "gradlew"}
+                and not (plan_cwd / "gradlew").exists()
+            ):
                 status = "fail"
                 output = (
                     "command not found: ./gradlew "
@@ -598,7 +611,9 @@ def main(argv: list[str] | None = None) -> int:
     ticket = (context.resolved_ticket or "").strip()
     slug_hint = (context.slug_hint or ticket or "").strip()
     if not ticket:
-        raise ValueError("feature ticket is required; pass --ticket or set docs/.active.json via /feature-dev-aidd:idea-new.")
+        raise ValueError(
+            "feature ticket is required; pass --ticket or set docs/.active.json via /feature-dev-aidd:idea-new."
+        )
 
     branch = args.branch or runtime.detect_branch(target)
 
@@ -627,7 +642,9 @@ def main(argv: list[str] | None = None) -> int:
 
     tasklist_exec = _load_tasklist_test_execution(target, ticket)
     tasklist_exec_present = _has_tasklist_execution(tasklist_exec)
-    tasklist_profile = str(tasklist_exec.get("profile") or "").strip().lower() if tasklist_exec_present else ""
+    tasklist_profile = (
+        str(tasklist_exec.get("profile") or "").strip().lower() if tasklist_exec_present else ""
+    )
     tasklist_tasks = tasklist_exec.get("tasks") or []
     tasklist_filters = tasklist_exec.get("filters") or []
     tasklist_commands: list[list[str]] = []
@@ -791,7 +808,11 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 os.environ[key] = value
 
-    if tests_summary == "fail" or tests_summary in {"not-run", "skipped"} and not allow_no_tests_env:
+    if (
+        tests_summary == "fail"
+        or tests_summary in {"not-run", "skipped"}
+        and not allow_no_tests_env
+    ):
         exit_code = max(exit_code, 1)
 
     report_status = ""
@@ -826,9 +847,7 @@ def main(argv: list[str] | None = None) -> int:
         if tests_executed:
             log_paths = [entry.get("log") for entry in tests_executed if entry.get("log")]
             if log_paths:
-                stage_result_args.extend(
-                    ["--evidence-link", f"qa_tests_log={log_paths[-1]}"]
-                )
+                stage_result_args.extend(["--evidence-link", f"qa_tests_log={log_paths[-1]}"])
         import io
         from contextlib import redirect_stderr, redirect_stdout
 
@@ -842,6 +861,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         from aidd_runtime.reports import events as _events
+
         payload = None
         report_for_event: Path | None = None
         if report_path.exists():
@@ -851,7 +871,9 @@ def main(argv: list[str] | None = None) -> int:
             from aidd_runtime.reports.loader import load_report_for_path
 
             payload, source, report_paths = load_report_for_path(report_path, prefer_pack=True)
-            report_for_event = report_paths.pack_path if source == "pack" else report_paths.json_path
+            report_for_event = (
+                report_paths.pack_path if source == "pack" else report_paths.json_path
+            )
 
         if payload and report_for_event:
             _events.append_event(

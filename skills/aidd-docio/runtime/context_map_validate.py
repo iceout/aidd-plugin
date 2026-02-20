@@ -57,7 +57,9 @@ def _is_str(value: Any) -> bool:
     return isinstance(value, str)
 
 
-def _require_fields(obj: dict[str, Any], fields: Iterable[str], errors: list[str], *, prefix: str = "") -> None:
+def _require_fields(
+    obj: dict[str, Any], fields: Iterable[str], errors: list[str], *, prefix: str = ""
+) -> None:
     for field in fields:
         if field not in obj:
             errors.append(f"{prefix}missing field: {field}")
@@ -99,7 +101,12 @@ def _validate_readmap(payload: dict[str, Any], errors: list[str]) -> None:
             if not isinstance(entry, dict):
                 errors.append(f"{prefix} must be object")
                 continue
-            _require_fields(entry, ("ref", "path", "selector", "required", "reason"), errors, prefix=f"{prefix}.")
+            _require_fields(
+                entry,
+                ("ref", "path", "selector", "required", "reason"),
+                errors,
+                prefix=f"{prefix}.",
+            )
             for key in ("ref", "path", "selector", "reason"):
                 if key in entry and not _is_str(entry.get(key)):
                     errors.append(f"{prefix}.{key} must be string")
@@ -196,7 +203,10 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if not args.map_path:
-        print("[context-map-validate] ERROR: --map is required unless --print-supported-versions is used", file=sys.stderr)
+        print(
+            "[context-map-validate] ERROR: --map is required unless --print-supported-versions is used",
+            file=sys.stderr,
+        )
         return 2
 
     path = Path(args.map_path)

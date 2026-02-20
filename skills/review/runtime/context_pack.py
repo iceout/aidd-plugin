@@ -122,7 +122,12 @@ def _apply_template(
     lines = _replace_first_list_item(lines, "## AIDD:READ_LOG", "n/a")
 
     content = "\n".join(lines).rstrip() + "\n"
-    if "<stage-specific goal>" in content or "<arguments/note>" in content or "<" in content and ">" in content:
+    if (
+        "<stage-specific goal>" in content
+        or "<arguments/note>" in content
+        or "<" in content
+        and ">" in content
+    ):
         print(
             "[aidd] WARN: context pack template placeholders remain; fill read_next/what_to_do/artefact_links.",
             file=sys.stderr,

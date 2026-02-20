@@ -39,7 +39,9 @@ def _ensure_trailing_newline(text: str) -> str:
     return text
 
 
-def _replace_section_lines(lines: list[str], section_start: int, section_end: int, new_lines: list[str]) -> list[str]:
+def _replace_section_lines(
+    lines: list[str], section_start: int, section_end: int, new_lines: list[str]
+) -> list[str]:
     return lines[:section_start] + new_lines + lines[section_end:]
 
 
@@ -82,7 +84,9 @@ def _mark_checkbox_done(lines: list[str], item_id: str, *, kind: str) -> tuple[l
             if j != idx and CHECKBOX_RE.match(new_lines[j]):
                 break
             if re.match(r"^\s*-?\s*State\s*:\s*", new_lines[j], re.IGNORECASE):
-                new_lines[j] = re.sub(r"(^\s*-?\s*State\s*:)\s*.*$", r"\1 done", new_lines[j], flags=re.IGNORECASE)
+                new_lines[j] = re.sub(
+                    r"(^\s*-?\s*State\s*:)\s*.*$", r"\1 done", new_lines[j], flags=re.IGNORECASE
+                )
                 break
         return new_lines, "changed"
     if not found:
@@ -90,10 +94,14 @@ def _mark_checkbox_done(lines: list[str], item_id: str, *, kind: str) -> tuple[l
     return new_lines, "unchanged"
 
 
-def tasklist_set_iteration_done(root: Path, ticket: str, item_id: str, *, kind: str = "iteration") -> DocOpsResult:
+def tasklist_set_iteration_done(
+    root: Path, ticket: str, item_id: str, *, kind: str = "iteration"
+) -> DocOpsResult:
     tasklist_path = root / "docs" / "tasklist" / f"{ticket}.md"
     if not tasklist_path.exists():
-        return DocOpsResult(False, f"tasklist missing: {runtime.rel_path(tasklist_path, root)}", error=True)
+        return DocOpsResult(
+            False, f"tasklist missing: {runtime.rel_path(tasklist_path, root)}", error=True
+        )
     text = tasklist_path.read_text(encoding="utf-8")
     lines = text.splitlines()
     sections, section_map = parse_sections(lines)
@@ -118,7 +126,9 @@ def tasklist_set_iteration_done(root: Path, ticket: str, item_id: str, *, kind: 
 def tasklist_append_progress_log(root: Path, ticket: str, entry: dict) -> DocOpsResult:
     tasklist_path = root / "docs" / "tasklist" / f"{ticket}.md"
     if not tasklist_path.exists():
-        return DocOpsResult(False, f"tasklist missing: {runtime.rel_path(tasklist_path, root)}", error=True)
+        return DocOpsResult(
+            False, f"tasklist missing: {runtime.rel_path(tasklist_path, root)}", error=True
+        )
     text = tasklist_path.read_text(encoding="utf-8")
     lines = text.splitlines()
     sections, section_map = parse_sections(lines)
@@ -139,7 +149,12 @@ def tasklist_append_progress_log(root: Path, ticket: str, entry: dict) -> DocOps
         preamble.append(line)
     entries, _ = progress_entries_from_lines(content)
     for existing in entries:
-        if (existing.get("date"), existing.get("source"), existing.get("item_id"), existing.get("hash")) == entry_key:
+        if (
+            existing.get("date"),
+            existing.get("source"),
+            existing.get("item_id"),
+            existing.get("hash"),
+        ) == entry_key:
             return DocOpsResult(False, "progress entry already present")
 
     entries.append(entry)
@@ -159,7 +174,9 @@ def tasklist_append_progress_log(root: Path, ticket: str, entry: dict) -> DocOps
 def tasklist_next3_recompute(root: Path, ticket: str) -> DocOpsResult:
     tasklist_path = root / "docs" / "tasklist" / f"{ticket}.md"
     if not tasklist_path.exists():
-        return DocOpsResult(False, f"tasklist missing: {runtime.rel_path(tasklist_path, root)}", error=True)
+        return DocOpsResult(
+            False, f"tasklist missing: {runtime.rel_path(tasklist_path, root)}", error=True
+        )
     text = tasklist_path.read_text(encoding="utf-8")
     lines = text.splitlines()
     front, _ = parse_front_matter(lines)
@@ -201,7 +218,9 @@ def tasklist_next3_recompute(root: Path, ticket: str) -> DocOpsResult:
     return DocOpsResult(True, "AIDD:NEXT_3 recomputed")
 
 
-def _replace_list_section(lines: list[str], heading: str, items: list[str]) -> tuple[list[str], bool]:
+def _replace_list_section(
+    lines: list[str], heading: str, items: list[str]
+) -> tuple[list[str], bool]:
     for idx, line in enumerate(lines):
         if line.strip() != heading:
             continue
@@ -219,7 +238,9 @@ def _replace_list_section(lines: list[str], heading: str, items: list[str]) -> t
     return lines, False
 
 
-def _replace_inline_list(lines: list[str], heading: str, items: list[str]) -> tuple[list[str], bool]:
+def _replace_inline_list(
+    lines: list[str], heading: str, items: list[str]
+) -> tuple[list[str], bool]:
     for idx, line in enumerate(lines):
         if line.strip() != heading:
             continue
@@ -266,7 +287,9 @@ def _replace_first_list_item(lines: list[str], heading: str, value: str) -> tupl
 def context_pack_update(root: Path, ticket: str, payload: dict) -> DocOpsResult:
     context_path = root / "reports" / "context" / f"{ticket}.pack.md"
     if not context_path.exists():
-        return DocOpsResult(False, f"context pack missing: {runtime.rel_path(context_path, root)}", error=True)
+        return DocOpsResult(
+            False, f"context pack missing: {runtime.rel_path(context_path, root)}", error=True
+        )
     text = context_path.read_text(encoding="utf-8")
     lines = text.splitlines()
     changed = False

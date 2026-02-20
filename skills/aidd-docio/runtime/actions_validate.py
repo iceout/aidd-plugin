@@ -70,7 +70,9 @@ def _is_str(value: Any) -> bool:
     return isinstance(value, str)
 
 
-def _require_fields(obj: dict, fields: Iterable[str], errors: list[str], *, prefix: str = "") -> None:
+def _require_fields(
+    obj: dict, fields: Iterable[str], errors: list[str], *, prefix: str = ""
+) -> None:
     for field in fields:
         if field not in obj:
             errors.append(f"{prefix}missing field: {field}")
@@ -141,7 +143,9 @@ def _validate_context_pack_params(params: dict, errors: list[str], *, prefix: st
             errors.append(f"{prefix}{key} must be string")
 
 
-def _validate_action_item(action: dict, errors: list[str], *, prefix: str, allowed_types: set[str]) -> None:
+def _validate_action_item(
+    action: dict, errors: list[str], *, prefix: str, allowed_types: set[str]
+) -> None:
     action_type = action.get("type")
     if not action_type or not _is_str(action_type):
         errors.append(f"{prefix}missing or invalid type")
@@ -204,7 +208,9 @@ def _validate_v1(payload: dict, errors: list[str]) -> None:
     if allowed_action_types is None:
         errors.append("missing field: allowed_action_types")
         allowed_types: set[str] = set()
-    elif not isinstance(allowed_action_types, list) or not all(_is_str(item) for item in allowed_action_types):
+    elif not isinstance(allowed_action_types, list) or not all(
+        _is_str(item) for item in allowed_action_types
+    ):
         errors.append("allowed_action_types must be list[str]")
         allowed_types = set()
     else:
@@ -280,7 +286,10 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if not args.actions:
-        print("[actions-validate] ERROR: --actions is required unless --print-supported-versions is used", file=sys.stderr)
+        print(
+            "[actions-validate] ERROR: --actions is required unless --print-supported-versions is used",
+            file=sys.stderr,
+        )
         return 2
 
     path = Path(args.actions)

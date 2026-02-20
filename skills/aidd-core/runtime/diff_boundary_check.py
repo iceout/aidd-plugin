@@ -175,7 +175,9 @@ def _write_cache(path: Path, *, ticket: str, hash_value: str) -> None:
         return
 
 
-def _hash_inputs(diff_files: list[str], allowed_paths: list[str], forbidden_paths: list[str]) -> str:
+def _hash_inputs(
+    diff_files: list[str], allowed_paths: list[str], forbidden_paths: list[str]
+) -> str:
     payload = {
         "diff": sorted(diff_files),
         "allowed": sorted(allowed_paths),
@@ -214,14 +216,22 @@ def collect_diff_files(base: Path) -> list[str]:
     git_root = resolve_git_root(base)
     files = set(git_lines(["git", "-C", str(git_root), "diff", "--name-only"]))
     files.update(git_lines(["git", "-C", str(git_root), "diff", "--cached", "--name-only"]))
-    files.update(git_lines(["git", "-C", str(git_root), "ls-files", "--others", "--exclude-standard"]))
+    files.update(
+        git_lines(["git", "-C", str(git_root), "ls-files", "--others", "--exclude-standard"])
+    )
     return sorted(files)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Validate diff files against loop-pack boundaries.")
-    parser.add_argument("--ticket", help="Ticket identifier to use (defaults to docs/.active.json).")
-    parser.add_argument("--loop-pack", help="Path to loop pack (default: resolve via active work_item).")
+    parser = argparse.ArgumentParser(
+        description="Validate diff files against loop-pack boundaries."
+    )
+    parser.add_argument(
+        "--ticket", help="Ticket identifier to use (defaults to docs/.active.json)."
+    )
+    parser.add_argument(
+        "--loop-pack", help="Path to loop pack (default: resolve via active work_item)."
+    )
     parser.add_argument("--allowed", help="Override allowed paths (comma/space separated).")
     return parser.parse_args(argv)
 
@@ -237,7 +247,9 @@ def main(argv: list[str] | None = None) -> int:
         context = runtime.resolve_feature_context(target, ticket=args.ticket, slug_hint=None)
         ticket = (context.resolved_ticket or "").strip()
         if not ticket:
-            raise ValueError("feature ticket is required; pass --ticket or set docs/.active.json via /feature-dev-aidd:idea-new.")
+            raise ValueError(
+                "feature ticket is required; pass --ticket or set docs/.active.json via /feature-dev-aidd:idea-new."
+            )
         active_work_item = runtime.read_active_work_item(target)
         if not active_work_item:
             raise FileNotFoundError("active work_item missing; run loop-pack first")
@@ -258,7 +270,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     aidd_root = target.name == "aidd"
-    diff_files = [path for path in collect_diff_files(target) if not is_ignored(path, aidd_root=aidd_root)]
+    diff_files = [
+        path for path in collect_diff_files(target) if not is_ignored(path, aidd_root=aidd_root)
+    ]
     cache_path = _cache_path(target)
     current_hash = _hash_inputs(diff_files, allowed_paths, forbidden_paths)
     cache_payload = _load_cache(cache_path)

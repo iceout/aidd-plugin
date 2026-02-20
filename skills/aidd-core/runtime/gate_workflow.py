@@ -175,7 +175,10 @@ def _loop_preflight_guard(root: Path, ticket: str, stage: str, hooks_mode: str) 
         missing.append(_runtime.rel_path(path, root))
 
     if missing:
-        return False, f"BLOCK: missing preflight artifacts ({', '.join(missing)}) (reason_code=preflight_missing)"
+        return (
+            False,
+            f"BLOCK: missing preflight artifacts ({', '.join(missing)}) (reason_code=preflight_missing)",
+        )
     wrapper_logs = sorted(logs_dir.glob("wrapper.*.log")) if logs_dir.exists() else []
     if not wrapper_logs:
         expected = _runtime.rel_path(logs_dir / "wrapper.*.log", root)
@@ -209,7 +212,9 @@ def _loop_preflight_guard(root: Path, ticket: str, stage: str, hooks_mode: str) 
         contract_status = str(contract.get("status") or "").strip().lower()
         contract_warnings = [
             str(item).strip()
-            for item in (contract.get("warnings") if isinstance(contract.get("warnings"), list) else [])
+            for item in (
+                contract.get("warnings") if isinstance(contract.get("warnings"), list) else []
+            )
             if str(item).strip()
         ]
         if contract_status == "warn":
@@ -239,7 +244,9 @@ def _run_plan_review_gate(root: Path, ticket: str, file_path: str, branch: str) 
     return result.returncode, result.output
 
 
-def _run_prd_review_gate(root: Path, ticket: str, slug_hint: str, file_path: str, branch: str) -> tuple[int, str]:
+def _run_prd_review_gate(
+    root: Path, ticket: str, slug_hint: str, file_path: str, branch: str
+) -> tuple[int, str]:
     from aidd_runtime import readiness_gates
 
     result = readiness_gates.run_prd_review_gate(
@@ -276,8 +283,7 @@ def _reviewer_notice(root: Path, ticket: str, slug_hint: str) -> str:
         return ""
 
     template = str(
-        reviewer_cfg.get("tests_marker")
-        or "aidd/reports/reviewer/{ticket}/{scope_key}.tests.json"
+        reviewer_cfg.get("tests_marker") or "aidd/reports/reviewer/{ticket}/{scope_key}.tests.json"
     )
     field = str(reviewer_cfg.get("tests_field") or "tests")
     required_values_source = reviewer_cfg.get("required_values", ["required"])
@@ -330,7 +336,9 @@ def _reviewer_notice(root: Path, ticket: str, slug_hint: str) -> str:
     return ""
 
 
-def _handoff_block(root: Path, ticket: str, slug_hint: str, branch: str, tasklist_path: Path) -> str:
+def _handoff_block(
+    root: Path, ticket: str, slug_hint: str, branch: str, tasklist_path: Path
+) -> str:
     config_path = root / "config" / "gates.json"
     try:
         config = json.loads(config_path.read_text(encoding="utf-8"))
@@ -385,7 +393,12 @@ def _handoff_block(root: Path, ticket: str, slug_hint: str, branch: str, tasklis
         .replace("{branch}", branch_value)
     )
     qa_path = Path(raw_qa_path)
-    if not qa_path.is_absolute() and qa_path.parts and qa_path.parts[0] == "aidd" and root.name == "aidd":
+    if (
+        not qa_path.is_absolute()
+        and qa_path.parts
+        and qa_path.parts[0] == "aidd"
+        and root.name == "aidd"
+    ):
         qa_path = root / Path(*qa_path.parts[1:])
     elif not qa_path.is_absolute():
         qa_path = root / qa_path
@@ -531,7 +544,9 @@ def main() -> int:
             return 0
 
     if active_stage in {"implement", "review", "qa"}:
-        ok_preflight, preflight_message = _loop_preflight_guard(root, ticket, active_stage, hooks_mode)
+        ok_preflight, preflight_message = _loop_preflight_guard(
+            root, ticket, active_stage, hooks_mode
+        )
         if not ok_preflight:
             _log_stderr(preflight_message)
             return 2
@@ -564,8 +579,12 @@ def main() -> int:
     event_should_log = True
     fast_mode_warn = False
     try:
-        hooklib.ensure_template(root, "docs/research/template.md", root / "docs" / "research" / f"{ticket}.md")
-        hooklib.ensure_template(root, "docs/prd/template.md", root / "docs" / "prd" / f"{ticket}.prd.md")
+        hooklib.ensure_template(
+            root, "docs/research/template.md", root / "docs" / "research" / f"{ticket}.md"
+        )
+        hooklib.ensure_template(
+            root, "docs/prd/template.md", root / "docs" / "prd" / f"{ticket}.prd.md"
+        )
 
         plan_path = root / "docs" / "plan" / f"{ticket}.md"
         if not plan_path.exists():
@@ -575,7 +594,9 @@ def main() -> int:
 
         if not tasklist_path.exists():
             hooklib.ensure_template(root, "docs/tasklist/template.md", tasklist_path)
-            _log_stderr(f"BLOCK: missing tasks -> run /feature-dev-aidd:tasks-new {ticket} (docs/tasklist/{ticket}.md)")
+            _log_stderr(
+                f"BLOCK: missing tasks -> run /feature-dev-aidd:tasks-new {ticket} (docs/tasklist/{ticket}.md)"
+            )
             return 2
 
         if not (root / "docs" / "prd" / f"{ticket}.prd.md").exists():
@@ -595,7 +616,10 @@ def main() -> int:
         if status != 0:
             if fast_mode and active_stage == "implement":
                 fast_mode_warn = True
-                message = output or f"WARN: Plan Review is not ready -> run /feature-dev-aidd:review-spec {ticket}"
+                message = (
+                    output
+                    or f"WARN: Plan Review is not ready -> run /feature-dev-aidd:review-spec {ticket}"
+                )
                 if message.startswith("BLOCK:"):
                     message = message.replace("BLOCK:", "WARN:", 1)
                 _log_stdout(f"{message} (reason_code=fast_mode_warn)")
@@ -603,14 +627,19 @@ def main() -> int:
                 if output:
                     _log_stderr(output)
                 else:
-                    _log_stderr(f"BLOCK: Plan Review is not ready -> run /feature-dev-aidd:review-spec {ticket}")
+                    _log_stderr(
+                        f"BLOCK: Plan Review is not ready -> run /feature-dev-aidd:review-spec {ticket}"
+                    )
                 return 2
 
         status, output = _run_prd_review_gate(root, ticket, slug_hint, file_path, current_branch)
         if status != 0:
             if fast_mode and active_stage == "implement":
                 fast_mode_warn = True
-                message = output or f"WARN: PRD Review is not ready -> run /feature-dev-aidd:review-spec {ticket}"
+                message = (
+                    output
+                    or f"WARN: PRD Review is not ready -> run /feature-dev-aidd:review-spec {ticket}"
+                )
                 if message.startswith("BLOCK:"):
                     message = message.replace("BLOCK:", "WARN:", 1)
                 _log_stdout(f"{message} (reason_code=fast_mode_warn)")
@@ -618,7 +647,9 @@ def main() -> int:
                 if output:
                     _log_stderr(output)
                 else:
-                    _log_stderr(f"BLOCK: PRD Review is not ready -> run /feature-dev-aidd:review-spec {ticket}")
+                    _log_stderr(
+                        f"BLOCK: PRD Review is not ready -> run /feature-dev-aidd:review-spec {ticket}"
+                    )
                 return 2
 
         research_result = readiness_gates.run_research_gate(
@@ -643,7 +674,9 @@ def main() -> int:
                 _log_stdout(diff_result.output)
 
         if not _next3_has_real_items(tasklist_path):
-            _log_stderr(f"BLOCK: missing tasks -> run /feature-dev-aidd:tasks-new {ticket} (docs/tasklist/{ticket}.md)")
+            _log_stderr(
+                f"BLOCK: missing tasks -> run /feature-dev-aidd:tasks-new {ticket} (docs/tasklist/{ticket}.md)"
+            )
             return 2
 
         reviewer_notice = _reviewer_notice(root, ticket, slug_hint)
@@ -675,7 +708,9 @@ def main() -> int:
             if progress_result.message:
                 _log_stderr(progress_result.message)
             else:
-                _log_stderr("BLOCK: tasklist was not updated - mark completed checkboxes before continuing.")
+                _log_stderr(
+                    "BLOCK: tasklist was not updated - mark completed checkboxes before continuing."
+                )
             return 2
         if progress_result.status == "skip:no-git" and active_stage in {"review", "qa"}:
             message = progress_result.message or "BLOCK: progress cannot be validated without Git."

@@ -109,10 +109,7 @@ def resolve_identifiers(
 ) -> FeatureIdentifiers:
     stored = read_identifiers(root)
     resolved_ticket = (ticket or "").strip() or stored.resolved_ticket
-    if slug_hint is None:
-        resolved_hint = stored.slug_hint
-    else:
-        resolved_hint = slug_hint.strip() or None
+    resolved_hint = stored.slug_hint if slug_hint is None else slug_hint.strip() or None
     return FeatureIdentifiers(ticket=resolved_ticket, slug_hint=resolved_hint)
 
 

@@ -282,7 +282,9 @@ def build_research_pack(
     profile = payload.get("profile") or {}
     recommendations = truncate_list(profile.get("recommendations") or [], lim["recommendations"])
     tests_evidence = truncate_list(profile.get("tests_evidence") or [], lim["tests_evidence"])
-    suggested_test_tasks = truncate_list(profile.get("suggested_test_tasks") or [], lim["suggested_test_tasks"])
+    suggested_test_tasks = truncate_list(
+        profile.get("suggested_test_tasks") or [], lim["suggested_test_tasks"]
+    )
     manual_notes = truncate_list(payload.get("manual_notes") or [], lim["manual_notes"])
     rlm_warnings = truncate_list(payload.get("rlm_warnings") or [], lim["rlm_warnings"])
 
@@ -299,9 +301,13 @@ def build_research_pack(
         "tags": truncate_list(payload.get("tags") or [], lim["tags"]),
         "keywords": truncate_list(payload.get("keywords") or [], lim["keywords"]),
         "keywords_raw": truncate_list(payload.get("keywords_raw") or [], lim["keywords_raw"]),
-        "non_negotiables": truncate_list(payload.get("non_negotiables") or [], lim["non_negotiables"]),
+        "non_negotiables": truncate_list(
+            payload.get("non_negotiables") or [], lim["non_negotiables"]
+        ),
         "paths": pack_paths(payload.get("paths") or [], lim["paths"], lim["path_samples"]),
-        "paths_discovered": truncate_list(payload.get("paths_discovered") or [], lim["paths_discovered"]),
+        "paths_discovered": truncate_list(
+            payload.get("paths_discovered") or [], lim["paths_discovered"]
+        ),
         "invalid_paths": truncate_list(payload.get("invalid_paths") or [], lim["invalid_paths"]),
         "docs": pack_paths(payload.get("docs") or [], lim["docs"], lim["path_samples"]),
         "profile": {
@@ -315,8 +321,12 @@ def build_research_pack(
             "recommendations": recommendations,
         },
         "manual_notes": manual_notes,
-        "reuse_candidates": pack_reuse(payload.get("reuse_candidates") or [], lim["reuse_candidates"]),
-        "matches": pack_matches(payload.get("matches") or [], lim["matches"], lim["match_snippet_chars"]),
+        "reuse_candidates": pack_reuse(
+            payload.get("reuse_candidates") or [], lim["reuse_candidates"]
+        ),
+        "matches": pack_matches(
+            payload.get("matches") or [], lim["matches"], lim["match_snippet_chars"]
+        ),
         "rlm_targets_path": payload.get("rlm_targets_path"),
         "rlm_manifest_path": payload.get("rlm_manifest_path"),
         "rlm_worklist_path": payload.get("rlm_worklist_path"),
@@ -366,7 +376,9 @@ def build_qa_pack(
             ["id", "severity", "scope", "blocking", "title", "details", "recommendation"],
         ),
         "tests_summary": payload.get("tests_summary"),
-        "tests_executed": pack_tests_executed(payload.get("tests_executed") or [], lim["tests_executed"]),
+        "tests_executed": pack_tests_executed(
+            payload.get("tests_executed") or [], lim["tests_executed"]
+        ),
         "inputs": payload.get("inputs") or {},
         "stats": {
             "findings": len(findings),
@@ -397,7 +409,9 @@ def build_prd_pack(
         "status": payload.get("status"),
         "recommended_status": payload.get("recommended_status"),
         "source_path": source_path,
-        "findings": pack_findings(findings, lim["findings"], ["id", "severity", "title", "details"]),
+        "findings": pack_findings(
+            findings, lim["findings"], ["id", "severity", "title", "details"]
+        ),
         "action_items": action_items,
         "stats": {
             "findings": len(findings),
@@ -458,7 +472,9 @@ def build_rlm_pack(
         return {str(role) for role in (node.get("framework_roles") or []) if str(role)}
 
     entrypoints = [
-        node for node in file_nodes if (_roles(node) & entry_roles) and not (_roles(node) & exclude_roles)
+        node
+        for node in file_nodes
+        if (_roles(node) & entry_roles) and not (_roles(node) & exclude_roles)
     ]
     entrypoints = sorted(entrypoints, key=by_link_count)
 

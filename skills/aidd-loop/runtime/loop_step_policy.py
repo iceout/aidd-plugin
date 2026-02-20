@@ -152,7 +152,12 @@ def _select_qa_repair_work_item(
 ) -> tuple[str, str, str, list[str]]:
     if explicit:
         if not _is_valid_work_item_key(explicit):
-            return "", "qa_repair_invalid_work_item", "work_item_key must start with iteration_id= or id=", []
+            return (
+                "",
+                "qa_repair_invalid_work_item",
+                "work_item_key must start with iteration_id= or id=",
+                [],
+            )
         return explicit, "", "", []
     use_auto = select_handoff or mode == "auto"
     if not use_auto:

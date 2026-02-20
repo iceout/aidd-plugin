@@ -10,7 +10,6 @@ import pytest
 from aidd_runtime import stage_dispatch
 from aidd_runtime.feature_ids import read_active_state
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 INIT_SCRIPT = PROJECT_ROOT / "skills" / "aidd-init" / "runtime" / "init.py"
 

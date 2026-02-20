@@ -11,7 +11,6 @@ from typing import List, Optional, Tuple
 
 from hooks.hooklib import load_config, resolve_aidd_root, resolve_context_gc_mode
 
-
 CODE_FENCE_RE = re.compile(r"^```")
 TASK_RE = re.compile(r"^\s*-\s*\[\s*\]\s+(.*)$")
 DONE_TASK_RE = re.compile(r"^\s*-\s*\[\s*[xX]\s*\]\s+(.*)$")

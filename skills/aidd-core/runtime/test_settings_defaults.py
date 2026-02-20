@@ -233,7 +233,9 @@ def detect_build_tools(root: Path) -> set[str]:
                 detected.add("gradle")
             if lower in npm_names:
                 detected.add("npm")
-            if lower in python_names or (lower.startswith("requirements") and lower.endswith(".txt")):
+            if lower in python_names or (
+                lower.startswith("requirements") and lower.endswith(".txt")
+            ):
                 detected.add("python")
             if lower in go_names:
                 detected.add("go")

@@ -131,7 +131,9 @@ def _build_nodes(
         scope_key = str(scope.get("scope_key") or "")
         work_item_key = str(scope.get("work_item_key") or "")
         loop_allowed = [str(item) for item in scope.get("allowed_paths") or [] if str(item).strip()]
-        allowed, readmap_rel, writemap_rel = _resolve_allowed_paths(target, ticket, scope_key, loop_allowed)
+        allowed, readmap_rel, writemap_rel = _resolve_allowed_paths(
+            target, ticket, scope_key, loop_allowed
+        )
 
         for stage in STAGES:
             node_id = f"{scope_key}:{stage}"
@@ -281,7 +283,9 @@ def main(argv: list[str] | None = None) -> int:
     json_path = output_dir / f"{ticket}.json"
     md_path = output_dir / f"{ticket}.md"
 
-    json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    json_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     md_path.write_text(_render_markdown(payload), encoding="utf-8")
 
     if args.format == "json":
@@ -304,7 +308,9 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print(f"json_path={runtime.rel_path(json_path, target)}")
         print(f"md_path={runtime.rel_path(md_path, target)}")
-        print(f"summary=dag export ok nodes={len(nodes)} edges={len(edges)} conflicts={len(conflicts)}")
+        print(
+            f"summary=dag export ok nodes={len(nodes)} edges={len(edges)} conflicts={len(conflicts)}"
+        )
     return 0
 
 

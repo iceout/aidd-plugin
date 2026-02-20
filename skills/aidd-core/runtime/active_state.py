@@ -39,7 +39,7 @@ def normalize_slug_hint_token(value: str | None) -> str:
     lowered = token.lower()
     for prefix in ("slug=", "slug:"):
         if lowered.startswith(prefix):
-            token = token[len(prefix):]
+            token = token[len(prefix) :]
             break
     token = token.strip().strip("\"'").strip(",;").lower()
     if not token:
@@ -78,7 +78,7 @@ def normalize_work_item_for_stage(
         return "", ""
 
     # Keep report/handoff id out of loop-stage work_item and persist it separately.
-    report_id = requested[len("id="):].strip()
+    report_id = requested[len("id=") :].strip()
     if current and is_iteration_work_item_key(current):
         return current, report_id
     return "", report_id

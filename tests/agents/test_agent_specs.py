@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 EXPECTED_AGENTS = (
     "analyst.md",
     "researcher.md",

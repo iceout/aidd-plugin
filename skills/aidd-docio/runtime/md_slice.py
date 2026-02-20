@@ -140,7 +140,9 @@ def _render_slice(source_rel: str, selector: str, body_lines: list[str]) -> str:
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Extract markdown slice by AIDD section or handoff block.")
+    parser = argparse.ArgumentParser(
+        description="Extract markdown slice by AIDD section or handoff block."
+    )
     parser.add_argument("--ref", required=True, help="path.md#AIDD:SECTION or path.md@handoff:<id>")
     parser.add_argument("--ticket", help="Ticket identifier for slice output directory")
     parser.add_argument("--output", help="Optional explicit output path")
@@ -156,7 +158,9 @@ def main(argv: list[str] | None = None) -> int:
         ref = parse_ref(args.ref)
         source_path = runtime.resolve_path_for_target(Path(ref.source), target)
         if not source_path.exists():
-            raise FileNotFoundError(f"source markdown not found: {runtime.rel_path(source_path, target)}")
+            raise FileNotFoundError(
+                f"source markdown not found: {runtime.rel_path(source_path, target)}"
+            )
 
         lines = source_path.read_text(encoding="utf-8").splitlines()
         if ref.kind == "section":
@@ -166,9 +170,13 @@ def main(argv: list[str] | None = None) -> int:
             body = _extract_handoff(lines, ref.selector)
             selector_label = f"@handoff:{ref.selector}"
 
-        ticket = (args.ticket or runtime.read_active_ticket(target) or "_global").strip() or "_global"
-        output_path = runtime.resolve_path_for_target(Path(args.output), target) if args.output else _slice_output_path(
-            target, ticket, source_path, selector_label
+        ticket = (
+            args.ticket or runtime.read_active_ticket(target) or "_global"
+        ).strip() or "_global"
+        output_path = (
+            runtime.resolve_path_for_target(Path(args.output), target)
+            if args.output
+            else _slice_output_path(target, ticket, source_path, selector_label)
         )
         output_path.parent.mkdir(parents=True, exist_ok=True)
         source_rel = runtime.rel_path(source_path, target)

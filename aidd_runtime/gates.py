@@ -21,9 +21,10 @@ def load_gates_config(target: Path) -> dict:
     if not path.exists():
         return {}
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        return payload if isinstance(payload, dict) else {}
     except Exception as exc:
-        raise ValueError(f"failed to read {path}: {exc}")
+        raise ValueError(f"failed to read {path}: {exc}") from exc
 
 
 def load_gate_section(target: Path, section: str) -> dict:
@@ -62,7 +63,11 @@ def resolve_stage_tests_policy(config: dict, stage: str) -> str:
     stage_value = str(stage or "").strip().lower()
     if stage_value not in DEFAULT_TESTS_POLICY:
         return ""
-    raw_policy = config.get("tests_policy") or config.get("testsPolicy") if isinstance(config, dict) else None
+    raw_policy = (
+        config.get("tests_policy") or config.get("testsPolicy")
+        if isinstance(config, dict)
+        else None
+    )
     policy_value = ""
     if isinstance(raw_policy, dict):
         policy_value = _normalize_tests_policy_value(raw_policy.get(stage_value))
@@ -78,17 +83,14 @@ def matches(patterns: Iterable[str] | None, value: str) -> bool:
         return False
     if isinstance(patterns, str):
         patterns = (patterns,)
-    for pattern in patterns or ():
-        if pattern and fnmatch(value, pattern):
-            return True
-    return False
+    return any(pattern and fnmatch(value, pattern) for pattern in patterns or ())
 
 
-def branch_enabled(branch: str | None, *, allow: Iterable[str] | None = None, skip: Iterable[str] | None = None) -> bool:
+def branch_enabled(
+    branch: str | None, *, allow: Iterable[str] | None = None, skip: Iterable[str] | None = None
+) -> bool:
     if not branch:
         return True
     if skip and matches(skip, branch):
         return False
-    if allow and not matches(allow, branch):
-        return False
-    return True
+    return not (allow and not matches(allow, branch))

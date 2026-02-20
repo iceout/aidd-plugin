@@ -139,7 +139,9 @@ def build_manifest(
         "ticket": ticket,
         "slug": payload.get("slug") or ticket,
         "slug_hint": payload.get("slug_hint"),
-        "generated_at": dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "generated_at": dt.datetime.now(dt.UTC)
+        .isoformat(timespec="seconds")
+        .replace("+00:00", "Z"),
         "targets_path": runtime.rel_path(targets_path, target),
         "files": entries,
         "stats": {

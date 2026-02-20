@@ -118,7 +118,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         targets_path = root / "reports" / "research" / f"{args.ticket}-rlm-targets.json"
         targets_path.parent.mkdir(parents=True, exist_ok=True)
-        targets_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        targets_path.write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
         rel_targets = targets_path.relative_to(root).as_posix()
         print(f"[researcher] rlm targets saved to {rel_targets}.")
     except Exception as exc:

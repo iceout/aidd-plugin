@@ -62,7 +62,8 @@ def load_conventions(root: Path) -> dict:
     if not path.exists():
         return {}
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        return payload if isinstance(payload, dict) else {}
     except Exception:
         return {}
 
@@ -72,7 +73,8 @@ def load_rlm_settings(root: Path) -> dict:
     rlm = cfg.get("rlm")
     if isinstance(rlm, dict):
         return rlm
-    researcher = cfg.get("researcher") if isinstance(cfg.get("researcher"), dict) else {}
+    researcher_raw = cfg.get("researcher")
+    researcher = researcher_raw if isinstance(researcher_raw, dict) else {}
     rlm = researcher.get("rlm")
     return rlm if isinstance(rlm, dict) else {}
 

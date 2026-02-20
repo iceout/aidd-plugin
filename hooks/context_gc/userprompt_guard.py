@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+
 def _bootstrap_entrypoint() -> None:
     import os
     import sys
@@ -187,7 +188,9 @@ def main() -> None:
 
     if size >= hard:
         if hard_behavior == "block_prompt":
-            userprompt_block(reason="Context GC(bytes): transcript is too large. Run /compact and retry.")
+            userprompt_block(
+                reason="Context GC(bytes): transcript is too large. Run /compact and retry."
+            )
         else:
             json_out(
                 {

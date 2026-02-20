@@ -110,7 +110,9 @@ def _node_matches_lang(node: dict[str, object], langs: Sequence[str]) -> bool:
     return lang in langs
 
 
-def _link_matches(link: dict[str, object], pattern: re.Pattern[str], file_paths: dict[str, str]) -> bool:
+def _link_matches(
+    link: dict[str, object], pattern: re.Pattern[str], file_paths: dict[str, str]
+) -> bool:
     for key in ("type", "src_file_id", "dst_file_id"):
         value = link.get(key)
         if value and pattern.search(str(value)):
@@ -121,7 +123,9 @@ def _link_matches(link: dict[str, object], pattern: re.Pattern[str], file_paths:
         return True
     src_path = file_paths.get(str(link.get("src_file_id") or ""), "")
     dst_path = file_paths.get(str(link.get("dst_file_id") or ""), "")
-    return bool(src_path and pattern.search(src_path)) or bool(dst_path and pattern.search(dst_path))
+    return bool(src_path and pattern.search(src_path)) or bool(
+        dst_path and pattern.search(dst_path)
+    )
 
 
 def _write_pack(path: Path, payload: dict[str, object]) -> None:
@@ -134,8 +138,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate a compact RLM slice pack.")
     parser.add_argument("--ticket", help="Ticket identifier (defaults to docs/.active.json).")
     parser.add_argument("--query", required=True, help="Regex or token to match in nodes/links.")
-    parser.add_argument("--max-nodes", type=int, default=None, help="Maximum number of nodes to include.")
-    parser.add_argument("--max-links", type=int, default=None, help="Maximum number of links to include.")
+    parser.add_argument(
+        "--max-nodes", type=int, default=None, help="Maximum number of nodes to include."
+    )
+    parser.add_argument(
+        "--max-links", type=int, default=None, help="Maximum number of links to include."
+    )
     parser.add_argument("--paths", help="Optional comma-separated list of path fragments to keep.")
     parser.add_argument("--lang", help="Optional comma-separated list of languages to keep.")
     parser.add_argument("--out", default=None, help="Optional output path for the pack.")
@@ -148,7 +156,9 @@ def main(argv: list[str] | None = None) -> int:
     ticket, context = runtime.require_ticket(target, ticket=args.ticket, slug_hint=None)
 
     settings = load_rlm_settings(target)
-    slice_budget = settings.get("slice_budget") if isinstance(settings.get("slice_budget"), dict) else {}
+    slice_budget = (
+        settings.get("slice_budget") if isinstance(settings.get("slice_budget"), dict) else {}
+    )
 
     nodes_path = target / "reports" / "research" / f"{ticket}-rlm.nodes.jsonl"
     links_path = target / "reports" / "research" / f"{ticket}-rlm.links.jsonl"
@@ -215,7 +225,9 @@ def main(argv: list[str] | None = None) -> int:
     ext = _pack_extension()
     query_hash = _hash_slice_key(args.query, paths, langs)
     default_path = out_dir / f"{ticket}-rlm-slice-{query_hash}{ext}"
-    output_path = runtime.resolve_path_for_target(Path(args.out), target) if args.out else default_path
+    output_path = (
+        runtime.resolve_path_for_target(Path(args.out), target) if args.out else default_path
+    )
     latest_path = out_dir / f"{ticket}-rlm-slice.latest{ext}"
 
     payload: dict[str, object] = {
@@ -225,7 +237,9 @@ def main(argv: list[str] | None = None) -> int:
         "kind": "pack",
         "ticket": ticket,
         "slug_hint": context.slug_hint,
-        "generated_at": dt.datetime.now(dt.UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "generated_at": dt.datetime.now(dt.UTC)
+        .isoformat(timespec="seconds")
+        .replace("+00:00", "Z"),
         "query": args.query,
         "links": {
             "nodes": runtime.rel_path(nodes_path, target),
