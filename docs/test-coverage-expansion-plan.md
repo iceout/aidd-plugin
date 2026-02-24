@@ -74,17 +74,17 @@ Acceptance:
 
 ## WP-4 (RLM Stack)
 
-- [ ] Add `tests/rlm/test_rlm_targets.py`
-- [ ] Add `tests/rlm/test_rlm_nodes_build.py`
-- [ ] Add `tests/rlm/test_reports_pack.py`
-- [ ] Add `tests/rlm/test_reports_pack_assemble.py`
-- [ ] Add `tests/rlm/test_rlm_verify.py`
+- [x] Add `tests/rlm/test_rlm_targets.py`
+- [x] Add `tests/rlm/test_rlm_nodes_build.py`
+- [x] Add `tests/rlm/test_reports_pack.py`
+- [x] Add `tests/rlm/test_reports_pack_assemble.py`
+- [x] Add `tests/rlm/test_rlm_verify.py`
 
 Acceptance:
 
-- `reports_pack.py >= 45%`
-- `rlm_nodes_build.py >= 50%`
-- `reports_pack_assemble.py >= 35%`
+- `reports_pack.py >= 45%` (current: `73%`)
+- `rlm_nodes_build.py >= 50%` (current: `78%`)
+- `reports_pack_assemble.py >= 35%` (current: `89%`)
 
 ## WP-5 (Stage E2E + Regression)
 
