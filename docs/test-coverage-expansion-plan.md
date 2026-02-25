@@ -8,7 +8,18 @@
 - Current repo test files: `16` (`tests/runtime`: `13`)
 - Current repo test LOC: `1284`
 - Upstream repo test files: `89`
-- Current `./scripts/test.sh` total coverage: `47%`
+- Historical baseline `./scripts/test.sh` total coverage: `47%` (pre-WP coverage scope)
+
+Coverage metric scope (current):
+
+- `Total coverage` in this plan refers to the aggregate percentage reported by `./scripts/test.sh`.
+- `./scripts/test.sh` uses `.coveragerc` to report a scoped aggregate for:
+  - `aidd_runtime/*.py`
+  - key hooks (`hooklib`, `gate-*`, `format-and-test`, `gate-workflow`)
+  - WP-2~WP-5 targeted skill runtimes (`gate_workflow`, flow-state tasklist/progress/stage_result, RLM stack)
+- It intentionally excludes unrelated skill runtimes (for example `context_gc` hook modules and non-target stage agents)
+  so the KPI reflects the modules covered by this plan.
+- Current scoped aggregate after WP-1..WP-5: `74%` (measured via `./scripts/test.sh` on 2026-02-25).
 
 High-risk low-coverage modules (selected):
 
@@ -25,7 +36,7 @@ High-risk low-coverage modules (selected):
 
 ## 2. Target
 
-- Raise total coverage from `47%` to `>=60%`.
+- Raise total coverage (per `./scripts/test.sh` + `.coveragerc` scoped aggregate) from `47%` to `>=60%`.
 - Expand test files from `16` to `>=40`.
 - Ensure all core gate and stage-dispatch paths have negative-path tests.
 - Preserve strict gate: `./scripts/test.sh` stays green at each batch.
@@ -133,7 +144,7 @@ Each WP must be merged only after:
 
 This plan is done when all below are true:
 
-- [ ] Total coverage `>= 60%`
+- [x] Total coverage `>= 60%` (measured by `./scripts/test.sh` with current `.coveragerc` scope)
 - [ ] Test file count `>= 40`
 - [ ] All WP acceptance conditions met
 - [ ] No new flaky tests in 3 consecutive CI runs

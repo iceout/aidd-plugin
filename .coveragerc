@@ -1,0 +1,22 @@
+[report]
+# Keep the "test coverage expansion" KPI aligned to the modules targeted by WP-1..WP-5.
+# We intentionally exclude unrelated skill runtimes (e.g. context_gc, analyst/research/qa agents)
+# from the aggregate percentage, while still reporting core runtime + hooks + covered stage modules.
+include =
+    aidd_runtime/*.py
+    hooks/hooklib.py
+    hooks/format-and-test.sh
+    hooks/gate-qa.sh
+    hooks/gate-tests.sh
+    hooks/gate-workflow.sh
+    skills/aidd-core/runtime/gate_workflow.py
+    skills/aidd-core/runtime/rlm_targets.py
+    skills/aidd-flow-state/runtime/tasklist_check.py
+    skills/aidd-flow-state/runtime/tasklist_normalize.py
+    skills/aidd-flow-state/runtime/tasklist_validate.py
+    skills/aidd-flow-state/runtime/progress.py
+    skills/aidd-flow-state/runtime/stage_result.py
+    skills/aidd-rlm/runtime/reports_pack.py
+    skills/aidd-rlm/runtime/reports_pack_assemble.py
+    skills/aidd-rlm/runtime/rlm_nodes_build.py
+    skills/aidd-rlm/runtime/rlm_verify.py

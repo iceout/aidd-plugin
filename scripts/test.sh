@@ -51,11 +51,15 @@ echo ""
 # 单元测试（失败即退出）
 echo "=== Running pytest ==="
 if [ -d "tests" ] && [ "$(find tests -name '*.py' -type f | head -n 1)" ]; then
+    if [ ! -f ".coveragerc" ]; then
+        echo "coverage config not found: .coveragerc" >&2
+        exit 1
+    fi
     python -m pytest tests/ -v \
         --cov=aidd_runtime \
-        --cov=aidd_runtime.stage_dispatch \
-        --cov=aidd_runtime.command_runner \
-        --cov=aidd_runtime.ide_profiles \
+        --cov=hooks \
+        --cov=skills \
+        --cov-config=.coveragerc \
         --cov-report=term-missing
 else
     echo "No tests found in tests/ directory." >&2
