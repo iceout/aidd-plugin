@@ -66,6 +66,7 @@ APPROVED_STATUSES = {"ready"}
 BLOCKING_TOKENS = {"blocked", "reject"}
 PLACEHOLDER_PATTERN = re.compile(r"<[^>]+>")
 REVIEW_SECTION_HEADER = "## PRD Review"
+REVIEW_SECTION_HEADER_RE = re.compile(r"^##\s+(?:\d+\.\s+)?PRD Review\s*$", re.IGNORECASE)
 
 
 def _normalize_output_path(root: Path, path: Path) -> Path:
@@ -208,8 +209,9 @@ def extract_review_section(content: str) -> tuple[str, list[str]]:
     inside_section = False
 
     for line in lines:
-        if line.strip().startswith("## "):
-            inside_section = line.strip() == REVIEW_SECTION_HEADER
+        stripped_heading = line.strip()
+        if stripped_heading.startswith("## "):
+            inside_section = REVIEW_SECTION_HEADER_RE.match(stripped_heading) is not None
             continue
         if not inside_section:
             continue

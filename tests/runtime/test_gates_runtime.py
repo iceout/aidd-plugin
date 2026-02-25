@@ -4,7 +4,9 @@ from pathlib import Path
 
 from aidd_runtime import gate_workflow, gates
 from aidd_runtime.analyst_guard import AnalystSettings, validate_prd
+from aidd_runtime.prd_review import extract_review_section
 from aidd_runtime.prd_review_gate import extract_dialog_status
+from aidd_runtime.prd_review_gate import parse_review_section as parse_prd_review_section
 
 
 def test_select_file_path_prefers_src() -> None:
@@ -83,3 +85,35 @@ def test_prd_review_gate_extracts_status_from_new_dialog_heading() -> None:
         ]
     )
     assert extract_dialog_status(content) == "ready"
+
+
+def test_prd_review_parser_accepts_numbered_review_heading() -> None:
+    content = "\n".join(
+        [
+            "# PRD",
+            "",
+            "## 11. PRD Review",
+            "Status: READY",
+            "- [x] Reviewer confirms scope",
+            "- [ ] Follow-up item",
+        ]
+    )
+    status, action_items = extract_review_section(content)
+    assert status == "ready"
+    assert action_items == ["- [x] Reviewer confirms scope", "- [ ] Follow-up item"]
+
+
+def test_prd_review_gate_parser_accepts_numbered_review_heading() -> None:
+    content = "\n".join(
+        [
+            "# PRD",
+            "",
+            "## 11. PRD Review",
+            "Status: READY",
+            "- [ ] Pending item",
+        ]
+    )
+    found, status, action_items = parse_prd_review_section(content)
+    assert found is True
+    assert status == "ready"
+    assert action_items == ["- [ ] Pending item"]

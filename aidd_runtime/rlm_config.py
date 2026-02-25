@@ -46,6 +46,7 @@ LANG_BY_EXT = {
     ".yaml": "yaml",
     ".yml": "yaml",
     ".json": "json",
+    ".md": "md",
     ".toml": "toml",
     ".xml": "xml",
     ".properties": "properties",

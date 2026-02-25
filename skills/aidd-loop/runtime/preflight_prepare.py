@@ -448,7 +448,12 @@ def _build_preflight_result(
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate preflight artifacts for loop stages.")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Generate preflight artifacts for loop stages "
+            "(wrapper/internal CLI: requires wrapper-provided context and artifact paths)."
+        )
+    )
     parser.add_argument("--ticket", required=True)
     parser.add_argument("--scope-key", required=True)
     parser.add_argument("--work-item-key", required=True)

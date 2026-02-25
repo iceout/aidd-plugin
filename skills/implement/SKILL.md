@@ -12,7 +12,10 @@ Follow `aidd-core` and `aidd-loop`.
 
 ## Steps
 1. Resolve active `<ticket>/<scope_key>` for implement stage.
-2. Mandatory preflight: `python3 ${AIDD_ROOT}/skills/aidd-loop/runtime/preflight_prepare.py`.
+2. Mandatory preflight (wrapper-managed): stage wrapper runs `preflight_prepare.py` with required
+   ticket/scope/work-item/artifact-path arguments. Do not invoke `preflight_prepare.py` as a bare
+   CLI without wrapper-provided parameters. If wrapper execution is unavailable, follow the read
+   order manually and continue with a documented fallback.
 3. Read order: readmap -> loop pack -> latest review pack (if any) -> rolling context pack.
 4. Run subagent `implementer`.
 5. Validate actions with `python3 ${AIDD_ROOT}/skills/implement/runtime/implement_run.py`.

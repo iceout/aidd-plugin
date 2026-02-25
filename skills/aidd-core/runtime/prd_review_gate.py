@@ -46,6 +46,7 @@ _bootstrap_entrypoint()
 
 import argparse
 import json
+import re
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -70,6 +71,7 @@ DEFAULT_CODE_PREFIXES = (
     "cmd/",
 )
 REVIEW_HEADER = "## PRD Review"
+REVIEW_HEADER_RE = re.compile(r"^##\s+(?:\d+\.\s+)?PRD Review\s*$", re.IGNORECASE)
 DIALOG_HEADER = "## Analyst dialogue"
 LEGACY_DIALOG_HEADER = "## Dialog analyst"
 DIALOG_HEADERS = (DIALOG_HEADER, LEGACY_DIALOG_HEADER)
@@ -173,7 +175,7 @@ def parse_review_section(content: str) -> tuple[bool, str, list[str]]:
     for raw in content.splitlines():
         stripped = raw.strip()
         if stripped.startswith("## "):
-            inside = stripped == REVIEW_HEADER
+            inside = REVIEW_HEADER_RE.match(stripped) is not None
             if inside:
                 found = True
             continue
@@ -224,7 +226,11 @@ def format_message(
     label = feature_label(ticket, slug_hint)
     human_status = (status or "PENDING").upper()
     if kind == "missing_section":
-        return f"BLOCK: missing section '## PRD Review' in aidd/docs/prd/{ticket}.prd.md -> run /feature-dev-aidd:review-spec {label} after review-plan"
+        return (
+            "BLOCK: missing section '## PRD Review' "
+            "(numbered heading like '## 11. PRD Review' is also accepted) "
+            f"in aidd/docs/prd/{ticket}.prd.md -> run /feature-dev-aidd:review-spec {label} after review-plan"
+        )
     if kind == "missing_prd":
         return f"BLOCK: PRD is missing or incomplete -> open docs/prd/{ticket}.prd.md, complete the dialog, and finish /feature-dev-aidd:review-spec {label or ticket}."
     if kind == "blocking_status":
