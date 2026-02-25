@@ -88,13 +88,13 @@ Acceptance:
 
 ## WP-5 (Stage E2E + Regression)
 
-- [ ] Add failure-path e2e: missing hints / blocked gates / missing ticket
-- [ ] Add hooks + stage orchestration combined smoke
-- [ ] Add regression tests for legacy flow alias mapping and profile auto-detection
+- [x] Add failure-path e2e: missing hints / blocked gates / missing ticket
+- [x] Add hooks + stage orchestration combined smoke
+- [x] Add regression tests for legacy flow alias mapping and profile auto-detection
 
 Acceptance:
 
-- Stage chain (`idea -> research -> plan -> tasks -> implement/review/qa`) has positive + negative-path coverage.
+- Stage chain (`idea -> research -> plan -> tasks -> implement/review/qa`) has positive + negative-path coverage. (WP-5 regression/negative-path tests added)
 
 ## 4. Upstream Mapping Backlog
 
