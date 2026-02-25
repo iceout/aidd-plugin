@@ -107,7 +107,7 @@ Hooks 入口位于 `hooks/`，统一要求设置 `AIDD_ROOT`。
 
 阶段主命令：
 
-- `/flow:aidd-init-flow`
+- `/aidd-init-flow`
 - `/skill:idea-new <ticket>`
 - `/skill:researcher <ticket>`
 - `/skill:plan-new <ticket>`

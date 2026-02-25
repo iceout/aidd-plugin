@@ -70,7 +70,9 @@ DEFAULT_CODE_PREFIXES = (
     "cmd/",
 )
 REVIEW_HEADER = "## PRD Review"
-DIALOG_HEADER = "## Dialog analyst"
+DIALOG_HEADER = "## Analyst dialogue"
+LEGACY_DIALOG_HEADER = "## Dialog analyst"
+DIALOG_HEADERS = (DIALOG_HEADER, LEGACY_DIALOG_HEADER)
 
 
 def feature_label(ticket: str, slug_hint: str | None = None) -> str:
@@ -244,7 +246,11 @@ def format_message(
     if kind == "blocking_finding":
         return f"BLOCK: PRD Review report contains critical findings -> address them and update report for {label or ticket}."
     if kind == "draft_dialog":
-        return f"BLOCK: PRD status is draft -> complete section '{DIALOG_HEADER}', set Status: READY, then run /feature-dev-aidd:review-spec {label or ticket}."
+        return (
+            "BLOCK: PRD status is draft -> complete section "
+            f"'{DIALOG_HEADER}' (legacy '{LEGACY_DIALOG_HEADER}' also accepted), "
+            f"set Status: READY, then run /feature-dev-aidd:review-spec {label or ticket}."
+        )
     return f"BLOCK: PRD Review is not ready -> run /feature-dev-aidd:review-spec {label or ticket}"
 
 
@@ -257,7 +263,7 @@ def extract_dialog_status(content: str) -> str | None:
     for raw in content.splitlines():
         stripped = raw.strip()
         lower = stripped.lower()
-        if lower.startswith(DIALOG_HEADER.lower()):
+        if any(lower.startswith(header.lower()) for header in DIALOG_HEADERS):
             inside = True
             continue
         if inside and stripped.startswith("## "):

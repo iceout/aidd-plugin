@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from aidd_runtime import gate_workflow, gates
+from aidd_runtime.analyst_guard import AnalystSettings, validate_prd
+from aidd_runtime.prd_review_gate import extract_dialog_status
 
 
 def test_select_file_path_prefers_src() -> None:
@@ -36,3 +38,48 @@ def test_resolve_stage_tests_policy_with_override() -> None:
 def test_branch_enabled_with_allow_and_skip_patterns() -> None:
     assert gates.branch_enabled("feature/demo", allow=["feature/*"], skip=["docs/*"]) is True
     assert gates.branch_enabled("docs/readme", allow=["feature/*"], skip=["docs/*"]) is False
+
+
+def test_analyst_guard_accepts_new_dialog_heading(tmp_path: Path) -> None:
+    root = tmp_path / "aidd"
+    prd_path = root / "docs" / "prd" / "T-100.prd.md"
+    prd_path.parent.mkdir(parents=True, exist_ok=True)
+    prd_path.write_text(
+        "\n".join(
+            [
+                "# PRD",
+                "",
+                "## Analyst dialogue",
+                "Question 1: What is the scope?",
+                "Answer 1: MVP only.",
+                "Status: READY",
+                "",
+                "## AIDD:OPEN_QUESTIONS",
+                "none",
+                "",
+                "## Links",
+                f"- Research: `docs/research/T-100.md`",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    summary = validate_prd(root, "T-100", settings=AnalystSettings())
+    assert summary.status == "READY"
+    assert summary.question_count == 1
+
+
+def test_prd_review_gate_extracts_status_from_new_dialog_heading() -> None:
+    content = "\n".join(
+        [
+            "# PRD",
+            "",
+            "## Analyst dialogue",
+            "Status: READY",
+            "",
+            "## PRD Review",
+            "Status: READY",
+        ]
+    )
+    assert extract_dialog_status(content) == "ready"

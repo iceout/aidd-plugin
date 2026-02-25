@@ -40,7 +40,7 @@ export AIDD_ROOT=/path/to/aidd-plugin
 推荐阶段命令（跨工具统一）：
 
 ```text
-/flow:aidd-init-flow
+/aidd-init-flow
 /skill:idea-new <ticket> "需求"
 /skill:researcher <ticket>
 /skill:plan-new <ticket>

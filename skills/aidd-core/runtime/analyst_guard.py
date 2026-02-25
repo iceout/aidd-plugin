@@ -49,7 +49,9 @@ ANSWER_RE = re.compile(
     re.MULTILINE,
 )
 STATUS_RE = re.compile(r"^\s*Status:\s*([A-Za-z]+)", re.MULTILINE)
-DIALOG_HEADING = "## Dialog analyst"
+DIALOG_HEADING = "## Analyst dialogue"
+LEGACY_DIALOG_HEADING = "## Dialog analyst"
+DIALOG_HEADINGS = (DIALOG_HEADING, LEGACY_DIALOG_HEADING)
 ANSWERS_HEADING = "## AIDD:ANSWERS"
 OPEN_QUESTIONS_HEADING = "## 10. Open Questions"
 AIDD_OPEN_QUESTIONS_HEADING = "## AIDD:OPEN_QUESTIONS"
@@ -134,6 +136,14 @@ def _extract_section(text: str, heading_prefix: str) -> str | None:
     return "\n".join(lines[start_idx:end_idx]).strip()
 
 
+def _extract_first_section(text: str, heading_prefixes: tuple[str, ...]) -> str | None:
+    for heading in heading_prefixes:
+        section = _extract_section(text, heading)
+        if section is not None:
+            return section
+    return None
+
+
 def _collect_numbers(pattern: re.Pattern[str], text: str) -> list[int]:
     numbers: list[int] = []
     seen = set()
@@ -199,7 +209,7 @@ def validate_prd(
         )
 
     text = prd_path.read_text(encoding="utf-8")
-    dialog_section = _extract_section(text, DIALOG_HEADING)
+    dialog_section = _extract_first_section(text, DIALOG_HEADINGS)
     questions_source = dialog_section or text
     answers_section = _extract_section(text, ANSWERS_HEADING)
     answers_source = answers_section if answers_section is not None else (dialog_section or text)
@@ -212,7 +222,9 @@ def validate_prd(
 
     if settings.require_dialog_section and dialog_section is None:
         raise AnalystValidationError(
-            f"BLOCK: PRD does not contain section `{DIALOG_HEADING}` -> rerun /feature-dev-aidd:idea-new with clarifications."
+            "BLOCK: PRD does not contain section "
+            f"`{DIALOG_HEADING}` (legacy `{LEGACY_DIALOG_HEADING}` is also accepted) "
+            "-> rerun /feature-dev-aidd:idea-new with clarifications."
         )
 
     if min_questions and len(set(questions)) < min_questions:
@@ -325,7 +337,8 @@ def validate_prd(
     research_ref = RESEARCH_REF_TEMPLATE.format(ticket=ticket)
     if research_ref not in text:
         raise AnalystValidationError(
-            f"BLOCK: PRD must reference `{research_ref}` in section `{DIALOG_HEADING}` -> add the Researcher report link."
+            f"BLOCK: PRD must reference `{research_ref}` in section `{DIALOG_HEADING}` "
+            "(legacy heading also accepted) -> add the Researcher report link."
         )
 
     return AnalystCheckSummary(

@@ -56,12 +56,12 @@ aidd/
 
 用户执行：
 ```
-/flow:aidd-init
+/aidd-init-flow
 ```
 
 或者带参数强制覆盖：
 ```
-/flow:aidd-init --force
+/aidd-init-flow --force
 ```
 
 ## 初始化后
@@ -71,6 +71,6 @@ aidd/
 AIDD 工作区已初始化！
 
 下一步：
-1. 创建新功能：/flow:aidd-idea TICKET-001 "功能描述"
+1. 创建新功能：/skill:idea-new TICKET-001 "功能描述"
 2. 或查看文档：cat aidd/AGENTS.md
 ```

@@ -26,7 +26,7 @@ cd /path/to/your-project
 在 IDE 对话里执行：
 
 ```text
-/flow:aidd-init-flow
+/aidd-init-flow
 ```
 
 ## 2. 跑通主链路

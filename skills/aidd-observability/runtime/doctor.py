@@ -77,7 +77,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if plugin_root:
         missing = []
-        for name in ("commands", "agents", "hooks", "tools", "templates"):
+        # Keep this in sync with the current repository/plugin layout.
+        for name in ("skills", "aidd_runtime", "agents", "hooks", "templates"):
             if not (plugin_root / name).exists():
                 missing.append(name)
         rows.append(
@@ -96,26 +97,40 @@ def main(argv: list[str] | None = None) -> int:
     if not workspace_root.exists():
         errors.append(f"Workspace root does not exist: {workspace_root}.")
 
-    docs_ok = project_root.exists() and (project_root / "docs").exists()
-    rows.append((f"{DEFAULT_PROJECT_SUBDIR}/docs", docs_ok, str(project_root)))
-    if not docs_ok:
-        errors.append(
-            "Run /feature-dev-aidd:aidd-init or "
-            "'python3 ${AIDD_ROOT}/skills/aidd-init/runtime/init.py' from the workspace root to bootstrap."
+    running_from_plugin_repo = bool(
+        plugin_root
+        and workspace_root == plugin_root
+        and (plugin_root / ".aidd-plugin").exists()
+    )
+    if running_from_plugin_repo:
+        rows.append(
+            (
+                f"{DEFAULT_PROJECT_SUBDIR}/docs",
+                True,
+                "skipped (running from plugin repository root; check from a target project workspace)",
+            )
         )
     else:
-        critical = [
-            "AGENTS.md",
-            "docs/shared/stage-lexicon.md",
-            "docs/loops/template.loop-pack.md",
-            "docs/tasklist/template.md",
-        ]
-        for rel in critical:
-            target = project_root / rel
-            ok = target.exists()
-            rows.append((f"{DEFAULT_PROJECT_SUBDIR}/{rel}", ok, str(target)))
-            if not ok:
-                errors.append(f"Missing critical artifact: {target}")
+        docs_ok = project_root.exists() and (project_root / "docs").exists()
+        rows.append((f"{DEFAULT_PROJECT_SUBDIR}/docs", docs_ok, str(project_root)))
+        if not docs_ok:
+            errors.append(
+                "Run /feature-dev-aidd:aidd-init or "
+                "'python3 ${AIDD_ROOT}/skills/aidd-init/runtime/init.py' from the workspace root to bootstrap."
+            )
+        else:
+            critical = [
+                "AGENTS.md",
+                "docs/shared/stage-lexicon.md",
+                "docs/loops/template.loop-pack.md",
+                "docs/tasklist/template.md",
+            ]
+            for rel in critical:
+                target = project_root / rel
+                ok = target.exists()
+                rows.append((f"{DEFAULT_PROJECT_SUBDIR}/{rel}", ok, str(target)))
+                if not ok:
+                    errors.append(f"Missing critical artifact: {target}")
 
     print("AIDD Doctor")
     for name, ok, detail in rows:

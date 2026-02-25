@@ -47,42 +47,35 @@ export AIDD_ROOT=/path/to/aidd-plugin
 python3 $AIDD_ROOT/skills/aidd-observability/runtime/doctor.py
 ```
 
-## 使用方式（Stage Commands）
+## 使用方式（Slash Commands）
+
+命令展示风格统一为 Slash Commands：初始化使用 `/aidd-init-flow`，后续阶段使用 `/skill:*`。
 
 首次在目标项目执行：
 
 ```text
-/flow:aidd-init-flow
+/aidd-init-flow
 ```
 
 之后按阶段执行：
 
 ```text
-/skill:idea-new <ticket> "需求描述"
-/skill:researcher <ticket>
-/skill:plan-new <ticket>
-/skill:review-spec <ticket>
-/skill:spec-interview <ticket>
-/skill:tasks-new <ticket>
-/skill:implement <ticket>
-/skill:review <ticket>
-/skill:qa <ticket>
+/skill:idea-new FUNC-001 "需求描述"
+/skill:researcher FUNC-001
+/skill:plan-new FUNC-001
+/skill:review-spec FUNC-001
+/skill:spec-interview FUNC-001
+/skill:tasks-new FUNC-001
+/skill:implement FUNC-001
+/skill:review FUNC-001
+/skill:qa FUNC-001
 ```
-
-兼容别名（迁移期）仍可用：
-
-- `/flow:aidd-idea-flow` -> `/skill:idea-new`
-- `/flow:aidd-research-flow` -> `/skill:researcher`
-- `/flow:aidd-plan-flow` -> `/skill:plan-new`
-- `/flow:aidd-implement-flow` -> `/skill:implement`
-- `/flow:aidd-review-flow` -> `/skill:review`
-- `/flow:aidd-qa-flow` -> `/skill:qa`
 
 ## Stage Dispatch Runtime 说明
 
 `aidd_runtime/stage_dispatch.py` 负责把宿主命令归一到统一 runtime 入口：
 
-- 归一命令名与 legacy alias。
+- 归一命令名到统一 runtime 入口。
 - 自动解析/注入 `--ticket`（未显式传入时读取 `docs/.active.json`）。
 - 自动推进 active feature/stage（调用 `aidd-flow-state` 脚本）。
 - `implement/review/qa` 默认执行 preflight gates。
