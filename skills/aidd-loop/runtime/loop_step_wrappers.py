@@ -79,9 +79,7 @@ def resolve_runner(args_runner: str | None, plugin_root: Path) -> tuple[list[str
         or os.environ.get("AIDD_LOOP_RUNNER")
         or os.environ.get("AIDD_RUNNER")
         or (
-            "codex"
-            if (os.environ.get("AIDD_IDE_PROFILE") or "").strip().lower() == "codex"
-            else ""
+            "codex" if (os.environ.get("AIDD_IDE_PROFILE") or "").strip().lower() == "codex" else ""
         )
     )
     if not str(raw).strip():

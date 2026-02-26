@@ -32,5 +32,9 @@ def test_bootstrap_entrypoints_import_os_before_use() -> None:
         }
     )
 
-    bad = [str(path.relative_to(repo_root)) for path in candidates if _bootstrap_missing_os_import(path)]
+    bad = [
+        str(path.relative_to(repo_root))
+        for path in candidates
+        if _bootstrap_missing_os_import(path)
+    ]
     assert bad == [], f"_bootstrap_entrypoint() uses os.environ before importing os: {bad}"

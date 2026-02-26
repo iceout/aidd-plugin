@@ -133,4 +133,6 @@ def test_check_tasklist_text_warns_when_spec_detection_sections_missing(tmp_path
     result = tasklist_validate.check_tasklist_text(root, "TK-1", text)
     assert result.status == "warn"
     assert result.details is not None
-    assert any("PRD missing target AIDD sections for spec detection" in item for item in result.details)
+    assert any(
+        "PRD missing target AIDD sections for spec detection" in item for item in result.details
+    )

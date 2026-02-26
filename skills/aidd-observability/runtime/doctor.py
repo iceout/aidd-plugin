@@ -98,9 +98,7 @@ def main(argv: list[str] | None = None) -> int:
         errors.append(f"Workspace root does not exist: {workspace_root}.")
 
     running_from_plugin_repo = bool(
-        plugin_root
-        and workspace_root == plugin_root
-        and (plugin_root / ".aidd-plugin").exists()
+        plugin_root and workspace_root == plugin_root and (plugin_root / ".aidd-plugin").exists()
     )
     if running_from_plugin_repo:
         rows.append(

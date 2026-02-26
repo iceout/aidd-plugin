@@ -954,7 +954,9 @@ def rel_path(root: Path, path: Path) -> str:
         return str(path)
 
 
-def extract_section_text(text: str, titles: Iterable[str], *, fallback_to_full: bool = False) -> str:
+def extract_section_text(
+    text: str, titles: Iterable[str], *, fallback_to_full: bool = False
+) -> str:
     lines = text.splitlines()
     _, section_map = parse_sections(lines)
     collected: list[str] = []
