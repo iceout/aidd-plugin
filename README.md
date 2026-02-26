@@ -143,3 +143,4 @@ aidd-plugin/
 - 多 IDE 采用指南：`docs/adoption-codex-cursor-kimi.md`
 - 进度计划：`docs/update-plan.md`
 - 任务清单：`docs/task-todo-list.md`
+# Trigger CI
