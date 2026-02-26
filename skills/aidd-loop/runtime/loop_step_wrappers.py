@@ -74,8 +74,23 @@ def validate_command_available(plugin_root: Path, stage: str) -> tuple[bool, str
 
 
 def resolve_runner(args_runner: str | None, plugin_root: Path) -> tuple[list[str], str, str]:
-    raw = args_runner or os.environ.get("AIDD_LOOP_RUNNER") or "claude"
-    tokens = shlex.split(raw) if raw.strip() else ["claude"]
+    raw = (
+        args_runner
+        or os.environ.get("AIDD_LOOP_RUNNER")
+        or os.environ.get("AIDD_RUNNER")
+        or (
+            "codex"
+            if (os.environ.get("AIDD_IDE_PROFILE") or "").strip().lower() == "codex"
+            else ""
+        )
+    )
+    if not str(raw).strip():
+        return (
+            [],
+            "",
+            "runner not configured; set --runner or AIDD_LOOP_RUNNER (for Codex use 'codex')",
+        )
+    tokens = shlex.split(raw) if raw.strip() else []
     notices: list[str] = []
     if "-p" in tokens:
         tokens = [token for token in tokens if token != "-p"]

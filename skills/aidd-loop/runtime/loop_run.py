@@ -354,8 +354,17 @@ def main(argv: list[str] | None = None) -> int:
         runner_effective = step_payload.get("runner_effective") or ""
         if not str(runner_effective).strip():
             runner_effective = (
-                str(args.runner or os.environ.get("AIDD_LOOP_RUNNER") or "claude").strip()
-                or "claude"
+                str(
+                    args.runner
+                    or os.environ.get("AIDD_LOOP_RUNNER")
+                    or os.environ.get("AIDD_RUNNER")
+                    or (
+                        "codex"
+                        if (os.environ.get("AIDD_IDE_PROFILE") or "").strip().lower() == "codex"
+                        else ""
+                    )
+                ).strip()
+                or "unset"
             )
         step_stream_log = step_payload.get("stream_log_path") or ""
         step_stream_jsonl = step_payload.get("stream_jsonl_path") or ""

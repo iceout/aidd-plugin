@@ -20,6 +20,7 @@ class DispatchSpec:
     requires_workflow: bool = True
     set_feature: bool = True
     set_stage: bool = True
+    execution_mode: str = "direct"  # direct | loop_step
 
 
 @dataclass(frozen=True)
@@ -91,16 +92,19 @@ DISPATCH_SPECS: dict[str, DispatchSpec] = {
         command="implement",
         stage="implement",
         entrypoint="skills/implement/runtime/implement_run.py",
+        execution_mode="loop_step",
     ),
     "review": DispatchSpec(
         command="review",
         stage="review",
         entrypoint="skills/review/runtime/review_run.py",
+        execution_mode="loop_step",
     ),
     "qa": DispatchSpec(
         command="qa",
         stage="qa",
         entrypoint="skills/aidd-core/runtime/qa_gate.py",
+        execution_mode="loop_step",
     ),
 }
 
@@ -222,6 +226,21 @@ def dispatch_stage_command(
             command=(),
         )
 
+    execution_mode = _resolve_execution_mode(target)
+    if execution_mode == "loop_step":
+        loop_result = _dispatch_via_loop_step(
+            target,
+            plugin_root=plugin_root,
+            workspace_root=workspace_root,
+            project_root=project_root,
+            profile=profile_cfg,
+            env=env,
+            ticket=effective_ticket or "",
+            argv=argv,
+            check=check,
+        )
+        return loop_result
+
     script_path = (plugin_root / target.spec.entrypoint).resolve()
     if not script_path.exists():
         raise FileNotFoundError(f"entrypoint not found: {script_path}")
@@ -251,6 +270,74 @@ def dispatch_stage_command(
         workspace_root=workspace_root,
         project_root=project_root,
         returncode=command_result.returncode,
+        stdout=command_result.stdout,
+        stderr=command_result.stderr,
+        command=command_result.command,
+    )
+
+
+def _resolve_execution_mode(target: DispatchTarget) -> str:
+    mode = str(target.spec.execution_mode or "direct").strip().lower()
+    if mode != "loop_step":
+        return "direct"
+    if not _env_enabled("AIDD_STAGE_DISPATCH_LOOP_STEP", default=True):
+        return "direct"
+    return "loop_step"
+
+
+def _dispatch_via_loop_step(
+    target: DispatchTarget,
+    *,
+    plugin_root: Path,
+    workspace_root: Path,
+    project_root: Path,
+    profile: ide_profiles.IdeProfile,
+    env: dict[str, str],
+    ticket: str,
+    argv: Sequence[str] | None,
+    check: bool,
+) -> DispatchResult:
+    loop_step = (plugin_root / "skills" / "aidd-loop" / "runtime" / "loop_step.py").resolve()
+    if not loop_step.exists():
+        raise FileNotFoundError(f"loop-step entrypoint not found: {loop_step}")
+
+    if not ticket:
+        raise ValueError(f"ticket is required for '{target.resolved_command}' via loop_step")
+
+    stage_argv = list(argv or [])
+    if not _contains_flag(stage_argv, "--ticket"):
+        stage_argv = ["--ticket", ticket, *stage_argv]
+    if target.spec.stage and not _contains_flag(stage_argv, "--requested-stage"):
+        stage_argv = ["--requested-stage", target.spec.stage, *stage_argv]
+    if profile.name == "codex" and not _contains_flag(stage_argv, "--runner"):
+        stage_argv = ["--runner", "codex", *stage_argv]
+
+    command_result = command_runner.run_python(
+        loop_step,
+        argv=stage_argv,
+        cwd=workspace_root,
+        profile=profile,
+        env=env,
+        check=False,
+        error_context=f"dispatch failed for '{target.resolved_command}' via loop_step",
+    )
+
+    normalized_returncode = command_result.returncode
+    # loop_step uses 10 to mean "continue"; stage command UX should treat that as a successful run.
+    if normalized_returncode == 10:
+        normalized_returncode = 0
+
+    if check and normalized_returncode != 0:
+        summary = (command_result.stderr or command_result.stdout or "").strip()
+        raise RuntimeError(summary)
+
+    return DispatchResult(
+        target=target,
+        profile=profile.name,
+        ticket=ticket,
+        workspace_root=workspace_root,
+        project_root=project_root,
+        returncode=normalized_returncode,
         stdout=command_result.stdout,
         stderr=command_result.stderr,
         command=command_result.command,

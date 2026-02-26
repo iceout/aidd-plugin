@@ -573,7 +573,15 @@ def append_cli_log(log_path: Path, payload: dict[str, object]) -> None:
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Execute a single loop step (implement/review).")
     parser.add_argument("--ticket", help="Ticket identifier (defaults to docs/.active.json).")
-    parser.add_argument("--runner", help="Runner command override (default: claude).")
+    parser.add_argument(
+        "--runner",
+        help="Runner command override (defaults to AIDD_LOOP_RUNNER/AIDD_RUNNER; Codex profile infers 'codex').",
+    )
+    parser.add_argument(
+        "--requested-stage",
+        choices=("implement", "review", "qa"),
+        help="Dispatch caller expected stage (used for clearer mismatch diagnostics).",
+    )
     parser.add_argument(
         "--format", choices=("json", "yaml"), help="Emit structured output to stdout."
     )
@@ -619,7 +627,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     runner_hint = (
-        str(args.runner or os.environ.get("AIDD_LOOP_RUNNER") or "claude").strip() or "claude"
+        str(
+            args.runner
+            or os.environ.get("AIDD_LOOP_RUNNER")
+            or os.environ.get("AIDD_RUNNER")
+            or (
+                "codex"
+                if (os.environ.get("AIDD_IDE_PROFILE") or "").strip().lower() == "codex"
+                else ""
+            )
+        ).strip()
+        or "unset"
     )
     os.environ["AIDD_LOOP_RUNNER_HINT"] = runner_hint
     workspace_root, target = runtime.require_workflow_root()
@@ -637,6 +655,26 @@ def main(argv: list[str] | None = None) -> int:
     cli_log_path = target / "reports" / "loops" / ticket / f"cli.loop-step.{stamp}.log"
 
     stage = read_active_stage(target)
+    requested_stage = str(getattr(args, "requested_stage", "") or "").strip()
+    if requested_stage and stage and stage != requested_stage:
+        reason = (
+            f"requested stage '{requested_stage}' but active stage is '{stage}'. "
+            "Update docs/.active.json stage or use the matching stage command."
+        )
+        reason_code = "requested_stage_mismatch"
+        return emit_result(
+            args.format,
+            ticket,
+            stage,
+            "blocked",
+            BLOCKED_CODE,
+            "",
+            reason,
+            reason_code,
+            cli_log_path=cli_log_path,
+        )
+    if requested_stage and not stage:
+        stage = requested_stage
     stream_mode = resolve_stream_mode(getattr(args, "stream", None))
     from_qa_mode, from_qa_requested = _resolve_qa_repair_mode(args.from_qa, target)
     reason = ""
@@ -1013,6 +1051,23 @@ def main(argv: list[str] | None = None) -> int:
             cli_log_path=cli_log_path,
         )
     runner_tokens, runner_raw, runner_notice = resolve_runner(args.runner, plugin_root)
+    if not runner_tokens:
+        return emit_result(
+            args.format,
+            ticket,
+            next_stage,
+            "blocked",
+            BLOCKED_CODE,
+            "",
+            "runner not configured; set --runner or AIDD_LOOP_RUNNER (for Codex use 'codex')",
+            "runner_not_configured",
+            scope_key=wrapper_scope_key,
+            runner=runner_raw,
+            runner_notice=runner_notice,
+            repair_reason_code=repair_reason_code,
+            repair_scope_key=repair_scope_key,
+            cli_log_path=cli_log_path,
+        )
     wrapper_enabled = should_run_wrappers(next_stage, runner_raw, wrapper_plugin_root)
     wrapper_logs: list[str] = []
     actions_log_rel = ""
@@ -1585,8 +1640,13 @@ def emit_result(
         runner_value = (
             os.environ.get("AIDD_LOOP_RUNNER_HINT")
             or os.environ.get("AIDD_LOOP_RUNNER")
-            or "claude"
-        ).strip() or "claude"
+            or os.environ.get("AIDD_RUNNER")
+            or (
+                "codex"
+                if (os.environ.get("AIDD_IDE_PROFILE") or "").strip().lower() == "codex"
+                else "unset"
+            )
+        ).strip() or "unset"
     runner_effective_value = str(runner_effective or "").strip() or runner_value
 
     cli_log_value = str(cli_log_path) if cli_log_path else ""

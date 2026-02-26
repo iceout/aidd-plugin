@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from aidd_runtime import loop_step_policy
+from aidd_runtime import loop_step_wrappers
 
 
 def test_resolve_stream_mode_aliases() -> None:
@@ -43,3 +44,15 @@ def test_evaluate_wrapper_skip_policy_blocks_in_strict_mode(
     assert status == "blocked"
     assert "AIDD_SKIP_STAGE_WRAPPERS=1" in message
     assert reason_code == "wrappers_skipped_unsafe"
+
+
+def test_resolve_runner_prefers_codex_profile(monkeypatch) -> None:
+    plugin_root = Path(__file__).resolve().parents[2]
+    monkeypatch.delenv("AIDD_LOOP_RUNNER", raising=False)
+    monkeypatch.delenv("AIDD_RUNNER", raising=False)
+    monkeypatch.setenv("AIDD_IDE_PROFILE", "codex")
+
+    tokens, raw, notice = loop_step_wrappers.resolve_runner(None, plugin_root)
+    assert raw == "codex"
+    assert tokens[0] == "codex"
+    assert "runner not configured" not in notice
