@@ -141,7 +141,12 @@ def check_tasklist_text(
     if (plan_path.exists() or prd_path.exists()) and not (spec_path and spec_path.exists()):
         plan_text = core.read_text(plan_path) if plan_path.exists() else ""
         prd_text = core.read_text(prd_path) if prd_path.exists() else ""
-        plan_spec_titles = ("AIDD:FILES_TOUCHED", "AIDD:ITERATIONS", "AIDD:DESIGN", "AIDD:TEST_STRATEGY")
+        plan_spec_titles = (
+            "AIDD:FILES_TOUCHED",
+            "AIDD:ITERATIONS",
+            "AIDD:DESIGN",
+            "AIDD:TEST_STRATEGY",
+        )
         prd_spec_titles = ("AIDD:ACCEPTANCE", "AIDD:GOALS", "AIDD:NON_GOALS", "AIDD:ROLL_OUT")
         if plan_text and not core.has_any_section(plan_text, plan_spec_titles):
             add_issue(

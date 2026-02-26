@@ -372,7 +372,9 @@ def test_dispatch_loop_step_route_preserves_wrapper_artifacts_for_loop_stages(
         ticket = argv[ticket_idx + 1]
         scope_key = ticket
 
-        preflight_path = project_root / "reports" / "loops" / ticket / scope_key / "stage.preflight.result.json"
+        preflight_path = (
+            project_root / "reports" / "loops" / ticket / scope_key / "stage.preflight.result.json"
+        )
         wrapper_log_path = (
             project_root
             / "reports"
@@ -382,7 +384,9 @@ def test_dispatch_loop_step_route_preserves_wrapper_artifacts_for_loop_stages(
             / scope_key
             / "wrapper.preflight.test.log"
         )
-        actions_path = project_root / "reports" / "actions" / ticket / scope_key / f"{stage}.actions.json"
+        actions_path = (
+            project_root / "reports" / "actions" / ticket / scope_key / f"{stage}.actions.json"
+        )
         stage_result_path = (
             project_root / "reports" / "loops" / ticket / scope_key / f"stage.{stage}.result.json"
         )
@@ -393,7 +397,9 @@ def test_dispatch_loop_step_route_preserves_wrapper_artifacts_for_loop_stages(
         stdout_payload = {
             "status": "continue" if loop_rc == 10 else "done",
             "stage": stage,
-            "wrapper_logs": [f"aidd/reports/logs/{stage}/{ticket}/{scope_key}/wrapper.preflight.test.log"],
+            "wrapper_logs": [
+                f"aidd/reports/logs/{stage}/{ticket}/{scope_key}/wrapper.preflight.test.log"
+            ],
             "actions_log_path": f"aidd/reports/actions/{ticket}/{scope_key}/{stage}.actions.json",
             "stage_result_path": f"aidd/reports/loops/{ticket}/{scope_key}/stage.{stage}.result.json",
         }
@@ -428,7 +434,9 @@ def test_dispatch_loop_step_route_preserves_wrapper_artifacts_for_loop_stages(
     assert command[idx + 1] == expected_stage
 
     scope_key = ticket
-    assert (project_root / "reports" / "loops" / ticket / scope_key / "stage.preflight.result.json").exists()
+    assert (
+        project_root / "reports" / "loops" / ticket / scope_key / "stage.preflight.result.json"
+    ).exists()
     assert (
         project_root
         / "reports"
