@@ -29,6 +29,32 @@ def test_parse_front_matter_and_sections() -> None:
     assert "NotAidd" not in section_map
 
 
+def test_parse_sections_accepts_numbered_aidd_headers() -> None:
+    lines = [
+        "## 7. AIDD:GOALS",
+        "- docs-only update",
+        "## 8. AIDD:NON_GOALS",
+        "- no api changes",
+    ]
+    sections, section_map = parser.parse_sections(lines)
+    assert [section.title for section in sections] == ["AIDD:GOALS", "AIDD:NON_GOALS"]
+    assert "AIDD:GOALS" in section_map
+
+
+def test_extract_section_text_does_not_fallback_to_full_by_default() -> None:
+    text = "\n".join(
+        [
+            "# PRD",
+            "Some prose mentioning web/flask_app.py and api endpoint",
+            "## Notes",
+            "no aidd sections here",
+        ]
+    )
+    extracted = parser.extract_section_text(text, ("AIDD:GOALS", "AIDD:ACCEPTANCE"))
+    assert extracted == ""
+    assert parser.mentions_spec_required(extracted) is False
+
+
 def test_parse_iteration_items_supports_inline_and_list_fields() -> None:
     section_lines = [
         "- [ ] I1: Build API (iteration_id: I1) (priority: high) (blocking: true)",

@@ -102,3 +102,35 @@ def test_check_tasklist_text_flags_ready_with_not_met_traceability(tmp_path: Pat
     assert result.status == "error"
     assert result.details is not None
     assert any("Status READY with QA_TRACEABILITY NOT MET" in item for item in result.details)
+
+
+def test_check_tasklist_text_warns_when_spec_detection_sections_missing(tmp_path: Path) -> None:
+    root = tmp_path / "aidd"
+    _write(
+        root / "docs" / "plan" / "TK-1.md",
+        "\n".join(
+            [
+                "## AIDD:OTHER",
+                "- mentions web/flask_app.py but not in spec-detection sections",
+                "## AIDD:ITERATIONS",
+                "- Docs patch only (iteration_id: I1)",
+            ]
+        ),
+    )
+    _write(
+        root / "docs" / "prd" / "TK-1.prd.md",
+        "\n".join(
+            [
+                "# PRD",
+                "web/flask_app.py appears in free text",
+                "## AIDD:RESEARCH_HINTS",
+                "- Paths: docs/",
+            ]
+        ),
+    )
+
+    text = _base_tasklist_text().replace("Spec: docs/spec/TK-1.spec.yaml", "Spec: none")
+    result = tasklist_validate.check_tasklist_text(root, "TK-1", text)
+    assert result.status == "warn"
+    assert result.details is not None
+    assert any("PRD missing target AIDD sections for spec detection" in item for item in result.details)

@@ -109,6 +109,7 @@ PROGRESS_KINDS = {"iteration", "handoff"}
 STRICT_STAGES = {"review", "qa"}
 
 SECTION_HEADER_RE = re.compile(r"^##\s+(.+?)\s*$")
+NUMBERED_AIDD_TITLE_RE = re.compile(r"^(?:\d+\.\s+)?(AIDD:.+)$", re.IGNORECASE)
 CHECKBOX_RE = re.compile(r"^\s*-\s*\[(?P<state>[ xX])\]\s+(?P<body>.+)$")
 REF_RE = re.compile(r"\bref\s*:\s*([^\)]+)")
 ID_RE = re.compile(r"\bid\s*:\s*([A-Za-z0-9_.:-]+)")
@@ -307,9 +308,11 @@ def parse_sections(lines: list[str]) -> tuple[list[Section], dict[str, list[Sect
         match = SECTION_HEADER_RE.match(line)
         if not match:
             continue
-        title = match.group(1).strip()
-        if not title.startswith("AIDD:"):
+        raw_title = match.group(1).strip()
+        normalized_match = NUMBERED_AIDD_TITLE_RE.match(raw_title)
+        if not normalized_match:
             continue
+        title = normalized_match.group(1).strip()
         if sections:
             sections[-1].end = idx
         sections.append(Section(title=title, start=idx, end=len(lines), lines=[]))
@@ -951,14 +954,22 @@ def rel_path(root: Path, path: Path) -> str:
         return str(path)
 
 
-def extract_section_text(text: str, titles: Iterable[str]) -> str:
+def extract_section_text(text: str, titles: Iterable[str], *, fallback_to_full: bool = False) -> str:
     lines = text.splitlines()
     _, section_map = parse_sections(lines)
     collected: list[str] = []
     for title in titles:
         for section in section_map.get(title, []):
             collected.extend(section_body(section))
-    return "\n".join(collected) if collected else text
+    if collected:
+        return "\n".join(collected)
+    return text if fallback_to_full else ""
+
+
+def has_any_section(text: str, titles: Iterable[str]) -> bool:
+    lines = text.splitlines()
+    _, section_map = parse_sections(lines)
+    return any(section_map.get(title) for title in titles)
 
 
 def mentions_spec_required(text: str) -> bool:
