@@ -27,7 +27,8 @@ Single entry point for AIDD runtime agents within the workspace. Contributor gui
 ## Migration policy (legacy -> RLM-only)
 - Legacy pre-RLM research context/target artifacts are ignored by gates and do not count as evidence.
 - For older workspaces, rebuild the research stage: `python3 ${AIDD_ROOT}/skills/researcher/runtime/research.py --ticket <ticket> --auto`.
-- If research leaves `rlm_status=pending`, hand off to the shared owner: `python3 ${AIDD_ROOT}/skills/aidd-rlm/runtime/rlm_finalize.py --ticket <ticket>`.
+- If research leaves `rlm_status=pending`, run shared owner finalize first: `python3 ${AIDD_ROOT}/skills/aidd-rlm/runtime/rlm_finalize.py --ticket <ticket>`.
+- `rlm_finalize.py` auto-bootstraps missing `*-rlm.nodes.jsonl` by default; treat as BLOCKED only if finalize still fails.
 - Plan/review/qa readiness gates require the RLM minimum: `rlm-targets`, `rlm-manifest`, `rlm.worklist.pack`, `rlm.nodes`, `rlm.links`, `rlm.pack`.
 
 ## Capturing user answers

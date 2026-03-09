@@ -33,6 +33,7 @@ def _bootstrap_entrypoint() -> None:
 _bootstrap_entrypoint()
 
 import argparse
+import sys
 from pathlib import Path
 
 from aidd_runtime import (
@@ -53,6 +54,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--nodes", help="Override nodes.jsonl path.")
     parser.add_argument("--links", help="Override links.jsonl path.")
     parser.add_argument("--targets", help="Override rlm-targets.json path for link build.")
+    parser.add_argument(
+        "--no-bootstrap-missing-nodes",
+        action="store_true",
+        help="Do not auto-bootstrap nodes when nodes.jsonl is missing or empty.",
+    )
     return parser.parse_args(argv)
 
 
@@ -75,8 +81,23 @@ def main(argv: list[str] | None = None) -> int:
         runtime.resolve_path_for_target(Path(args.targets), project_root) if args.targets else None
     )
 
+    nodes_missing = not nodes_path.exists() or nodes_path.stat().st_size == 0
+    if nodes_missing and not args.no_bootstrap_missing_nodes:
+        print(
+            "[aidd] rlm nodes missing; attempting bootstrap before finalize.",
+            file=sys.stderr,
+        )
+        bootstrap_args = ["--ticket", ticket, "--bootstrap"]
+        if args.nodes:
+            bootstrap_args.extend(["--nodes", str(nodes_path)])
+        rlm_nodes_build.main(bootstrap_args)
     if not nodes_path.exists() or nodes_path.stat().st_size == 0:
-        raise SystemExit(f"rlm nodes not found or empty: {nodes_path}")
+        raise SystemExit(
+            "rlm nodes not found or empty: "
+            f"{nodes_path}. Hint: run "
+            f"`python3 ${{AIDD_ROOT}}/skills/aidd-rlm/runtime/rlm_nodes_build.py "
+            f"--ticket {ticket} --bootstrap`."
+        )
 
     verify_args = ["--ticket", ticket]
     if args.nodes:

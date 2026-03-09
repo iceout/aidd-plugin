@@ -17,10 +17,11 @@ user-invocable: false
 
 ## Evidence policy
 - Read pack first: `aidd/reports/research/<ticket>-rlm.pack.json`.
-- If pack is missing, use `*-rlm.worklist.pack.json` and return BLOCKED with handoff.
+- If pack is missing, use `*-rlm.worklist.pack.json` and run finalize first.
 - Use targeted slice queries before broad reads.
 
 ## Handoff policy
-- If `rlm_status` is not ready, return BLOCKED with:
+- If `rlm_status` is not ready, run:
   `python3 ${AIDD_ROOT}/skills/aidd-rlm/runtime/rlm_finalize.py --ticket <ticket>`.
+- `rlm_finalize.py` auto-bootstraps missing nodes by default; return BLOCKED only if finalize still fails.
 - If ready, update research doc and return READY with next-stage hint.
