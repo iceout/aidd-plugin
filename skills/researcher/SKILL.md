@@ -16,9 +16,11 @@ Follow `aidd-core`.
 3. Re-run with optional overrides (`--paths`, `--keywords`, `--note`) when targeted refresh is required.
 4. Validate RLM outputs (`*-rlm-targets.json`, `*-rlm-manifest.json`, `*-rlm.worklist.pack.json`, `*-rlm.pack.json`).
 5. Run subagent `researcher`, reading pack/worklist first.
-6. If RLM is still pending, return BLOCKED with handoff:
+6. If RLM is still pending, run:
    `python3 ${AIDD_ROOT}/skills/aidd-rlm/runtime/rlm_finalize.py --ticket <ticket>`.
-7. Return output contract and next step `/skill:plan-new <ticket>` when ready.
+   `rlm_finalize.py` now auto-bootstraps missing `*-rlm.nodes.jsonl` by default.
+7. Re-check artifacts. Return READY + `/skill:plan-new <ticket>` when `*-rlm.pack.json` is present.
+8. Return BLOCKED only when finalize still fails after auto-bootstrap.
 
 ## Command contracts
 ### `python3 ${AIDD_ROOT}/skills/researcher/runtime/research.py`
