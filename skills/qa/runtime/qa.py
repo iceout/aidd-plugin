@@ -141,6 +141,13 @@ def _strip_placeholder(value: str) -> str:
     return text
 
 
+def _strip_wrapping_ticks(value: str) -> str:
+    text = value.strip()
+    if len(text) >= 2 and text.startswith("`") and text.endswith("`"):
+        return text[1:-1].strip()
+    return text
+
+
 def _load_tasklist_test_execution(root: Path, ticket: str) -> dict:
     path = root / "docs" / "tasklist" / f"{ticket}.md"
     if not path.exists():
@@ -153,6 +160,32 @@ def _load_tasklist_test_execution(root: Path, ticket: str) -> dict:
     if not section:
         return {}
     return tasklist_parser.parse_test_execution(section)
+
+
+def _resolve_tasklist_cwd(value: str, *, target_root: Path, workspace_root: Path) -> Path:
+    token = (value or "").strip()
+    if not token:
+        return workspace_root
+
+    lowered = token.lower()
+    if lowered in {"repo_root", "workspace_root", "root"}:
+        return workspace_root
+    if lowered in {"aidd", "aidd_root", "project_root"}:
+        return target_root
+
+    candidate = Path(token)
+    if not candidate.is_absolute():
+        candidate = (workspace_root / candidate).resolve()
+    else:
+        candidate = candidate.resolve()
+    if candidate.exists() and candidate.is_dir():
+        return candidate
+
+    print(
+        f"[aidd] WARN: invalid AIDD:TEST_EXECUTION cwd `{token}`; falling back to repo_root.",
+        file=sys.stderr,
+    )
+    return workspace_root
 
 
 def _has_tasklist_execution(data: dict) -> bool:
@@ -170,6 +203,9 @@ def _commands_from_tasks(tasks: list[str]) -> list[list[str]]:
     for raw in tasks:
         task = _strip_placeholder(str(raw))
         if not task or task.lower() in {"none", "[]", "(none)", "n/a"}:
+            continue
+        task = _strip_wrapping_ticks(task)
+        if not task:
             continue
         try:
             parts = [token for token in shlex.split(task) if token]
@@ -419,6 +455,7 @@ def _run_qa_tests(
     branch: str | None,
     report_path: Path,
     allow_missing: bool,
+    default_cwd: Path,
     commands_override: list[list[str]] | None = None,
     allow_skip_override: bool | None = None,
 ) -> tuple[list[dict], str]:
@@ -445,7 +482,7 @@ def _run_qa_tests(
     for index, cmd in enumerate(commands, start=1):
         execution_plans = _command_execution_plans(
             cmd,
-            target_root=target,
+            target_root=default_cwd,
             workspace_root=workspace_root,
         )
         for plan_index, (plan_cmd, plan_cwd, display_cmd) in enumerate(execution_plans, start=1):
@@ -647,6 +684,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     tasklist_tasks = tasklist_exec.get("tasks") or []
     tasklist_filters = tasklist_exec.get("filters") or []
+    tasklist_cwd = str(tasklist_exec.get("cwd") or "").strip()
+    tests_cwd = _resolve_tasklist_cwd(
+        tasklist_cwd,
+        target_root=target,
+        workspace_root=workspace_root,
+    )
     tasklist_commands: list[list[str]] = []
     if tasklist_exec_present and tasklist_profile != "none":
         tasklist_commands = _commands_from_tasks(list(tasklist_tasks))
@@ -668,6 +711,7 @@ def main(argv: list[str] | None = None) -> int:
             branch=branch,
             report_path=report_path,
             allow_missing=allow_no_tests,
+            default_cwd=tests_cwd,
             commands_override=commands_override,
             allow_skip_override=allow_skip_override,
         )
@@ -747,7 +791,7 @@ def main(argv: list[str] | None = None) -> int:
                 "source": "tasklist" if tasklist_exec_present else "config",
             },
             source="qa",
-            cwd=str(target),
+            cwd=str(tests_cwd),
         )
     except Exception:
         pass

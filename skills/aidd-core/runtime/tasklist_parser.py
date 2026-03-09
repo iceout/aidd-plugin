@@ -93,6 +93,73 @@ def _dedupe(items: list[str]) -> list[str]:
     return deduped
 
 
+def _strip_task_ticks(value: str) -> str:
+    text = value.strip()
+    if len(text) >= 2 and text.startswith("`") and text.endswith("`"):
+        return text[1:-1].strip()
+    return text
+
+
+def _split_task_commands(raw: str) -> list[str]:
+    text = _strip_task_ticks(raw)
+    if not text:
+        return []
+
+    parts: list[str] = []
+    buf: list[str] = []
+    in_single = False
+    in_double = False
+    escape = False
+    idx = 0
+
+    def _flush() -> None:
+        item = "".join(buf).strip()
+        buf.clear()
+        if item:
+            parts.append(item)
+
+    while idx < len(text):
+        ch = text[idx]
+        if escape:
+            buf.append(ch)
+            escape = False
+            idx += 1
+            continue
+
+        if ch == "\\" and not in_single:
+            buf.append(ch)
+            escape = True
+            idx += 1
+            continue
+
+        if ch == "'" and not in_double:
+            in_single = not in_single
+            buf.append(ch)
+            idx += 1
+            continue
+        if ch == '"' and not in_single:
+            in_double = not in_double
+            buf.append(ch)
+            idx += 1
+            continue
+
+        if not in_single and not in_double:
+            if ch == ";":
+                _flush()
+                idx += 1
+                continue
+            if ch == "&" and idx + 1 < len(text) and text[idx + 1] == "&":
+                _flush()
+                idx += 2
+                continue
+
+        buf.append(ch)
+        idx += 1
+
+    _flush()
+    return parts
+
+
 def _extract_paths_from_brackets(text: str) -> list[str]:
     results: list[str] = []
     for match in re.findall(r"\[([^\]]+)\]", text):
@@ -159,15 +226,17 @@ def parse_test_execution(lines: list[str]) -> dict[str, object]:
     profile = (extract_scalar_field(lines, "profile") or "").strip()
     tasks_raw = extract_scalar_field(lines, "tasks") or ""
     filters_raw = extract_scalar_field(lines, "filters") or ""
+    cwd = (extract_scalar_field(lines, "cwd") or "").strip()
     when = (extract_scalar_field(lines, "when") or "").strip()
     reason = (extract_scalar_field(lines, "reason") or "").strip()
     tasks_list = extract_list_field(lines, "tasks")
     filters_list = extract_list_field(lines, "filters")
     tasks: list[str] = []
     if tasks_list:
-        tasks = tasks_list
+        for item in tasks_list:
+            tasks.extend(_split_task_commands(item))
     elif tasks_raw:
-        tasks = [item.strip() for item in re.split(r"\s*;\s*", tasks_raw) if item.strip()]
+        tasks = _split_task_commands(tasks_raw)
     filters: list[str] = []
     if filters_list:
         filters = filters_list
@@ -177,6 +246,7 @@ def parse_test_execution(lines: list[str]) -> dict[str, object]:
         "profile": profile,
         "tasks": tasks,
         "filters": filters,
+        "cwd": cwd,
         "when": when,
         "reason": reason,
     }

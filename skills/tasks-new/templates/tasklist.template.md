@@ -103,7 +103,11 @@ Spec: aidd/docs/spec/<ABC-123>.spec.yaml (status: <draft|ready>|none)
 ## AIDD:TEST_EXECUTION
 > Concrete commands/filters (execution level).
 - profile: <fast|targeted|full|none>
-- tasks: <commands/tasks>
+- tasks:
+  - <command 1>
+  - <command 2>
+  > one command per item; avoid wrapping with backticks and avoid chaining with `&&`
+- cwd: <repo_root|aidd|relative/path>  # optional, default repo_root
 - filters: <filters>
 - when: <on_stop|checkpoint|manual>
 - reason: <why this profile>
